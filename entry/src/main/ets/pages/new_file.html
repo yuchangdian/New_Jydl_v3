@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>继电保护装置操作界面</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .container {
+            width: 1064px;
+            margin: 0 auto;
+            background-color: #fff;
+            border: 1px solid #333;
+            height: 600px;
+        }
+        .top-menu {
+            display: flex;
+            background-color: #e2e6ec;
+            padding: 5px 20px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .menu-item {
+            padding: 8px 15px;
+            margin-left: 3px;
+            margin-right: 3px;
+            background-color: #d6dadc;
+            font-weight: bold;
+            border-radius: 5px;
+            flex: 1;
+            text-align: center;
+            position: relative;
+            cursor: pointer;
+        }
+        .menu-item:hover {
+            background-color: #c0c6cc;
+        }
+        .menu-item:last-child {
+            border-right: none;
+        }
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #d6dadc;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 100;
+            border-radius: 0 0 5px 5px;
+        }
+        .menu-item:hover .dropdown {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 8px 12px;
+            text-align: left;
+            color: #333;
+        }
+        .dropdown-item:hover {
+            background-color: #c0c6cc;
+        }
+        .dropdown-item > a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+        }
+        /* 子项缩进，直接往下显示 */
+        .dropdown-item .sub-item {
+            padding-left: 20px;
+        }
+        .content {
+            display: flex;
+            flex: 1;
+            height: calc(100% - 47px);
+        }
+        .left-panel {
+            width: 220px;
+            background-color: #e2e6ec;
+            padding: 10px;
+            border-top: 1px solid #000;
+        }
+        .right-panel {
+            flex: 1;
+            padding: 10px;
+        }
+        .section-title {
+            font-weight: bold;
+            margin: 10px 0 5px 0;
+            text-align: left;
+        }
+        .data-row {
+            margin: 3px 0;
+            text-align: right;
+        }
+        .section-title1 {
+            text-align: center;
+        }
+        .hard-plate, .soft-plate {
+            margin-top: 15px;
+        }
+        .plate-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .soft-plate-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        .plate-item {
+            margin: 4px 0;
+        }
+        .switch-container {
+            display: flex;
+            align-items: flex-start;
+        }
+        .switch-indicator {
+            margin-right: 10px;
+        }
+        .switch-indicator svg {
+            width: 60px;
+            height: 300px;
+        }
+        .params-list {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-menu">
+            <!-- 运行操作 -->
+            <div class="menu-item">
+                运行操作
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">压板投退</a></div>
+                    <div class="dropdown-item"><a href="#">定值切换</a></div>
+                    <div class="dropdown-item"><a href="#">遥控操作</a></div>
+                    <div class="dropdown-item"><a href="#">浏览</a></div>
+                    <div class="dropdown-item"><a href="#">整定</a></div>
+                </div>
+            </div>
+            <!-- 电能质量 -->
+            <div class="menu-item">
+                电能质量
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">实时指标</a></div>
+                    <div class="dropdown-item"><a href="#">宽频谐波</a></div>
+                    <div class="dropdown-item"><a href="#">告警定值</a></div>
+                    <div class="dropdown-item"><a href="#">浏览</a></div>
+                    <div class="dropdown-item"><a href="#">整定</a></div>
+                </div>
+            </div>
+            <!-- 高级分析 -->
+            <div class="menu-item">
+                高级分析
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">故障特性</a></div>
+                    <div class="dropdown-item"><a href="#">负荷特性</a></div>
+                    <div class="dropdown-item"><a href="#">风险评估</a></div>
+                </div>
+            </div>
+            <!-- 定值管理 -->
+            <div class="menu-item">
+                定值管理
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">一次系统</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+
+                    <div class="dropdown-item"><a href="#">模拟量</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+
+                    <div class="dropdown-item"><a href="#">遥测参数</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+
+                    <div class="dropdown-item"><a href="#">通信参数</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+
+                    <div class="dropdown-item"><a href="#">遥控参数</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+
+                    <div class="dropdown-item"><a href="#">越限报警</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+
+                    <div class="dropdown-item"><a href="#">统计参数</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+
+                    <div class="dropdown-item"><a href="#">保护定值</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">浏览</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">整定</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">拷贝</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">删除</a></div></div>
+                </div>
+            </div>
+            <!-- 报告管理 -->
+            <div class="menu-item">
+                报告管理
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">保护报告</a></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">动作</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">告警</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">录波</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">变位</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">操作</a></div></div>
+                    <div class="dropdown-item"><div class="sub-item"><a href="#">SOE</a></div></div>
+                    <div class="dropdown-item"><a href="#">测控报告</a></div>
+                    <div class="dropdown-item"><a href="#">装置设置</a></div>
+                    <div class="dropdown-item"><a href="#">IEC61850</a></div>
+                </div>
+            </div>
+            <!-- 打印操作 -->
+            <div class="menu-item">
+                打印操作
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">软压板</a></div>
+                    <div class="dropdown-item"><a href="#">设备参数</a></div>
+                    <div class="dropdown-item"><a href="#">系统定值</a></div>
+                    <div class="dropdown-item"><a href="#">测控参数</a></div>
+                    <div class="dropdown-item"><a href="#">保护定值</a></div>
+                    <div class="dropdown-item"><a href="#">保护状态</a></div>
+                </div>
+            </div>
+            <!-- 装置测试 -->
+            <div class="menu-item">
+                装置测试
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">开出测试</a></div>
+                    <div class="dropdown-item"><a href="#">开入测试</a></div>
+                    <div class="dropdown-item"><a href="#">灯光测试</a></div>
+                    <div class="dropdown-item"><a href="#">精度测试</a></div>
+                    <div class="dropdown-item"><a href="#">零漂测试</a></div>
+                    <div class="dropdown-item"><a href="#">远动测试</a></div>
+                    <div class="dropdown-item"><a href="#">试验测试</a></div>
+                </div>
+            </div>
+            <!-- 装置设置 -->
+            <div class="menu-item">
+                装置设置
+                <div class="dropdown">
+                    <div class="dropdown-item"><a href="#">时间设置</a></div>
+                    <div class="dropdown-item"><a href="#">对时设置</a></div>
+                    <div class="dropdown-item"><a href="#">通信设置</a></div>
+                    <div class="dropdown-item"><a href="#">液晶设置</a></div>
+                    <div class="dropdown-item"><a href="#">电度量</a></div>
+                    <div class="dropdown-item"><a href="#">模拟量</a></div>
+                    <div class="dropdown-item"><a href="#">密码设置</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="content">
+            <div class="left-panel">
+                <div class="section-title1" style="font-weight: bold;">频率：**.**Hz</div>
+                <div class="switch-container" style="margin-top: 10px;">
+                    <div class="switch-indicator">
+                        <!-- 画布尺寸设置为80×200，viewBox等比缩放适配 -->
+                        <svg width="80" height="200" viewBox="0 0 80 200">
+                            <!-- 顶部横杠（等比缩小） -->
+                            <line x1="24" y1="12.5" x2="56" y2="12.5" stroke="#000" stroke-width="1.5"/>
+                            <line x1="40" y1="12.5" x2="40" y2="20" stroke="#000" stroke-width="1"/>
+                            <line x1="32" y1="20" x2="48" y2="20" stroke="#000" stroke-width="1"/>
+
+                            <!-- 上断路器开关（坐标等比缩放） -->
+                            <line stroke="#000" x1="40" y1="40" x2="32" y2="20" stroke-width="1"/>
+                            <line x1="40" y1="40" x2="40" y2="50" stroke="#000" stroke-width="1"/>
+
+                            <!-- 红色电阻（尺寸等比缩小） -->
+                            <rect x="30" y="52.5" width="20" height="25" fill="#ff0000" stroke="#000" stroke-width="1"/>
+                            <line x1="40" y1="50" x2="40" y2="52.5" stroke="#000" stroke-width="1"/>
+                            <line x1="40" y1="77.5" x2="40" y2="80" stroke="#000" stroke-width="1"/>
+
+                            <!-- 下断路器开关（坐标等比缩放） -->
+                            <line stroke="#000" x1="40" y1="80" x2="40" y2="90" stroke-width="1"/>
+                            <line stroke="#000" x1="40" y1="90" x2="32" y2="110" stroke-width="1"/>
+                            <line x1="32" y1="110" x2="48" y2="110" stroke="#000" stroke-width="1"/>
+
+                            <!-- 灯泡符号（尺寸等比缩小） -->
+                            <circle cx="40" cy="122.5" r="6.25" stroke="#000" stroke-width="1" fill="none"/>
+                            <line x1="40" y1="110" x2="40" y2="116.25" stroke="#000" stroke-width="1"/>
+                            <line x1="40" y1="128.75" x2="40" y2="135" stroke="#000" stroke-width="1"/>
+
+                            <!-- 电流箭头（尺寸等比缩小） -->
+                            <line x1="40" y1="135" x2="40" y2="175" stroke="#000" stroke-width="1"/>
+                            <path d="M34,170 L40,180 L46,170 Z" fill="#000"/>
+                        </svg>
+
+                    </div>
+                    <div class="params-list">
+                        <div class="data-row">U=10.7kV</div>
+                        <div class="data-row">I=**.**A</div>
+                        <div class="data-row">P=**.**kW</div>
+                        <div class="data-row">Q=**.**kVar</div>
+                        <div class="data-row">cosφ=**.**</div>
+                        <div class="data-row">正向有功电能</div>
+                        <div class="data-row">**.**kW.h</div>
+                        <div class="data-row">正向无功电能</div>
+                        <div class="data-row">**.**kVar.h</div>
+                        <div class="data-row">反向有功电能</div>
+                        <div class="data-row">**.**kW.h</div>
+                        <div class="data-row">反向无功电能</div>
+                        <div class="data-row">**.**kVar.h</div>
+                    </div>
+                </div>
+                <div class="section-title1" style="margin-top: 15px;">运行状态</div>
+                <div class="section-title1">远方控制</div>
+                <div class="section-title1">当前定值区号: 01</div>
+                <div class="section-title1">软件版本: V1.00</div>
+                <div class="section-title1">2024/7/7 12:12:12</div>
+            </div>
+            <div class="right-panel">
+                <div class="section-title">电 压：Uₐ **.**V∠**.**°  Uᵦ **.**V∠**.**°  U꜀ **.**V∠**.**°</div>
+                <div class="section-title" style="margin-left: 80px;">U₀ **.**V∠**.**°  Uₓ **.**V∠**.**°</div>
+                <div class="section-title" style="margin-top:15px;">保护电流：Iₐ **.**V∠**.**°  Iᵦ **.**V∠**.**°  I꜀ **.**V∠**.**°</div>
+                <div class="section-title" style="margin-left: 80px;">3I₀ **.**V∠**.**°</div>
+                <div class="section-title" style="margin-top:15px;">测量电流：İₐ **.**V∠**.**°  İᵦ **.**V∠**.**°  İ꜀ **.**V∠**.**°</div>
+                <div class="hard-plate">
+                    <div class="plate-title">硬压板：
+                        <input type="checkbox" checked> 纵联保护
+                        <input type="checkbox" checked> 低频减载保护
+                        <input type="checkbox" checked> 低压减载保护
+                        <input type="checkbox" checked> 停用重合闸
+                    </div>
+                </div>
+                <div class="soft-plate">
+                    <div class="plate-title">软压板：
+                        <input type="checkbox" checked> 远方修改定值
+                        <input type="checkbox" checked> 远方切换定值区
+                        <input type="checkbox" checked> 远方投退软压板
+                    </div>
+                    <div class="soft-plate-grid">
+                        <div>
+                            <div class="plate-item"><input type="checkbox" checked> 电流差动保护</div>
+                            <div class="plate-item"><input type="checkbox" checked> 过电流I段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 过电流II段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 过电流III段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 过电流加速段</div>
+                            <div class="plate-item"><input type="checkbox" checked> PT断线相过流</div>
+                        </div>
+                        <div>
+                            <div class="plate-item"><input type="checkbox" checked> 零序纵联保护</div>
+                            <div class="plate-item"><input type="checkbox" checked> 零序过流I段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 零序过流II段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 零序过流III段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 零序过流加速段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 母线保护</div>
+                        </div>
+                        <div>
+                            <div class="plate-item"><input type="checkbox" checked> 自适应零序过流I段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 自适应零序过流II段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 自适应零序过流III段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 自适应零序过流加速段</div>
+                            <div class="plate-item"><input type="checkbox" checked> 停用重合闸</div>
+                        </div>
+                        <div>
+                            <div class="plate-item"><input type="checkbox" checked> 低频减载保护</div>
+                            <div class="plate-item"><input type="checkbox" checked> 低压减载保护</div>
+                            <div class="plate-item"><input type="checkbox" checked> 过负荷保护</div>
+                            <div class="plate-item"><input type="checkbox" checked> GOOSE低频减载</div>
+                            <div class="plate-item"><input type="checkbox" checked> GOOSE低压减载</div>
+                            <div class="plate-item"><input type="checkbox" checked> GOOSE过负荷</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
