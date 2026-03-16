@@ -13,6 +13,7 @@ interface TcpClientModule {
   startTcpClient: (host: string, port: number) => boolean;
   stopTcpClient: () => void;
   isTcpClientRunning: () => boolean;
+  add?: (a: number, b: number) => number;
 }
 
 declare function requireNapi(moduleName: string, isAppModule?: boolean, modulePath?: string): TcpClientModule | undefined;
@@ -54,7 +55,7 @@ export default class EntryAbility extends UIAbility {
     if (this.isValidTcpClientModule(tcpClientModule)) {
       this.cachedTcpClientModule = tcpClientModule;
       if (!this.hasLoggedTcpModuleLoaded) {
-        hilog.info(DOMAIN, TCP_ARK_TAG, '已通过 libentry.so 导入加载TCP客户端 native 模块');
+        hilog.info(DOMAIN, TCP_ARK_TAG, '宸查€氳繃 libentry.so 瀵煎叆鍔犺浇TCP瀹㈡埛绔?native 妯″潡');
         this.hasLoggedTcpModuleLoaded = true;
       }
       return this.cachedTcpClientModule;
@@ -64,7 +65,7 @@ export default class EntryAbility extends UIAbility {
     if (this.isValidTcpClientModule(napiModuleWithPath)) {
       this.cachedTcpClientModule = napiModuleWithPath;
       if (!this.hasLoggedTcpModuleLoaded) {
-        hilog.info(DOMAIN, TCP_ARK_TAG, '已通过 requireNapi(entry, true, bundle/module) 加载TCP客户端 native 模块');
+        hilog.info(DOMAIN, TCP_ARK_TAG, '宸查€氳繃 requireNapi(entry, true, bundle/module) 鍔犺浇TCP瀹㈡埛绔?native 妯″潡');
         this.hasLoggedTcpModuleLoaded = true;
       }
       return this.cachedTcpClientModule;
@@ -74,7 +75,7 @@ export default class EntryAbility extends UIAbility {
     if (this.isValidTcpClientModule(napiModuleWithApp)) {
       this.cachedTcpClientModule = napiModuleWithApp;
       if (!this.hasLoggedTcpModuleLoaded) {
-        hilog.info(DOMAIN, TCP_ARK_TAG, '已通过 requireNapi(entry, true) 加载TCP客户端 native 模块');
+        hilog.info(DOMAIN, TCP_ARK_TAG, '宸查€氳繃 requireNapi(entry, true) 鍔犺浇TCP瀹㈡埛绔?native 妯″潡');
         this.hasLoggedTcpModuleLoaded = true;
       }
       return this.cachedTcpClientModule;
@@ -84,14 +85,14 @@ export default class EntryAbility extends UIAbility {
     if (this.isValidTcpClientModule(napiModule)) {
       this.cachedTcpClientModule = napiModule;
       if (!this.hasLoggedTcpModuleLoaded) {
-        hilog.info(DOMAIN, TCP_ARK_TAG, '已通过 requireNapi(entry) 加载TCP客户端 native 模块');
+        hilog.info(DOMAIN, TCP_ARK_TAG, '宸查€氳繃 requireNapi(entry) 鍔犺浇TCP瀹㈡埛绔?native 妯″潡');
         this.hasLoggedTcpModuleLoaded = true;
       }
       return this.cachedTcpClientModule;
     }
 
     hilog.error(DOMAIN, TCP_ARK_TAG,
-      '加载TCP客户端 native 模块失败: import=%{public}s/%{public}s/%{public}s, require1=%{public}s, require2=%{public}s, require3=%{public}s',
+      '鍔犺浇TCP瀹㈡埛绔?native 妯″潡澶辫触: import=%{public}s/%{public}s/%{public}s, require1=%{public}s, require2=%{public}s, require3=%{public}s',
       this.getModuleMemberType(tcpClientModule, 'startTcpClient'),
       this.getModuleMemberType(tcpClientModule, 'stopTcpClient'),
       this.getModuleMemberType(tcpClientModule, 'isTcpClientRunning'),
@@ -113,9 +114,9 @@ export default class EntryAbility extends UIAbility {
 
     try {
       nativeModule.stopTcpClient();
-      hilog.info(DOMAIN, TCP_ARK_TAG, 'TCP客户端已停止');
+      hilog.info(DOMAIN, TCP_ARK_TAG, 'TCP瀹㈡埛绔凡鍋滄');
     } catch (err) {
-      hilog.error(DOMAIN, TCP_ARK_TAG, '停止TCP客户端失败: %{public}s', JSON.stringify(err));
+      hilog.error(DOMAIN, TCP_ARK_TAG, '鍋滄TCP瀹㈡埛绔け璐? %{public}s', JSON.stringify(err));
     }
   }
 
@@ -131,18 +132,24 @@ export default class EntryAbility extends UIAbility {
 
     try {
       const started = nativeModule.startTcpClient(TCP_SERVER_HOST, TCP_SERVER_PORT);
-      hilog.info(DOMAIN, TCP_ARK_TAG, 'TCP客户端启动结果: %{public}s, 目标地址: %{public}s:%{public}d',
+      hilog.info(DOMAIN, TCP_ARK_TAG, 'TCP瀹㈡埛绔惎鍔ㄧ粨鏋? %{public}s, 鐩爣鍦板潃: %{public}s:%{public}d',
         started ? 'success' : 'failed', TCP_SERVER_HOST, TCP_SERVER_PORT);
     } catch (err) {
-      hilog.error(DOMAIN, TCP_ARK_TAG, '启动TCP客户端失败: %{public}s', JSON.stringify(err));
+      hilog.error(DOMAIN, TCP_ARK_TAG, '鍚姩TCP瀹㈡埛绔け璐? %{public}s', JSON.stringify(err));
     }
   }
 
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    const nativeModule = this.loadTcpClientModule();
+    if (nativeModule && typeof nativeModule.add === 'function') {
+      hilog.info(DOMAIN, 'testTag', 'Test NAPI 2 + 3 = %{public}d', nativeModule.add(2, 3));
+    } else {
+      hilog.error(DOMAIN, 'testTag', 'add 测试函数不可用');
+    }
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
     } catch (err) {
-      hilog.error(DOMAIN, ENTRY_TAG, '设置颜色模式失败: %{public}s', JSON.stringify(err));
+      hilog.error(DOMAIN, ENTRY_TAG, '璁剧疆棰滆壊妯″紡澶辫触: %{public}s', JSON.stringify(err));
     }
   }
 
@@ -153,19 +160,19 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
-        hilog.error(DOMAIN, ENTRY_TAG, '加载首页失败: %{public}s', JSON.stringify(err));
+        hilog.error(DOMAIN, ENTRY_TAG, '鍔犺浇棣栭〉澶辫触: %{public}s', JSON.stringify(err));
         return;
       }
-      hilog.info(DOMAIN, ENTRY_TAG, '首页加载成功');
+      hilog.info(DOMAIN, ENTRY_TAG, '棣栭〉鍔犺浇鎴愬姛');
       this.startNativeTcpClient();
       window.getLastWindow(this.context).then(async (mainWindow: window.Window) => {
         const systemBars: Array<'status' | 'navigation'> = [];
         await mainWindow.setWindowLayoutFullScreen(true);
         await mainWindow.setWindowSystemBarEnable(systemBars);
         await mainWindow.setSpecificSystemBarEnabled('navigationIndicator', false);
-        hilog.info(DOMAIN, ENTRY_TAG, '全屏布局设置完成');
+        hilog.info(DOMAIN, ENTRY_TAG, '鍏ㄥ睆甯冨眬璁剧疆瀹屾垚');
       }).catch((windowError: Error) => {
-        hilog.error(DOMAIN, ENTRY_TAG, '设置全屏布局失败: %{public}s', JSON.stringify(windowError));
+        hilog.error(DOMAIN, ENTRY_TAG, '璁剧疆鍏ㄥ睆甯冨眬澶辫触: %{public}s', JSON.stringify(windowError));
       });
     });
   }

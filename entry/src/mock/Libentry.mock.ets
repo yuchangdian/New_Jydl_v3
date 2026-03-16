@@ -8,3 +8,7 @@ export const stopTcpClient = (): void => {
 export const isTcpClientRunning = (): boolean => {
   return false;
 };
+
+export const add = (a: number, b: number): number => {
+  return a + b;
+};
