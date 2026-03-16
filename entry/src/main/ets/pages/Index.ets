@@ -1,5 +1,4 @@
 import { TopMenu } from '../components/TopMenu'
-import { window } from '@kit.ArkUI'
 
 interface PlateItem {
   name: string;
@@ -9,8 +8,6 @@ interface PlateItem {
 @Entry
 @Component
 struct Index {
-  windowClass?: window.Window
-
   @State frequency: string = '**.**Hz';
   @State voltage: string = '10.7kV';
   @State current: string = '**.**A';
@@ -70,21 +67,6 @@ struct Index {
     { name: 'GOOSE低压减载', checked: true },
     { name: 'GOOSE过负荷', checked: true }
   ];
-
-  async setFullScreen(flag: boolean) {
-    if (!this.windowClass) {
-      this.windowClass = await window.getLastWindow(getContext(this))
-    }
-    this.windowClass.setWindowLayoutFullScreen(flag)
-  }
-
-  onPageShow(): void {
-    this.setFullScreen(true)
-  }
-
-  onPageHide(): void {
-    this.setFullScreen(false)
-  }
 
   build() {
     Column() {

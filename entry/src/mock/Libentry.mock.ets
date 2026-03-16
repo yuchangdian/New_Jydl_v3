@@ -1,7 +1,10 @@
-const NativeMock: Record<string, Object> = {
-  'add': (a: number, b: number) => {
-    return a + b;
-  },
+export const startTcpClient = (_host: string, _port: number): boolean => {
+  return true;
 };
 
-export default NativeMock;
+export const stopTcpClient = (): void => {
+};
+
+export const isTcpClientRunning = (): boolean => {
+  return false;
+};
