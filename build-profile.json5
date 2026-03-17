@@ -31,12 +31,12 @@
     "products": [
       {
         "name": "default",
-        "signingConfig": "default",
-        "targetSdkVersion": "5.1.0(18)",
-        "compatibleSdkVersion": "5.1.0(18)",
-        "runtimeOS": "HarmonyOS",
+        "signingConfig": "openharmony",
+        "compileSdkVersion": 18,
+        "targetSdkVersion": 18,
+        "compatibleSdkVersion": 18,
+        "runtimeOS": "OpenHarmony",
         "buildOption": {
-          "nativeCompiler": "BiSheng",
           "strictMode": {
             "caseSensitiveCheck": true,
             "useNormalizedOHMUrl": true
@@ -44,13 +44,13 @@
         }
       },
       {
-        "name": "openharmony",
-        "signingConfig": "openharmony",
-        "compileSdkVersion": 18,
-        "targetSdkVersion": 18,
-        "compatibleSdkVersion": 18,
-        "runtimeOS": "OpenHarmony",
+        "name": "harmonyos",
+        "signingConfig": "default",
+        "targetSdkVersion": "5.1.0(18)",
+        "compatibleSdkVersion": "5.1.0(18)",
+        "runtimeOS": "HarmonyOS",
         "buildOption": {
+          "nativeCompiler": "BiSheng",
           "strictMode": {
             "caseSensitiveCheck": true,
             "useNormalizedOHMUrl": true
@@ -76,7 +76,7 @@
           "name": "default",
           "applyToProducts": [
             "default",
-            "openharmony"
+            "harmonyos"
           ]
         }
       ]
