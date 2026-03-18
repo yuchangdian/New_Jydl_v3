@@ -2,6 +2,7 @@ import router from '@ohos.router';
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
 import {
+  cloneDigitalOutputTestItem,
   DigitalOutputTestItem,
   createDefaultDigitalOutputTestItems,
   deserializeDigitalOutputTestItems,
@@ -12,50 +13,61 @@ interface AbilityFileContext {
   filesDir: string;
 }
 
-@Observed
-class DigitalOutputTestVM {
+class DigitalOutputTestTextConfig {
   noticeText: string = '';
   titleLeft: string = '装置测试—';
-  titleRight: string = '开入测试';
+  titleRight: string = '开出测试';
   confirmText: string = '确认';
   closeText: string = '关闭';
   backText: string = '返回';
   timeText: string = '2024/12/30\n12:12:30';
 }
 
-class DigitalOutputTestFontSize {
-  notice: number = 18;
-  headerTitle: number = 20;
-  headerSubTitle: number = 18;
-  footerButton: number = 18;
-  timeText: number = 18;
-  itemLabel: number = 18;
-  titleMin: number = 14;
-  noticeMin: number = 12;
-  timeLineHeight: number = 20;
+class DigitalOutputTestFontSizeConfig {
+  notice: number = 20;
+  headerTitle: number = 24;
+  headerSubTitle: number = 22;
+  footerButton: number = 20;
+  timeText: number = 20;
+  itemLabel: number = 20;
+  checkMark: number = 24;
+  titleMin: number = 16;
+  noticeMin: number = 14;
+  timeLineHeight: number = 22;
 }
+
+class DigitalOutputTestLayoutConfig {
+  pageBaseWidth: number = 1024;
+  pageBaseHeight: number = 600;
+  pageMaxWidth: number = 1024;
+  headerHeight: number = 81;
+  footerHeight: number = 91;
+  bodyHeight: number = 428;
+  checkboxSize: number = 30;
+  checkboxRadius: number = 0;
+  itemWidth: number = 230;
+  itemHeight: number = 40;
+  footerButtonWidth: number = 118;
+  footerButtonHeight: number = 62;
+  footerButtonRadius: number = 24;
+}
+
+class DigitalOutputTestPageConfig {
+  text: DigitalOutputTestTextConfig = new DigitalOutputTestTextConfig();
+  fontSize: DigitalOutputTestFontSizeConfig = new DigitalOutputTestFontSizeConfig();
+  layout: DigitalOutputTestLayoutConfig = new DigitalOutputTestLayoutConfig();
+  dataFileName: string = 'digital_output_test.json';
+}
+
+const DIGITAL_OUTPUT_TEST_PAGE_CONFIG: DigitalOutputTestPageConfig = new DigitalOutputTestPageConfig();
 
 @Entry
 @Component
 export struct DigitalOutput_Test {
-  @State vm: DigitalOutputTestVM = new DigitalOutputTestVM();
   @State items: DigitalOutputTestItem[] = createDefaultDigitalOutputTestItems();
   @State uiScale: number = 1;
 
-  private readonly fontSize: DigitalOutputTestFontSize = new DigitalOutputTestFontSize();
-  private readonly pageBaseWidth: number = 1024;
-  private readonly pageBaseHeight: number = 600;
-  private readonly pageMaxWidth: number = 1024;
-  private readonly headerHeight: number = 81;
-  private readonly footerHeight: number = 91;
-  private readonly bodyHeight: number = 428;
-  private readonly indicatorSize: number = 30;
-  private readonly itemWidth: number = 230;
-  private readonly itemHeight: number = 36;
-  private readonly footerButtonWidth: number = 110;
-  private readonly footerButtonHeight: number = 60;
-  private readonly footerButtonRadius: number = 20;
-  private readonly dataFileName: string = 'digital_output_test.json';
+  private readonly pageConfig: DigitalOutputTestPageConfig = DIGITAL_OUTPUT_TEST_PAGE_CONFIG;
 
   private s(v: number): number {
     return Math.round(v * this.uiScale);
@@ -64,8 +76,8 @@ export struct DigitalOutput_Test {
   aboutToAppear(): void {
     try {
       let currentDisplay = display.getDefaultDisplaySync();
-      let scaleX = currentDisplay.width / this.pageBaseWidth;
-      let scaleY = currentDisplay.height / this.pageBaseHeight;
+      let scaleX = currentDisplay.width / this.pageConfig.layout.pageBaseWidth;
+      let scaleY = currentDisplay.height / this.pageConfig.layout.pageBaseHeight;
       let scale = Math.min(scaleX, scaleY);
       this.uiScale = scale > 0 ? scale : 1;
     } catch (error) {
@@ -76,7 +88,7 @@ export struct DigitalOutput_Test {
 
   private getDataFilePath(): string {
     let context = getContext(this) as AbilityFileContext;
-    return `${context.filesDir}/${this.dataFileName}`;
+    return `${context.filesDir}/${this.pageConfig.dataFileName}`;
   }
 
   private loadPersistedData(): void {
@@ -109,8 +121,24 @@ export struct DigitalOutput_Test {
     }
   }
 
-  private toggleItem(item: DigitalOutputTestItem): void {
-    item.checked = !item.checked;
+  private setItemChecked(key: string, checked: boolean): void {
+    this.items = this.items.map((item: DigitalOutputTestItem) => {
+      let nextItem = cloneDigitalOutputTestItem(item);
+      if (nextItem.key === key) {
+        nextItem.state.checked = checked;
+      }
+      return nextItem;
+    });
+  }
+
+  private toggleItem(key: string): void {
+    this.items = this.items.map((item: DigitalOutputTestItem) => {
+      let nextItem = cloneDigitalOutputTestItem(item);
+      if (nextItem.key === key) {
+        nextItem.state.checked = !nextItem.state.checked;
+      }
+      return nextItem;
+    });
   }
 
   build() {
@@ -128,32 +156,32 @@ export struct DigitalOutput_Test {
   @Builder
   HeaderBar() {
     Stack() {
-      Text(this.vm.noticeText)
+      Text(this.pageConfig.text.noticeText)
         .width(this.s(291))
         .height(this.s(61))
-        .fontSize(this.s(this.fontSize.notice))
-        .minFontSize(this.s(this.fontSize.noticeMin))
+        .fontSize(this.s(this.pageConfig.fontSize.notice))
+        .minFontSize(this.s(this.pageConfig.fontSize.noticeMin))
         .fontColor('#EF2929')
         .fontFamily('STKaiti')
         .textAlign(TextAlign.Center)
         .position({ x: this.s(10), y: this.s(10) });
 
-      Text(this.vm.titleLeft)
+      Text(this.pageConfig.text.titleLeft)
         .width(this.s(151))
         .height(this.s(61))
-        .fontSize(this.s(this.fontSize.headerTitle))
-        .minFontSize(this.s(this.fontSize.titleMin))
+        .fontSize(this.s(this.pageConfig.fontSize.headerTitle))
+        .minFontSize(this.s(this.pageConfig.fontSize.titleMin))
         .fontWeight(FontWeight.Bold)
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .textAlign(TextAlign.Center)
         .position({ x: this.s(370), y: this.s(10) });
 
-      Text(this.vm.titleRight)
+      Text(this.pageConfig.text.titleRight)
         .width(this.s(121))
         .height(this.s(61))
-        .fontSize(this.s(this.fontSize.headerSubTitle))
-        .minFontSize(this.s(this.fontSize.titleMin))
+        .fontSize(this.s(this.pageConfig.fontSize.headerSubTitle))
+        .minFontSize(this.s(this.pageConfig.fontSize.titleMin))
         .fontWeight(FontWeight.Bold)
         .fontColor('#000000')
         .fontFamily('STKaiti')
@@ -193,77 +221,94 @@ export struct DigitalOutput_Test {
       });
     }
     .width('100%')
-    .height(this.s(this.headerHeight))
-    .constraintSize({ maxWidth: this.s(this.pageMaxWidth) })
+    .height(this.s(this.pageConfig.layout.headerHeight))
+    .constraintSize({ maxWidth: this.s(this.pageConfig.layout.pageMaxWidth) })
     .backgroundColor('#D3D3D3');
   }
 
   @Builder
   BodyArea() {
     Stack() {
-      ForEach(this.items, (item: DigitalOutputTestItem) => {
+      ForEach(this.items, (item: DigitalOutputTestItem, index: number) => {
         this.OutputItem(item);
-      }, (item: DigitalOutputTestItem) => item.key);
+      }, (item: DigitalOutputTestItem, index: number) => `${item.key}_${item.state.checked ? '1' : '0'}_${index}`);
     }
     .width('100%')
-    .height(this.s(this.bodyHeight))
-    .constraintSize({ maxWidth: this.s(this.pageMaxWidth) })
+    .height(this.s(this.pageConfig.layout.bodyHeight))
+    .constraintSize({ maxWidth: this.s(this.pageConfig.layout.pageMaxWidth) })
     .backgroundColor('#FFFFFF');
+  }
+
+  @Builder
+  CheckBoxIcon(checked: boolean, key: string) {
+    Stack({ alignContent: Alignment.Center }) {
+      if (checked) {
+        Image($r('app.media.checked_black'))
+          .width(this.s(this.pageConfig.fontSize.checkMark))
+          .height(this.s(this.pageConfig.fontSize.checkMark));
+      }
+    }
+    .width(this.s(this.pageConfig.layout.checkboxSize))
+    .height(this.s(this.pageConfig.layout.checkboxSize))
+    .border({ width: this.s(2), color: '#000000' })
+    .borderRadius(this.s(this.pageConfig.layout.checkboxRadius))
+    .backgroundColor('#FFFFFF')
+    .onClick(() => {
+      this.toggleItem(key);
+    });
   }
 
   @Builder
   OutputItem(item: DigitalOutputTestItem) {
     Row() {
-      Image(item.checked ? $r('app.media.checked') : $r('app.media.unchecked'))
-        .width(this.s(this.indicatorSize))
-        .height(this.s(this.indicatorSize))
-        .margin({ right: this.s(8) });
+      this.CheckBoxIcon(item.state.checked, item.key);
 
       Text(item.label)
         .layoutWeight(1)
-        .fontSize(this.s(this.fontSize.itemLabel))
+        .fontSize(this.s(this.pageConfig.fontSize.itemLabel))
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .textAlign(TextAlign.Start)
-        .maxLines(1);
+        .maxLines(1)
+        .margin({ left: this.s(10) })
+        .onClick(() => {
+          this.toggleItem(item.key);
+        });
     }
-    .width(this.s(this.itemWidth))
-    .height(this.s(this.itemHeight))
+    .width(this.s(this.pageConfig.layout.itemWidth))
+    .height(this.s(this.pageConfig.layout.itemHeight))
     .alignItems(VerticalAlign.Center)
-    .position({ x: this.s(item.x), y: this.s(item.y) })
-    .onClick(() => {
-      this.toggleItem(item);
-    });
+    .position({ x: this.s(item.position.x), y: this.s(item.position.y) });
   }
 
   @Builder
   FooterBar() {
     Stack() {
-      this.FooterButton(this.vm.confirmText, this.s(245), () => {
+      this.FooterButton(this.pageConfig.text.confirmText, 245, () => {
         this.savePersistedData();
       });
 
-      this.FooterButton(this.vm.closeText, this.s(450), () => {
+      this.FooterButton(this.pageConfig.text.closeText, 450, () => {
         router.back();
       });
 
-      this.FooterButton(this.vm.backText, this.s(655), () => {
+      this.FooterButton(this.pageConfig.text.backText, 655, () => {
         router.back();
       });
 
-      Text(this.vm.timeText)
+      Text(this.pageConfig.text.timeText)
         .width(this.s(211))
         .height(this.s(71))
-        .fontSize(this.s(this.fontSize.timeText))
+        .fontSize(this.s(this.pageConfig.fontSize.timeText))
         .fontColor('#000000')
         .fontFamily('STKaiti')
-        .lineHeight(this.s(this.fontSize.timeLineHeight))
+        .lineHeight(this.s(this.pageConfig.fontSize.timeLineHeight))
         .textAlign(TextAlign.Center)
         .position({ x: this.s(830), y: this.s(10) });
     }
     .width('100%')
-    .height(this.s(this.footerHeight))
-    .constraintSize({ maxWidth: this.s(this.pageMaxWidth) })
+    .height(this.s(this.pageConfig.layout.footerHeight))
+    .constraintSize({ maxWidth: this.s(this.pageConfig.layout.pageMaxWidth) })
     .backgroundColor('#D3D3D3');
   }
 
@@ -271,17 +316,17 @@ export struct DigitalOutput_Test {
   FooterButton(text: string, left: number, clickAction: () => void) {
     Button() {
       Text(text)
-        .fontSize(this.s(this.fontSize.footerButton))
+        .fontSize(this.s(this.pageConfig.fontSize.footerButton))
         .fontColor('#000000')
         .fontFamily('STKaiti');
     }
-    .width(this.s(this.footerButtonWidth))
-    .height(this.s(this.footerButtonHeight))
+    .width(this.s(this.pageConfig.layout.footerButtonWidth))
+    .height(this.s(this.pageConfig.layout.footerButtonHeight))
     .padding(0)
     .backgroundColor('#BEBEBE')
     .border({ width: 0 })
-    .borderRadius(this.s(this.footerButtonRadius))
-    .position({ x: left, y: this.s(20) })
+    .borderRadius(this.s(this.pageConfig.layout.footerButtonRadius))
+    .position({ x: this.s(left), y: this.s(20) })
     .onClick(() => {
       clickAction();
     });
