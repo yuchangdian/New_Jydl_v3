@@ -35,15 +35,12 @@ const MENU_DATA: MenuItemModel[] = [
     new MenuSubItemModel('压板投退'),
     new MenuSubItemModel('定值切换'),
     new MenuSubItemModel('遥控操作'),
-    new MenuSubItemModel('浏览'),
-    new MenuSubItemModel('整定')
   ]),
   new MenuItemModel('电能质量', [
     new MenuSubItemModel('实时指标'),
     new MenuSubItemModel('谐波分析'),
-    new MenuSubItemModel('告警定值'),
-    new MenuSubItemModel('浏览'),
-    new MenuSubItemModel('整定')
+    new MenuSubItemModel('告警定值',['浏览', '整定']),
+
   ]),
   new MenuItemModel('高级分析', [
     new MenuSubItemModel('故障特征'),
@@ -118,10 +115,34 @@ export struct TopMenu {
       this.openPage('pages/SoftStrapSet');
       return;
     }
+    if (item.title === '开出测试') {
+      this.openPage('pages/DigitalOutput_Test');
+      return;
+    }
+    if (item.title === '开入测试') {
+      this.openPage('pages/DigitalInput_Test');
+      return;
+    }
+    if (item.title === '谐波分析') {
+      this.openPage('pages/broadband_harmonic');
+      return;
+    }
+    if (item.title === '密码设置') {
+      this.openPage('pages/Password_Set');
+      return;
+    }
+    if (item.title === '实时指标') {
+      this.openPage('pages/quality_index');
+      return;
+    }
     this.closeMenus();
   }
 
   private handleLeafClick(item: MenuSubItemModel, subItem: SubMenuItemModel): void {
+    if (item.title === '告警定值' && subItem.title === '整定') {
+      this.openPage('pages/CommonSetting_PowerQuality_Set');
+      return;
+    }
     if (item.title === '一次系统' && subItem.title === '整定') {
       this.openPage('pages/CommonSetting_PrimarySystem_Set');
       return;

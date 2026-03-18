@@ -12,7 +12,13 @@
     "pages/CommonSetting_TeleSignaling_Set",
     "pages/CommonSetting_TeleControlling_Set",
     "pages/CommonSetting_ExceedingLimit_Set",
+    "pages/CommonSetting_PowerQuality_Set",
     "pages/CommonSetting_AnalogQuantity_Set",
-    "pages/CommonSetting_Statistics_Set"
+    "pages/CommonSetting_Statistics_Set",
+    "pages/DigitalOutput_Test",
+    "pages/DigitalInput_Test",
+    "pages/Password_Set",
+    "pages/quality_index",
+    "pages/broadband_harmonic"
   ]
 }
