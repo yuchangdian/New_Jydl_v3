@@ -6,8 +6,8 @@ import * as tcpClientModule from 'libentry.so';
 const DOMAIN = 0x0000;
 const ENTRY_TAG = 'JY_ENTRY';
 const TCP_ARK_TAG = 'JY_TCP_ARK';
-const TCP_SERVER_HOST = '127.0.0.1';
-const TCP_SERVER_PORT = 9000;
+const TCP_SERVER_HOST = '192.168.1.102';
+const TCP_SERVER_PORT = 2404;
 
 interface TcpClientModule {
   startTcpClient: (host: string, port: number) => boolean;
