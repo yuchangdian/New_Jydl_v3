@@ -2,7 +2,7 @@
 #define QUALITY_H
 
 #include <iostream>
-#include <QString>
+//#include <QString>
 
 typedef struct
 {

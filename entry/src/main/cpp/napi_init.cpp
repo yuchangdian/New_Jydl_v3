@@ -1,9 +1,10 @@
+#include <node_api.h>
 #include "napi/native_api.h"
+
+#include <cstdlib>
+#include <cstring>
+
 #include "tcp_client.h"
-
-#include <string>
-#include <vector>
-
 
 static napi_value Add(napi_env env, napi_callback_info info)
 {
@@ -28,11 +29,23 @@ static napi_value Add(napi_env env, napi_callback_info info)
     napi_create_double(env, value0 + value1, &sum);
 
     return sum;
-
 }
 
-namespace {
-bool GetRequiredString(napi_env env, napi_value value, std::string &result)
+static napi_value CreateBoolean(napi_env env, bool value)
+{
+    napi_value result = nullptr;
+    napi_get_boolean(env, value, &result);
+    return result;
+}
+
+static napi_value CreateUndefined(napi_env env)
+{
+    napi_value result = nullptr;
+    napi_get_undefined(env, &result);
+    return result;
+}
+
+static bool GetRequiredString(napi_env env, napi_value value, char **result)
 {
     size_t valueLength = 0;
     if (napi_get_value_string_utf8(env, value, nullptr, 0, &valueLength) != napi_ok) {
@@ -40,43 +53,35 @@ bool GetRequiredString(napi_env env, napi_value value, std::string &result)
         return false;
     }
 
-    std::vector<char> buffer(valueLength + 1, '\0');
-    if (napi_get_value_string_utf8(env, value, buffer.data(), buffer.size(), &valueLength) != napi_ok) {
+    char *buffer = static_cast<char *>(std::malloc(valueLength + 1));
+    if (buffer == nullptr) {
+        napi_throw_error(env, nullptr, "failed to allocate host buffer");
+        return false;
+    }
+
+    if (napi_get_value_string_utf8(env, value, buffer, valueLength + 1, &valueLength) != napi_ok) {
+        std::free(buffer);
         napi_throw_type_error(env, nullptr, "failed to read host");
         return false;
     }
-    result.assign(buffer.data(), valueLength);
+
+    *result = buffer;
     return true;
 }
 
-bool GetRequiredPort(napi_env env, napi_value value, int32_t &port)
+static bool GetRequiredPort(napi_env env, napi_value value, int32_t *port)
 {
-    if (napi_get_value_int32(env, value, &port) != napi_ok) {
+    if (napi_get_value_int32(env, value, port) != napi_ok) {
         napi_throw_type_error(env, nullptr, "port must be an integer");
         return false;
     }
 
-    if (port <= 0 || port > 65535) {
+    if (*port <= 0 || *port > 65535) {
         napi_throw_range_error(env, nullptr, "port must be between 1 and 65535");
         return false;
     }
     return true;
 }
-
-napi_value CreateBoolean(napi_env env, bool value)
-{
-    napi_value result = nullptr;
-    napi_get_boolean(env, value, &result);
-    return result;
-}
-
-napi_value CreateUndefined(napi_env env)
-{
-    napi_value result = nullptr;
-    napi_get_undefined(env, &result);
-    return result;
-}
-} // namespace
 
 static napi_value StartTcpClient(napi_env env, napi_callback_info info)
 {
@@ -88,36 +93,69 @@ static napi_value StartTcpClient(napi_env env, napi_callback_info info)
         return nullptr;
     }
 
-    std::string host;
+    char *host = nullptr;
     int32_t port = 0;
-    if (!GetRequiredString(env, args[0], host) || !GetRequiredPort(env, args[1], port)) {
+    if (!GetRequiredString(env, args[0], &host) || !GetRequiredPort(env, args[1], &port)) {
+        std::free(host);
         return nullptr;
     }
 
-    return CreateBoolean(env, tcp_client_start(host.c_str(), port) == 1);
+    bool started = TcpClient::GetInstance().Start(host, port) == 1;
+    std::free(host);
+    return CreateBoolean(env, started);
 }
 
 static napi_value StopTcpClient(napi_env env, napi_callback_info info)
 {
     (void)info;
-    tcp_client_stop();
+    TcpClient::GetInstance().Stop();
     return CreateUndefined(env);
 }
 
 static napi_value IsTcpClientRunning(napi_env env, napi_callback_info info)
 {
     (void)info;
-    return CreateBoolean(env, tcp_client_is_running() == 1);
+    return CreateBoolean(env, TcpClient::GetInstance().IsRunning() == 1);
 }
 
+// SendTcpData 是 ArkTS 到 native 发送链路的入口封装。
+// 它负责把 ArkTS 字符串取出来，再转交给 tcp_client_send 执行真正的 socket 发送。
+static napi_value SendTcpData(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+
+    if (argc < 1) {
+        napi_throw_type_error(env, nullptr, "sendTcpData requires a string argument");
+        return nullptr;
+    }
+
+    char *data = nullptr;
+    if (!GetRequiredString(env, args[0], &data)) {
+        return nullptr;
+    }
+
+    size_t length = std::strlen(data);
+    bool sent = TcpClient::GetInstance().Send(data, static_cast<int>(length)) == 1;
+    std::free(data);
+
+    return CreateBoolean(env, sent);
+}
+
+
 EXTERN_C_START
+// Init 是 native 模块导出表初始化函数。
+// 当 libentry.so 被加载后，ArkTS 侧能调用到哪些原生函数，都在这里挂到 exports 上。
 static napi_value Init(napi_env env, napi_value exports)
 {
     napi_property_descriptor desc[] = {
         {"startTcpClient", nullptr, StartTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"stopTcpClient", nullptr, StopTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isTcpClientRunning", nullptr, IsTcpClientRunning, nullptr, nullptr, nullptr, napi_default, nullptr},
-        { "add", nullptr, Add, nullptr, nullptr, nullptr, napi_default, nullptr }
+        {"sendTcpData", nullptr, SendTcpData, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"add", nullptr, Add, nullptr, nullptr, nullptr, napi_default, nullptr}
+        
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;
@@ -130,10 +168,12 @@ static napi_module demoModule = {
     .nm_filename = nullptr,
     .nm_register_func = Init,
     .nm_modname = "entry",
-    .nm_priv = ((void*)0),
+    .nm_priv = nullptr,
     .reserved = {0},
 };
 
+// RegisterEntryModule 是 native 动态库的注册入口。
+// so 被装载时，系统会先执行这个 constructor，把上面的 Init 注册给 NAPI 运行时。
 extern "C" __attribute__((constructor)) void RegisterEntryModule(void)
 {
     napi_module_register(&demoModule);

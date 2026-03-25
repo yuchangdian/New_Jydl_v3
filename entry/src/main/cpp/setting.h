@@ -5,12 +5,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <iostream>
-#include <QString>
+//#include <QString>
 #include <complex.h>
+#include <string>
 
 #include "data.h"
 #include "IEC104.h"
-#include "CommonToolkit.h"
+//#include "CommonToolkit.h"
 
 #define SETTING_FILE_NAME "/data/RelaySetting_"
 #define REPORT_SIGN_NAME "file.txt"
@@ -21,7 +22,8 @@
 
 
 #pragma pack(1)
-extern QString Password;//密码
+
+extern std::string Password;
 
 
 /*****************************************************************************/

@@ -3,6 +3,7 @@
     "name": "entry",
     "type": "entry",
     "description": "$string:module_desc",
+    // 应用模块启动时，系统会先根据 mainElement 找到默认拉起的 Ability。
     "mainElement": "EntryAbility",
     "deviceTypes": [
       "default"
@@ -17,7 +18,9 @@
     "pages": "$profile:main_pages",
     "abilities": [
       {
+        // EntryAbility 是当前应用模块的主入口 Ability。
         "name": "EntryAbility",
+        // 系统启动 EntryAbility 时，会先进入这个 ArkTS 文件。
         "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:EntryAbility_desc",
         "icon": "$media:layered_image",

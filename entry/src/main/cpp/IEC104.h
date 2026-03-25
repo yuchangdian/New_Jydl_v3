@@ -3,6 +3,7 @@
 #include <iostream>
 #include <complex.h>
 #include "data.h"
+#include <string>
 
 #define	Common_Addr_RemoteMetry		0x0011	//遥测
 #define	Common_Addr_RemoteControl	0x0022	//遥控
@@ -393,12 +394,12 @@
 #define Cd_Err_RemoteHZ		0x4025  //遥控合闸失败/****年**月**日**：**：**.***
 #define Cd_Err_RemoteFG   	0x4026  //遥控复归失败/****年**月**日**：**：**.***
 
-extern QString SOE_StartString(uint16_t StartCode);
-extern QString SOE_ActString(uint16_t StartCode);
-extern QString SOE_PhaseString(uint8_t PhaseInfo);
-extern QString SOE_3ValString(SOE_Node_Struct tNode);
-extern QString SOE_2ValString(SOE_Node_Struct tNode);
-extern QString SOE_1ValString(SOE_Node_Struct tNode);
+extern std::string SOE_StartString(uint16_t StartCode);
+extern std::string SOE_ActString(uint16_t StartCode);
+extern std::string SOE_PhaseString(uint8_t PhaseInfo);
+extern std::string SOE_3ValString(SOE_Node_Struct tNode);
+extern std::string SOE_2ValString(SOE_Node_Struct tNode);
+extern std::string SOE_1ValString(SOE_Node_Struct tNode);
 
 typedef struct
 {

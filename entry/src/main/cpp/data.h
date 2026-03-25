@@ -3,6 +3,9 @@
 
 #include <iostream>
 #include <complex.h>
+#include <cstdint>  // 提供 uint8_t / uint16_t / uint32_t 这类固定宽度整数类型
+#include <deque>    // 提供 std::deque，用来替代原来的 QQueue
+
 #define SETTING_FILE_NAME "/data/Setting_Set_"
 #define REPORT_SIGN_NAME "file.txt"
 #define REPORT_ACTIVE_TXT "/data/report/"
@@ -315,13 +318,13 @@ inline uint16_t CRC16(uint16_t *p, uint16_t length)
     return crcVal;
 }
 
-#define QQueue_Maxlength        100
-extern QQueue<YC_BaseFreq_Struct> BaseFreq_Queue;
-extern QQueue<YC_Energy_Struct> Energy_Queue;
-extern QQueue<YC_HarmonicU_Struct> HarmonicU_Queue;
-extern QQueue<YC_HarmonicI_Struct> HarmonicI_Queue;
-extern QQueue<RemoteSignal_Change_Struct> YX_Change_Queue;
-extern QQueue<SOE_Node_Struct> SOE_Node_Queue;
+#define DATA_QUEUE_MAX_LENGTH        100
+extern std::deque<YC_BaseFreq_Struct> BaseFreq_Queue;
+extern std::deque<YC_Energy_Struct> Energy_Queue;
+extern std::deque<YC_HarmonicU_Struct> HarmonicU_Queue;
+extern std::deque<YC_HarmonicI_Struct> HarmonicI_Queue;
+extern std::deque<RemoteSignal_Change_Struct> YX_Change_Queue;
+extern std::deque<SOE_Node_Struct> SOE_Node_Queue;
 //extern RelaySetting_Struct RelaySetting[20];
 
 extern unsigned int SettingCode;

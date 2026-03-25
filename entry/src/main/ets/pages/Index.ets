@@ -5,6 +5,8 @@ interface PlateItem {
   checked: boolean;
 }
 
+// @Entry 标记当前页面是可直接作为页面入口加载的组件。
+// EntryAbility 在 onWindowStageCreate 中调用 loadContent('pages/Index') 后，最终会进入这个页面。
 @Entry
 @Component
 struct Index {
@@ -68,6 +70,7 @@ struct Index {
     { name: 'GOOSE过负荷', checked: true }
   ];
 
+  // build 是页面 UI 树的总入口，所有子区域都从这里组合出来。
   build() {
     Column() {
       TopMenu()
@@ -86,6 +89,7 @@ struct Index {
   }
 
   @Builder
+  // 左侧信息面板：显示频率、运行状态、版本时间等概览信息。
   LeftPanel() {
     Column() {
       Text(`频率：${this.frequency}`)
@@ -137,6 +141,7 @@ struct Index {
   }
 
   @Builder
+  // 左侧开关示意图区域：通过 Shape/Path 拼装一次系统接线示意。
   SwitchIndicator() {
     Column() {
       Shape() {
@@ -248,6 +253,7 @@ struct Index {
   }
 
   @Builder
+  // 左侧参数列表：显示电压、电流、功率、电能等关键量测值。
   ParamsList() {
     Column({space:5}) {
       Text(`U=${this.voltage}`)
@@ -319,6 +325,7 @@ struct Index {
   }
 
   @Builder
+  // 右侧主内容区：显示三相量测值以及软压板、硬压板区域。
   RightPanel() {
     Scroll() {
       Column() {
@@ -372,6 +379,7 @@ struct Index {
   }
 
   @Builder
+  // 硬压板区域：以复选框形式展示硬压板状态。
   HardPlateSection() {
     Column() {
       Row() {
@@ -404,6 +412,7 @@ struct Index {
   }
 
   @Builder
+  // 软压板区域：按分组布局展示软压板状态。
   SoftPlateSection() {
     Column() {
       Row() {
