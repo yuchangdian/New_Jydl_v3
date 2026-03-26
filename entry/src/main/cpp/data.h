@@ -152,6 +152,7 @@ typedef struct
     float Iby3_Rms, Iby3_Phase;
 }__attribute__ ((packed,aligned(1))) YC_BaseFreq_Struct;	//宸ラ閬ユ祴鏁版嵁缁撴瀯
 extern YC_BaseFreq_Struct BaseFreq_Dsip;
+extern bool BaseFreqDisplayReady;
 #define BaseFreq_DataLenth  sizeof(YC_BaseFreq_Struct)
 
 typedef struct

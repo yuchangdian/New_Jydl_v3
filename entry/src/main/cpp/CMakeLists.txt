@@ -11,5 +11,5 @@ endif()
 include_directories(${NATIVERENDER_ROOT_PATH}
                     ${NATIVERENDER_ROOT_PATH}/include)
 
-add_library(entry SHARED napi_init.cpp tcp_client.cpp data.cpp)
+add_library(entry SHARED napi_init.cpp tcp_client.cpp data.cpp setting_napi.cpp telemetry_napi.cpp)
 target_link_libraries(entry PUBLIC libace_napi.z.so libhilog_ndk.z.so)

@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "setting_napi.h"
+#include "telemetry_napi.h"
 #include "tcp_client.h"
 
 static napi_value Add(napi_env env, napi_callback_info info)
@@ -153,6 +155,9 @@ static napi_value Init(napi_env env, napi_value exports)
         {"startTcpClient", nullptr, StartTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"stopTcpClient", nullptr, StopTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isTcpClientRunning", nullptr, IsTcpClientRunning, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getBaseFreqDisplayData", nullptr, GetBaseFreqDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getPrimarySystemSetting", nullptr, GetPrimarySystemSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getAnalogQuantitySetting", nullptr, GetAnalogQuantitySetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"sendTcpData", nullptr, SendTcpData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"add", nullptr, Add, nullptr, nullptr, nullptr, napi_default, nullptr}
         

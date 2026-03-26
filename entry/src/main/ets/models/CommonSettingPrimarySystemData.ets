@@ -61,6 +61,148 @@ export function cloneCommonSettingPrimarySystemData(
   return next;
 }
 
+export interface CommonSettingPrimarySystemStructValue {
+  ready: boolean;
+  SystemGroundingMode: number;
+  PTp_Bus_Primary: number;
+  PTp_Bus_Secondary: number;
+  PTo_Bus_Primary: number;
+  PTo_Bus_Secondary: number;
+  PT_Line_Primary: number;
+  PT_Line_Secondary: number;
+  PT_Line_Phase: number;
+  PT_Line_Phase_Text: string;
+  CTp_Protection_Primary: number;
+  CTp_Protection_Secondary: number;
+  CTo_Primary: number;
+  CTo_Secondary: number;
+  CTp_Measure_Primary: number;
+  CTp_Measure_Secondary: number;
+  Mode_CTConnectioin: number;
+  Mode_CTConnectioin_Text: string;
+  Mode_Iosample: number;
+  Mode_Iosample_Text: string;
+  RatedPower_Line: number;
+  CRC: number;
+}
+
+function formatPrimarySystemNumber(value: number, minFractionDigits: number = 0): string {
+  if (typeof value !== 'number' || !isFinite(value)) {
+    return '';
+  }
+
+  let text = value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  if (text.length === 0) {
+    text = '0';
+  }
+  if (minFractionDigits > 0 && text.indexOf('.') < 0) {
+    text += '.0';
+  }
+  return text;
+}
+
+function isValidPrimarySystemNumber(value: number): boolean {
+  return typeof value === 'number' && isFinite(value);
+}
+
+function normalizePrimarySystemLinePhase(value: string): string {
+  if (value === 'ABC相') {
+    return '三相';
+  }
+  return value;
+}
+
+export function isUsableCommonSettingPrimarySystemStructValue(
+  source: CommonSettingPrimarySystemStructValue | undefined
+): boolean {
+  if (!source || !source.ready) {
+    return false;
+  }
+
+  return isValidPrimarySystemNumber(source.PTp_Bus_Primary) &&
+    isValidPrimarySystemNumber(source.PTp_Bus_Secondary) &&
+    isValidPrimarySystemNumber(source.PTo_Bus_Primary) &&
+    isValidPrimarySystemNumber(source.PTo_Bus_Secondary) &&
+    isValidPrimarySystemNumber(source.PT_Line_Primary) &&
+    isValidPrimarySystemNumber(source.PT_Line_Secondary) &&
+    isValidPrimarySystemNumber(source.CTp_Protection_Primary) &&
+    isValidPrimarySystemNumber(source.CTp_Protection_Secondary) &&
+    isValidPrimarySystemNumber(source.CTo_Primary) &&
+    isValidPrimarySystemNumber(source.CTo_Secondary) &&
+    isValidPrimarySystemNumber(source.CTp_Measure_Primary) &&
+    isValidPrimarySystemNumber(source.CTp_Measure_Secondary) &&
+    isValidPrimarySystemNumber(source.RatedPower_Line);
+}
+
+export function createCommonSettingPrimarySystemDataFromStruct(
+  source: CommonSettingPrimarySystemStructValue
+): CommonSettingPrimarySystemData {
+  let data = createDefaultCommonSettingPrimarySystemData();
+  let busPtPrimary = formatPrimarySystemNumber(source.PTp_Bus_Primary, 1);
+  if (busPtPrimary.length > 0) {
+    data.busPtPrimary = busPtPrimary;
+  }
+  let busPtSecondary = formatPrimarySystemNumber(source.PTp_Bus_Secondary);
+  if (busPtSecondary.length > 0) {
+    data.busPtSecondary = busPtSecondary;
+  }
+  let busZeroPtPrimary = formatPrimarySystemNumber(source.PTo_Bus_Primary, 1);
+  if (busZeroPtPrimary.length > 0) {
+    data.busZeroPtPrimary = busZeroPtPrimary;
+  }
+  let busZeroPtSecondary = formatPrimarySystemNumber(source.PTo_Bus_Secondary);
+  if (busZeroPtSecondary.length > 0) {
+    data.busZeroPtSecondary = busZeroPtSecondary;
+  }
+  let linePtPrimary = formatPrimarySystemNumber(source.PT_Line_Primary, 1);
+  if (linePtPrimary.length > 0) {
+    data.linePtPrimary = linePtPrimary;
+  }
+  let linePtSecondary = formatPrimarySystemNumber(source.PT_Line_Secondary);
+  if (linePtSecondary.length > 0) {
+    data.linePtSecondary = linePtSecondary;
+  }
+  let protectCtPrimary = formatPrimarySystemNumber(source.CTp_Protection_Primary);
+  if (protectCtPrimary.length > 0) {
+    data.protectCtPrimary = protectCtPrimary;
+  }
+  let protectCtSecondary = formatPrimarySystemNumber(source.CTp_Protection_Secondary);
+  if (protectCtSecondary.length > 0) {
+    data.protectCtSecondary = protectCtSecondary;
+  }
+  let zeroCtPrimary = formatPrimarySystemNumber(source.CTo_Primary);
+  if (zeroCtPrimary.length > 0) {
+    data.zeroCtPrimary = zeroCtPrimary;
+  }
+  let zeroCtSecondary = formatPrimarySystemNumber(source.CTo_Secondary);
+  if (zeroCtSecondary.length > 0) {
+    data.zeroCtSecondary = zeroCtSecondary;
+  }
+  let measureCtPrimary = formatPrimarySystemNumber(source.CTp_Measure_Primary);
+  if (measureCtPrimary.length > 0) {
+    data.measureCtPrimary = measureCtPrimary;
+  }
+  let measureCtSecondary = formatPrimarySystemNumber(source.CTp_Measure_Secondary);
+  if (measureCtSecondary.length > 0) {
+    data.measureCtSecondary = measureCtSecondary;
+  }
+  let ratedPower = formatPrimarySystemNumber(source.RatedPower_Line);
+  if (ratedPower.length > 0) {
+    data.ratedPower = ratedPower;
+  }
+  let linePhaseText = normalizePrimarySystemLinePhase(source.PT_Line_Phase_Text);
+  if (linePhaseText.length > 0) {
+    data.linePhase = linePhaseText;
+  }
+  if (source.Mode_CTConnectioin_Text.length > 0) {
+    data.ctConnectionMode = source.Mode_CTConnectioin_Text;
+  }
+  if (source.Mode_Iosample_Text.length > 0) {
+    data.zeroCurrentMode = source.Mode_Iosample_Text;
+  }
+  return data;
+}
+
 export function serializeCommonSettingPrimarySystemData(data: CommonSettingPrimarySystemData): string {
   return JSON.stringify({
     busPtPrimary: data.busPtPrimary,

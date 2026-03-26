@@ -1,5 +1,6 @@
 import router from '@ohos.router';
 import display from '@ohos.display';
+import * as analogQuantityNativeModule from 'libentry.so';
 
 interface AnalogSignalConfig {
   label: string;
@@ -14,6 +15,43 @@ interface AnalogRowConfig {
   right: AnalogSignalConfig;
   gaps: number[];
 }
+
+interface CommonSettingAnalogQuantityParameterStructValue {
+  Ua: number;
+  Ub: number;
+  Uc: number;
+  Uo: number;
+  IA: number;
+  IB: number;
+  IC: number;
+  Io: number;
+  Ia: number;
+  Ib: number;
+  Ic: number;
+  Is: number;
+  Ux: number;
+  Iby1: number;
+  Iby2: number;
+  Iby3: number;
+}
+
+interface CommonSettingAnalogQuantityStructValue {
+  ready: boolean;
+  Reference: CommonSettingAnalogQuantityParameterStructValue;
+  Correction: CommonSettingAnalogQuantityParameterStructValue;
+  ZeroDrift: CommonSettingAnalogQuantityParameterStructValue;
+  CRC: number;
+}
+
+interface AnalogQuantityNativeModule {
+  getAnalogQuantitySetting?: () => CommonSettingAnalogQuantityStructValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): AnalogQuantityNativeModule | undefined;
 
 @Observed
 class CommonSettingAnalogQuantityData {
@@ -65,6 +103,111 @@ class CommonSettingAnalogQuantityData {
   Edit_Analog_Reference_Iby3: string = '5.00';
   Edit_Analog_Correction_Iby3: string = '5.00';
   Edit_Analog_ZeroDrift_Iby3: string = '5.00';
+}
+
+function formatAnalogQuantityNumber(value: number): string {
+  if (typeof value !== 'number' || !isFinite(value)) {
+    return '';
+  }
+  return value.toFixed(2);
+}
+
+function isValidAnalogQuantityNumber(value: number): boolean {
+  return typeof value === 'number' && isFinite(value);
+}
+
+function isUsableAnalogQuantityParameterValue(
+  value: CommonSettingAnalogQuantityParameterStructValue | undefined
+): boolean {
+  if (!value) {
+    return false;
+  }
+
+  return isValidAnalogQuantityNumber(value.Ua) &&
+    isValidAnalogQuantityNumber(value.Ub) &&
+    isValidAnalogQuantityNumber(value.Uc) &&
+    isValidAnalogQuantityNumber(value.Uo) &&
+    isValidAnalogQuantityNumber(value.IA) &&
+    isValidAnalogQuantityNumber(value.IB) &&
+    isValidAnalogQuantityNumber(value.IC) &&
+    isValidAnalogQuantityNumber(value.Io) &&
+    isValidAnalogQuantityNumber(value.Ia) &&
+    isValidAnalogQuantityNumber(value.Ib) &&
+    isValidAnalogQuantityNumber(value.Ic) &&
+    isValidAnalogQuantityNumber(value.Is) &&
+    isValidAnalogQuantityNumber(value.Ux) &&
+    isValidAnalogQuantityNumber(value.Iby1) &&
+    isValidAnalogQuantityNumber(value.Iby2) &&
+    isValidAnalogQuantityNumber(value.Iby3);
+}
+
+function isUsableCommonSettingAnalogQuantityStructValue(
+  value: CommonSettingAnalogQuantityStructValue | undefined
+): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  return isUsableAnalogQuantityParameterValue(value.Reference) &&
+    isUsableAnalogQuantityParameterValue(value.Correction) &&
+    isUsableAnalogQuantityParameterValue(value.ZeroDrift);
+}
+
+function createCommonSettingAnalogQuantityValuesFromStruct(
+  source: CommonSettingAnalogQuantityStructValue
+): CommonSettingAnalogQuantityData {
+  let data = createDefaultCommonSettingAnalogQuantityValues();
+
+  data.Edit_Analog_Reference_Ua = formatAnalogQuantityNumber(source.Reference.Ua);
+  data.Edit_Analog_Correction_Ua = formatAnalogQuantityNumber(source.Correction.Ua);
+  data.Edit_Analog_ZeroDrift_Ua = formatAnalogQuantityNumber(source.ZeroDrift.Ua);
+  data.Edit_Analog_Reference_Ia = formatAnalogQuantityNumber(source.Reference.Ia);
+  data.Edit_Analog_Correction_Ia = formatAnalogQuantityNumber(source.Correction.Ia);
+  data.Edit_Analog_ZeroDrift_Ia = formatAnalogQuantityNumber(source.ZeroDrift.Ia);
+  data.Edit_Analog_Reference_Ub = formatAnalogQuantityNumber(source.Reference.Ub);
+  data.Edit_Analog_Correction_Ub = formatAnalogQuantityNumber(source.Correction.Ub);
+  data.Edit_Analog_ZeroDrift_Ub = formatAnalogQuantityNumber(source.ZeroDrift.Ub);
+  data.Edit_Analog_Reference_Ib = formatAnalogQuantityNumber(source.Reference.Ib);
+  data.Edit_Analog_Correction_Ib = formatAnalogQuantityNumber(source.Correction.Ib);
+  data.Edit_Analog_ZeroDrift_Ib = formatAnalogQuantityNumber(source.ZeroDrift.Ib);
+  data.Edit_Analog_Reference_Uc = formatAnalogQuantityNumber(source.Reference.Uc);
+  data.Edit_Analog_Correction_Uc = formatAnalogQuantityNumber(source.Correction.Uc);
+  data.Edit_Analog_ZeroDrift_Uc = formatAnalogQuantityNumber(source.ZeroDrift.Uc);
+  data.Edit_Analog_Reference_Ic = formatAnalogQuantityNumber(source.Reference.Ic);
+  data.Edit_Analog_Correction_Ic = formatAnalogQuantityNumber(source.Correction.Ic);
+  data.Edit_Analog_ZeroDrift_Ic = formatAnalogQuantityNumber(source.ZeroDrift.Ic);
+  data.Edit_Analog_Reference_Uo = formatAnalogQuantityNumber(source.Reference.Uo);
+  data.Edit_Analog_Correction_Uo = formatAnalogQuantityNumber(source.Correction.Uo);
+  data.Edit_Analog_ZeroDrift_Uo = formatAnalogQuantityNumber(source.ZeroDrift.Uo);
+  data.Edit_Analog_Reference_Is = formatAnalogQuantityNumber(source.Reference.Is);
+  data.Edit_Analog_Correction_Is = formatAnalogQuantityNumber(source.Correction.Is);
+  data.Edit_Analog_ZeroDrift_Is = formatAnalogQuantityNumber(source.ZeroDrift.Is);
+  data.Edit_Analog_Reference_IA = formatAnalogQuantityNumber(source.Reference.IA);
+  data.Edit_Analog_Correction_IA = formatAnalogQuantityNumber(source.Correction.IA);
+  data.Edit_Analog_ZeroDrift_IA = formatAnalogQuantityNumber(source.ZeroDrift.IA);
+  data.Edit_Analog_Reference_Ux = formatAnalogQuantityNumber(source.Reference.Ux);
+  data.Edit_Analog_Correction_Ux = formatAnalogQuantityNumber(source.Correction.Ux);
+  data.Edit_Analog_ZeroDrift_Ux = formatAnalogQuantityNumber(source.ZeroDrift.Ux);
+  data.Edit_Analog_Reference_IB = formatAnalogQuantityNumber(source.Reference.IB);
+  data.Edit_Analog_Correction_IB = formatAnalogQuantityNumber(source.Correction.IB);
+  data.Edit_Analog_ZeroDrift_IB = formatAnalogQuantityNumber(source.ZeroDrift.IB);
+  data.Edit_Analog_Reference_Iby1 = formatAnalogQuantityNumber(source.Reference.Iby1);
+  data.Edit_Analog_Correction_Iby1 = formatAnalogQuantityNumber(source.Correction.Iby1);
+  data.Edit_Analog_ZeroDrift_Iby1 = formatAnalogQuantityNumber(source.ZeroDrift.Iby1);
+  data.Edit_Analog_Reference_IC = formatAnalogQuantityNumber(source.Reference.IC);
+  data.Edit_Analog_Correction_IC = formatAnalogQuantityNumber(source.Correction.IC);
+  data.Edit_Analog_ZeroDrift_IC = formatAnalogQuantityNumber(source.ZeroDrift.IC);
+  data.Edit_Analog_Reference_Iby2 = formatAnalogQuantityNumber(source.Reference.Iby2);
+  data.Edit_Analog_Correction_Iby2 = formatAnalogQuantityNumber(source.Correction.Iby2);
+  data.Edit_Analog_ZeroDrift_Iby2 = formatAnalogQuantityNumber(source.ZeroDrift.Iby2);
+  data.Edit_Analog_Reference_Io = formatAnalogQuantityNumber(source.Reference.Io);
+  data.Edit_Analog_Correction_Io = formatAnalogQuantityNumber(source.Correction.Io);
+  data.Edit_Analog_ZeroDrift_Io = formatAnalogQuantityNumber(source.ZeroDrift.Io);
+  data.Edit_Analog_Reference_Iby3 = formatAnalogQuantityNumber(source.Reference.Iby3);
+  data.Edit_Analog_Correction_Iby3 = formatAnalogQuantityNumber(source.Correction.Iby3);
+  data.Edit_Analog_ZeroDrift_Iby3 = formatAnalogQuantityNumber(source.ZeroDrift.Iby3);
+
+  return data;
 }
 
 function createDefaultCommonSettingAnalogQuantityValues(): CommonSettingAnalogQuantityData {
@@ -242,6 +385,7 @@ export struct CommonSetting_AnalogQuantity_Set {
   @State vm: CommonSettingAnalogQuantityVM = new CommonSettingAnalogQuantityVM();
   @State fieldValues: CommonSettingAnalogQuantityData = createDefaultCommonSettingAnalogQuantityValues();
   @State uiScale: number = 1;
+  private cachedAnalogQuantityNativeModule?: AnalogQuantityNativeModule;
 
   private readonly fontSize: CommonSettingAnalogQuantityFontSize = new CommonSettingAnalogQuantityFontSize();
   private readonly pageMaxWidth: number = 1042;
@@ -288,6 +432,63 @@ export struct CommonSetting_AnalogQuantity_Set {
       this.uiScale = scale > 0 ? scale : 1;
     } catch (error) {
       this.uiScale = 1;
+    }
+    this.loadNativeAnalogQuantityData();
+  }
+
+  private isValidAnalogQuantityNativeModule(module: AnalogQuantityNativeModule | undefined): boolean {
+    return !!module && typeof module.getAnalogQuantitySetting === 'function';
+  }
+
+  private loadAnalogQuantityNativeModule(): AnalogQuantityNativeModule | undefined {
+    if (this.isValidAnalogQuantityNativeModule(this.cachedAnalogQuantityNativeModule)) {
+      return this.cachedAnalogQuantityNativeModule;
+    }
+    if (this.isValidAnalogQuantityNativeModule(analogQuantityNativeModule)) {
+      this.cachedAnalogQuantityNativeModule = analogQuantityNativeModule;
+      return this.cachedAnalogQuantityNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidAnalogQuantityNativeModule(napiModuleWithPath)) {
+      this.cachedAnalogQuantityNativeModule = napiModuleWithPath;
+      return this.cachedAnalogQuantityNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidAnalogQuantityNativeModule(napiModuleWithApp)) {
+      this.cachedAnalogQuantityNativeModule = napiModuleWithApp;
+      return this.cachedAnalogQuantityNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidAnalogQuantityNativeModule(napiModule)) {
+      this.cachedAnalogQuantityNativeModule = napiModule;
+      return this.cachedAnalogQuantityNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativeAnalogQuantityData(): boolean {
+    try {
+      let nativeModule = this.loadAnalogQuantityNativeModule();
+      if (!nativeModule || typeof nativeModule.getAnalogQuantitySetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getAnalogQuantitySetting();
+      if (!isUsableCommonSettingAnalogQuantityStructValue(structValue)) {
+        return false;
+      }
+
+      this.fieldValues = createCommonSettingAnalogQuantityValuesFromStruct(
+        structValue as CommonSettingAnalogQuantityStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native analog quantity data failed: ${JSON.stringify(error)}`);
+      return false;
     }
   }
 

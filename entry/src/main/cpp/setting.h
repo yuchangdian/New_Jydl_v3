@@ -66,6 +66,7 @@ typedef struct
     uint32_t	CRC;	//校验码
 }CommonSetting_PrimarySystem_Struct;
 extern CommonSetting_PrimarySystem_Struct  PrimarySystemSetting;
+extern bool PrimarySystemSettingReady;
 extern uint32_t CommonSetting_PrimarySystem_Length_1Byte;			// 一次系统参数定值长度（单位：字节）
 extern uint32_t CommonSetting_PrimarySystem_CRCLength_4Byte;	// 一次系统参数定值CRC长度（单位：4字节）
 
@@ -102,6 +103,7 @@ typedef struct
     uint32_t CRC;	//校验码
 }CommonSetting_AnalogQuantity_Struct;
 extern CommonSetting_AnalogQuantity_Struct AnalogQuantitySetting;
+extern bool AnalogQuantitySettingReady;
 extern uint32_t CommonSetting_AnalogQuantity_Length_1Byte;		// 模拟量参数定值长度（单位：字节）;
 extern uint32_t CommonSetting_AnalogQuantity_CRCLength_4Byte;	// 模拟量参数定值CRC长度（单位：4字节）;
 

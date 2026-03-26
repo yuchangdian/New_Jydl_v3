@@ -1,19 +1,33 @@
 import router from '@ohos.router';
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
+import * as primarySystemNativeModule from 'libentry.so';
 import {
   CommonSettingPrimarySystemData,
+  CommonSettingPrimarySystemStructValue,
   COMMON_SETTING_PRIMARY_SYSTEM_CT_CONNECTION_OPTIONS,
   COMMON_SETTING_PRIMARY_SYSTEM_LINE_PHASE_OPTIONS,
   COMMON_SETTING_PRIMARY_SYSTEM_ZERO_CURRENT_OPTIONS,
+  createCommonSettingPrimarySystemDataFromStruct,
   createDefaultCommonSettingPrimarySystemData,
   deserializeCommonSettingPrimarySystemData,
+  isUsableCommonSettingPrimarySystemStructValue,
   serializeCommonSettingPrimarySystemData
 } from '../models/CommonSettingPrimarySystemData';
 
 interface AbilityFileContext {
   filesDir: string;
 }
+
+interface PrimarySystemNativeModule {
+  getPrimarySystemSetting?: () => CommonSettingPrimarySystemStructValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): PrimarySystemNativeModule | undefined;
 
 @Observed
 class BottomActionState {
@@ -81,6 +95,7 @@ export struct CommonSetting_PrimarySystem_Set {
   private readonly overlayCardWidth: number = 320;
   private readonly overlayCardRadius: number = 10;
   private readonly dataFileName: string = 'common_setting_primary_system.json';
+  private cachedPrimarySystemNativeModule?: PrimarySystemNativeModule;
 
   private readonly linePhaseOptions: string[] = COMMON_SETTING_PRIMARY_SYSTEM_LINE_PHASE_OPTIONS;
   private readonly ctConnectionOptions: string[] = COMMON_SETTING_PRIMARY_SYSTEM_CT_CONNECTION_OPTIONS;
@@ -100,7 +115,65 @@ export struct CommonSetting_PrimarySystem_Set {
     } catch (error) {
       this.uiScale = 1;
     }
-    this.loadPersistedData();
+    if (!this.loadNativePrimarySystemData()) {
+      this.loadPersistedData();
+    }
+  }
+
+  private isValidPrimarySystemNativeModule(module: PrimarySystemNativeModule | undefined): boolean {
+    return !!module && typeof module.getPrimarySystemSetting === 'function';
+  }
+
+  private loadPrimarySystemNativeModule(): PrimarySystemNativeModule | undefined {
+    if (this.isValidPrimarySystemNativeModule(this.cachedPrimarySystemNativeModule)) {
+      return this.cachedPrimarySystemNativeModule;
+    }
+    if (this.isValidPrimarySystemNativeModule(primarySystemNativeModule)) {
+      this.cachedPrimarySystemNativeModule = primarySystemNativeModule;
+      return this.cachedPrimarySystemNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidPrimarySystemNativeModule(napiModuleWithPath)) {
+      this.cachedPrimarySystemNativeModule = napiModuleWithPath;
+      return this.cachedPrimarySystemNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidPrimarySystemNativeModule(napiModuleWithApp)) {
+      this.cachedPrimarySystemNativeModule = napiModuleWithApp;
+      return this.cachedPrimarySystemNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidPrimarySystemNativeModule(napiModule)) {
+      this.cachedPrimarySystemNativeModule = napiModule;
+      return this.cachedPrimarySystemNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativePrimarySystemData(): boolean {
+    try {
+      let nativeModule = this.loadPrimarySystemNativeModule();
+      if (!nativeModule || typeof nativeModule.getPrimarySystemSetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getPrimarySystemSetting();
+      if (!isUsableCommonSettingPrimarySystemStructValue(structValue)) {
+        return false;
+      }
+
+      this.formData = createCommonSettingPrimarySystemDataFromStruct(
+        structValue as CommonSettingPrimarySystemStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native primary system data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
   }
 
   private getDataFilePath(): string {

@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -19,6 +20,81 @@ constexpr const char *TCP_LOG_TAG = "JY_TCP_NATIVE";
 #define TCP_LOGI(format, ...) OH_LOG_Print(LOG_APP, LOG_INFO, TCP_LOG_DOMAIN, TCP_LOG_TAG, format, ##__VA_ARGS__)
 #define TCP_LOGW(format, ...) OH_LOG_Print(LOG_APP, LOG_WARN, TCP_LOG_DOMAIN, TCP_LOG_TAG, format, ##__VA_ARGS__)
 #define TCP_LOGE(format, ...) OH_LOG_Print(LOG_APP, LOG_ERROR, TCP_LOG_DOMAIN, TCP_LOG_TAG, format, ##__VA_ARGS__)
+
+void LogPrimarySystemSetting(const CommonSetting_PrimarySystem_Struct &setting)
+{
+    TCP_LOGI(
+        "PrimarySystemSetting grounding=%{public}u busPT=(%{public}.3f,%{public}.3f) "
+        "busZeroPT=(%{public}.3f,%{public}.3f)",
+        setting.SystemGroundingMode,
+        static_cast<double>(setting.PTp_Bus_Primary),
+        static_cast<double>(setting.PTp_Bus_Secondary),
+        static_cast<double>(setting.PTo_Bus_Primary),
+        static_cast<double>(setting.PTo_Bus_Secondary));
+
+    TCP_LOGI(
+        "PrimarySystemSetting linePT=(%{public}.3f,%{public}.3f) phase=%{public}u "
+        "protectCT=(%{public}.3f,%{public}.3f)",
+        static_cast<double>(setting.PT_Line_Primary),
+        static_cast<double>(setting.PT_Line_Secondary),
+        setting.PT_Line_Phase,
+        static_cast<double>(setting.CTp_Protection_Primary),
+        static_cast<double>(setting.CTp_Protection_Secondary));
+
+    TCP_LOGI(
+        "PrimarySystemSetting zeroCT=(%{public}.3f,%{public}.3f) "
+        "measureCT=(%{public}.3f,%{public}.3f)",
+        static_cast<double>(setting.CTo_Primary),
+        static_cast<double>(setting.CTo_Secondary),
+        static_cast<double>(setting.CTp_Measure_Primary),
+        static_cast<double>(setting.CTp_Measure_Secondary));
+
+    TCP_LOGI(
+        "PrimarySystemSetting ctMode=%{public}u ioMode=%{public}u ratedPower=%{public}.3f crc=%{public}u",
+        setting.Mode_CTConnectioin,
+        setting.Mode_Iosample,
+        static_cast<double>(setting.RatedPower_Line),
+        setting.CRC);
+}
+
+void LogPrimarySystemPayloadHex(const std::uint8_t *data, std::size_t length)
+{
+    if (data == nullptr || length == 0) {
+        TCP_LOGW("PrimarySystem payload is empty");
+        return;
+    }
+
+    constexpr std::size_t bytesPerLine = 16;
+    char byteBuffer[8] = {};
+    TCP_LOGI("PrimarySystem raw payload length=%{public}d", static_cast<int>(length));
+
+    for (std::size_t offset = 0; offset < length; offset += bytesPerLine) {
+        std::string line;
+        for (std::size_t index = offset; index < length && index < offset + bytesPerLine; ++index) {
+            if (!line.empty()) {
+                line += ' ';
+            }
+            std::snprintf(byteBuffer, sizeof(byteBuffer), "%02X", data[index]);
+            line += byteBuffer;
+        }
+        TCP_LOGI("PrimarySystem raw[%{public}03d]: %{public}s",
+            static_cast<int>(offset), line.c_str());
+    }
+}
+
+bool IsAllBytesValue(const std::uint8_t *data, std::size_t length, std::uint8_t expected)
+{
+    if (data == nullptr || length == 0) {
+        return false;
+    }
+
+    for (std::size_t index = 0; index < length; ++index) {
+        if (data[index] != expected) {
+            return false;
+        }
+    }
+    return true;
+}
 
 } // namespace
 
@@ -351,6 +427,7 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
         case RemoteMetry_BaseFreq:
             if (payloadLength == BaseFreq_DataLenth) {
                 std::memcpy(&BaseFreq_Dsip, decodeBuffer_.data() + payloadOffset, sizeof(YC_BaseFreq_Struct));
+                BaseFreqDisplayReady = true;
                 TCP_LOGI("BaseFreq_Dsip updated");
             } else {
                 TCP_LOGW("BaseFreq_Dsip length mismatch. expected=%{public}d actual=%{public}d",
@@ -604,11 +681,19 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
         case YT_ObjectAddr_CommonSetting_PrimarySystem:
             if (payloadLength == CommonSetting_PrimarySystem_Length_1Byte) {
                 CommonSetting_PrimarySystem_Struct primarySystemBuf {};
-                std::memcpy(&primarySystemBuf, decodeBuffer_.data() + payloadOffset, sizeof(primarySystemBuf));
+                const std::uint8_t *primarySystemPayload = decodeBuffer_.data() + payloadOffset;
+                LogPrimarySystemPayloadHex(primarySystemPayload, payloadLength);
+                if (IsAllBytesValue(primarySystemPayload, payloadLength, 0xFF)) {
+                    TCP_LOGW("CommonSetting_PrimarySystem payload is all 0xFF, ignored as invalid");
+                    break;
+                }
+                std::memcpy(&primarySystemBuf, primarySystemPayload, sizeof(primarySystemBuf));
                 const std::uint32_t tempCRC = CRC32(reinterpret_cast<std::uint32_t *>(&primarySystemBuf), CommonSetting_PrimarySystem_CRCLength_4Byte);
                 if (tempCRC == primarySystemBuf.CRC) {
                     std::memcpy(&PrimarySystemSetting, &primarySystemBuf, sizeof(PrimarySystemSetting));
+                    PrimarySystemSettingReady = true;
                     TCP_LOGI("CommonSetting_PrimarySystem updated");
+                    LogPrimarySystemSetting(PrimarySystemSetting);
                 } else {
                     TCP_LOGW("CommonSetting_PrimarySystem CRC error. calc=%{public}u packet=%{public}u",
                         tempCRC, primarySystemBuf.CRC);
@@ -686,6 +771,7 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
                     CRC32(reinterpret_cast<std::uint32_t *>(&analogQuantityBuf), CommonSetting_AnalogQuantity_CRCLength_4Byte);
                 if (tempCRC == analogQuantityBuf.CRC) {
                     std::memcpy(&AnalogQuantitySetting, &analogQuantityBuf, sizeof(AnalogQuantitySetting));
+                    AnalogQuantitySettingReady = true;
                     TCP_LOGI("CommonSetting_AnalogQuantity updated");
                 } else {
                     TCP_LOGW("CommonSetting_AnalogQuantity CRC error. calc=%{public}u packet=%{public}u",

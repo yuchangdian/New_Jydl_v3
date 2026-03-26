@@ -22,10 +22,12 @@ uint32_t RelaySetting_DataLength = sizeof(RelaySetting_Struct);
 uint32_t RelaySetting_CRCLength = sizeof(RelaySetting_Struct)/4-1;
 
 CommonSetting_PrimarySystem_Struct PrimarySystemSetting;
+bool PrimarySystemSettingReady = false;
 uint32_t CommonSetting_PrimarySystem_Length_1Byte = sizeof(CommonSetting_PrimarySystem_Struct);
 uint32_t CommonSetting_PrimarySystem_CRCLength_4Byte = sizeof(CommonSetting_PrimarySystem_Struct)/4-1;
 
 CommonSetting_AnalogQuantity_Struct AnalogQuantitySetting;
+bool AnalogQuantitySettingReady = false;
 uint32_t CommonSetting_AnalogQuantity_Length_1Byte = sizeof(CommonSetting_AnalogQuantity_Struct);
 uint32_t CommonSetting_AnalogQuantity_CRCLength_4Byte = sizeof(CommonSetting_AnalogQuantity_Struct)/4-1;
 
@@ -69,6 +71,7 @@ PowerQualitySetting_struct PowerQualitySetting;
 PowerQualitySetting_struct PowerQualitySetting_Buf;
 
 YC_BaseFreq_Struct BaseFreq_Dsip;
+bool BaseFreqDisplayReady = false;
 YC_Energy_Struct Energy_Dsip;
 YC_HarmonicU_Struct HarmonicU_Dsip;
 YC_HarmonicI_Struct HarmonicI_Dsip;
@@ -312,5 +315,3 @@ std::string SOE_1ValString(SOE_Node_Struct tNode)
     }
     return content;
 }
-
-

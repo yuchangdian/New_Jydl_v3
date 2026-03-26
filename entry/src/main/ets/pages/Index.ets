@@ -1,8 +1,86 @@
 import { TopMenu } from '../components/TopMenu'
+import * as telemetryNativeModule from 'libentry.so';
 
 interface PlateItem {
   name: string;
   checked: boolean;
+}
+
+interface BaseFreqDisplayValue {
+  ready: boolean;
+  Ua_Rms: number;
+  Ua_Phase: number;
+  Ub_Rms: number;
+  Ub_Phase: number;
+  Uc_Rms: number;
+  Uc_Phase: number;
+  Uo_Rms: number;
+  Uo_Phase: number;
+  Ux_Rms: number;
+  Ux_Phase: number;
+  IA_Rms: number;
+  IA_Phase: number;
+  IB_Rms: number;
+  IB_Phase: number;
+  IC_Rms: number;
+  IC_Phase: number;
+  Io_Rms: number;
+  Io_Phase: number;
+  Ia_Rms: number;
+  Ia_Phase: number;
+  Ib_Rms: number;
+  Ib_Phase: number;
+  Ic_Rms: number;
+  Ic_Phase: number;
+}
+
+interface BaseFreqNativeModule {
+  getBaseFreqDisplayData?: () => BaseFreqDisplayValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): BaseFreqNativeModule | undefined;
+
+const ANGLE_SYMBOL: string = String.fromCharCode(8736);
+const DEGREE_SYMBOL: string = String.fromCharCode(176);
+
+function createPhasorPlaceholder(unit: string): string {
+  return '**.**' + unit + ANGLE_SYMBOL + '**.**' + DEGREE_SYMBOL;
+}
+
+function formatBaseFreqPhasorText(rms: number, phase: number, unit: string): string {
+  if (!isValidBaseFreqNumber(rms) || !isValidBaseFreqNumber(phase)) {
+    return createPhasorPlaceholder(unit);
+  }
+  return rms.toFixed(2) + unit + ANGLE_SYMBOL + phase.toFixed(2) + DEGREE_SYMBOL;
+}
+
+function isValidBaseFreqNumber(value: number): boolean {
+  return typeof value === 'number' && isFinite(value);
+}
+
+function isUsableBaseFreqDisplayValue(value: BaseFreqDisplayValue | undefined): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  return [
+    value.Ua_Rms, value.Ua_Phase,
+    value.Ub_Rms, value.Ub_Phase,
+    value.Uc_Rms, value.Uc_Phase,
+    value.Uo_Rms, value.Uo_Phase,
+    value.Ux_Rms, value.Ux_Phase,
+    value.IA_Rms, value.IA_Phase,
+    value.IB_Rms, value.IB_Phase,
+    value.IC_Rms, value.IC_Phase,
+    value.Io_Rms, value.Io_Phase,
+    value.Ia_Rms, value.Ia_Phase,
+    value.Ib_Rms, value.Ib_Phase,
+    value.Ic_Rms, value.Ic_Phase
+  ].every((item: number) => isValidBaseFreqNumber(item));
 }
 
 // @Entry 标记当前页面是可直接作为页面入口加载的组件。
@@ -33,6 +111,9 @@ struct Index {
   @State iia: string = '**.**V∠**.**°';
   @State iib: string = '**.**V∠**.**°';
   @State iic: string = '**.**V∠**.**°';
+
+  private baseFreqRefreshTimer: number = -1;
+  private cachedBaseFreqNativeModule?: BaseFreqNativeModule;
 
   @State hardPlates: Array<PlateItem> = [
     { name: '纵联保护', checked: true },
@@ -71,6 +152,111 @@ struct Index {
   ];
 
   // build 是页面 UI 树的总入口，所有子区域都从这里组合出来。
+  aboutToAppear(): void {
+    this.refreshBaseFreqDisplay();
+    this.startBaseFreqRefreshTimer();
+  }
+
+  aboutToDisappear(): void {
+    this.stopBaseFreqRefreshTimer();
+  }
+
+  private startBaseFreqRefreshTimer(): void {
+    this.stopBaseFreqRefreshTimer();
+    this.baseFreqRefreshTimer = setInterval(() => {
+      this.refreshBaseFreqDisplay();
+    }, 500);
+  }
+
+  private stopBaseFreqRefreshTimer(): void {
+    if (this.baseFreqRefreshTimer >= 0) {
+      clearInterval(this.baseFreqRefreshTimer);
+      this.baseFreqRefreshTimer = -1;
+    }
+  }
+
+  private isValidBaseFreqNativeModule(module: BaseFreqNativeModule | undefined): boolean {
+    return !!module && typeof module.getBaseFreqDisplayData === 'function';
+  }
+
+  private loadBaseFreqNativeModule(): BaseFreqNativeModule | undefined {
+    if (this.isValidBaseFreqNativeModule(this.cachedBaseFreqNativeModule)) {
+      return this.cachedBaseFreqNativeModule;
+    }
+    if (this.isValidBaseFreqNativeModule(telemetryNativeModule)) {
+      this.cachedBaseFreqNativeModule = telemetryNativeModule;
+      return this.cachedBaseFreqNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidBaseFreqNativeModule(napiModuleWithPath)) {
+      this.cachedBaseFreqNativeModule = napiModuleWithPath;
+      return this.cachedBaseFreqNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidBaseFreqNativeModule(napiModuleWithApp)) {
+      this.cachedBaseFreqNativeModule = napiModuleWithApp;
+      return this.cachedBaseFreqNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidBaseFreqNativeModule(napiModule)) {
+      this.cachedBaseFreqNativeModule = napiModule;
+      return this.cachedBaseFreqNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private resetBaseFreqDisplay(): void {
+    this.ua = createPhasorPlaceholder('V');
+    this.ub = createPhasorPlaceholder('V');
+    this.uc = createPhasorPlaceholder('V');
+    this.u0 = createPhasorPlaceholder('V');
+    this.ux = createPhasorPlaceholder('V');
+    this.ia = createPhasorPlaceholder('A');
+    this.ib = createPhasorPlaceholder('A');
+    this.ic = createPhasorPlaceholder('A');
+    this.i0 = createPhasorPlaceholder('A');
+    this.iia = createPhasorPlaceholder('A');
+    this.iib = createPhasorPlaceholder('A');
+    this.iic = createPhasorPlaceholder('A');
+  }
+
+  private refreshBaseFreqDisplay(): void {
+    try {
+      let nativeModule = this.loadBaseFreqNativeModule();
+      if (!nativeModule || typeof nativeModule.getBaseFreqDisplayData !== 'function') {
+        this.resetBaseFreqDisplay();
+        return;
+      }
+
+      let value = nativeModule.getBaseFreqDisplayData();
+      if (!isUsableBaseFreqDisplayValue(value)) {
+        this.resetBaseFreqDisplay();
+        return;
+      }
+
+      let baseFreqValue = value as BaseFreqDisplayValue;
+      this.ua = formatBaseFreqPhasorText(baseFreqValue.Ua_Rms, baseFreqValue.Ua_Phase, 'V');
+      this.ub = formatBaseFreqPhasorText(baseFreqValue.Ub_Rms, baseFreqValue.Ub_Phase, 'V');
+      this.uc = formatBaseFreqPhasorText(baseFreqValue.Uc_Rms, baseFreqValue.Uc_Phase, 'V');
+      this.u0 = formatBaseFreqPhasorText(baseFreqValue.Uo_Rms, baseFreqValue.Uo_Phase, 'V');
+      this.ux = formatBaseFreqPhasorText(baseFreqValue.Ux_Rms, baseFreqValue.Ux_Phase, 'V');
+      this.ia = formatBaseFreqPhasorText(baseFreqValue.IA_Rms, baseFreqValue.IA_Phase, 'A');
+      this.ib = formatBaseFreqPhasorText(baseFreqValue.IB_Rms, baseFreqValue.IB_Phase, 'A');
+      this.ic = formatBaseFreqPhasorText(baseFreqValue.IC_Rms, baseFreqValue.IC_Phase, 'A');
+      this.i0 = formatBaseFreqPhasorText(baseFreqValue.Io_Rms, baseFreqValue.Io_Phase, 'A');
+      this.iia = formatBaseFreqPhasorText(baseFreqValue.Ia_Rms, baseFreqValue.Ia_Phase, 'A');
+      this.iib = formatBaseFreqPhasorText(baseFreqValue.Ib_Rms, baseFreqValue.Ib_Phase, 'A');
+      this.iic = formatBaseFreqPhasorText(baseFreqValue.Ic_Rms, baseFreqValue.Ic_Phase, 'A');
+    } catch (error) {
+      console.error(`refresh base frequency display failed: ${JSON.stringify(error)}`);
+      this.resetBaseFreqDisplay();
+    }
+  }
+
   build() {
     Column() {
       TopMenu()
