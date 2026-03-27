@@ -36,22 +36,27 @@ uint32_t CommonSetting_AnalogQuantity_CRCLength_4Byte = sizeof(CommonSetting_Ana
 //uint32_t CommonSetting_AnalogQuantity_CRCLength_4Byte = sizeof(CommonSetting_AnalogQuantity_Struct)/4-1;
 
 CommonSetting_ExceedingLimit_Struct ExceedingLimitSetting;
+bool ExceedingLimitSettingReady = false;
 uint32_t CommonSetting_ExceedingLimit_Length_1Byte = sizeof(CommonSetting_ExceedingLimit_Struct);
 uint32_t CommonSetting_ExceedingLimit_CRCLength_4Byte = sizeof(CommonSetting_ExceedingLimit_Struct)/4-1;
 
 CommonSetting_Statistics_Struct StatisticsSetting;
+bool StatisticsSettingReady = false;
 uint32_t CommonSetting_Statistics_Length_1Byte = sizeof(CommonSetting_Statistics_Struct);
 uint32_t CommonSetting_Statistics_CRCLength_4Byte = sizeof(CommonSetting_Statistics_Struct)/4-1;
 
 CommonSetting_TeleControlling_Struct TeleControllingSetting;
+bool TeleControllingSettingReady = false;
 uint32_t CommonSetting_YK_Length_1Byte = sizeof(CommonSetting_TeleControlling_Struct);
 uint32_t CommonSetting_YK_CRCLength_4Byte = sizeof(CommonSetting_TeleControlling_Struct)/4-1;
 
 CommonSetting_TeleMeasuring_Struct TeleMeasuringSetting;
+bool TeleMeasuringSettingReady = false;
 uint32_t CommonSetting_YC_Length_1Byte = sizeof(CommonSetting_TeleMeasuring_Struct);
 uint32_t CommonSetting_YC_CRCLength_4Byte = sizeof(CommonSetting_TeleMeasuring_Struct)/4-1;
 
  CommonSetting_TeleSignaling_Struct TeleSignalingSetting;
+ bool TeleSignalingSettingReady = false;
  uint32_t CommonSetting_YX_Length_1Byte = sizeof(CommonSetting_TeleSignaling_Struct);
  uint32_t CommonSetting_YX_CRCLength_4Byte = sizeof(CommonSetting_TeleSignaling_Struct)/4-1;
 

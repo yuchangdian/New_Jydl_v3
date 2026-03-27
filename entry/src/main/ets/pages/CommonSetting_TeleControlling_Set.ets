@@ -1,6 +1,7 @@
 ﻿import router from '@ohos.router';
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
+import * as teleControllingNativeModule from 'libentry.so';
 import {
   CommonSettingTeleControllingData,
   COMMON_SETTING_TELE_CONTROLLING_CLOSE_MODE_OPTIONS,
@@ -13,34 +14,140 @@ interface AbilityFileContext {
   filesDir: string;
 }
 
-const STR_DEFAULT: string = '\u9ed8\u8ba4\u503c';
-const STR_SUBMIT: string = '\u63d0\u4ea4';
-const STR_CLOSE: string = '\u5173\u95ed';
-const STR_BACK: string = '\u8fd4\u56de';
-const STR_TITLE_LEFT: string = '\u5b9a\u503c\u7ba1\u7406';
-const STR_TITLE_RIGHT: string = '\u2014\u6574\u5b9a\u9065\u63a7\u53c2\u6570';
-const STR_FEEDBACK_TITLE: string = '\u63d0\u793a';
-const STR_FEEDBACK_OK: string = '\u786e\u5b9a';
-const STR_CANCEL: string = '\u53d6\u6d88';
-const STR_SUBMIT_SUCCESS: string = '\u63d0\u4ea4\u6210\u529f';
-const STR_SUBMIT_FAILURE: string = '\u63d0\u4ea4\u5931\u8d25';
-const STR_REMOTE_SECTION: string = '\u3010\u9065\u63a7\u53c2\u6570\u3011';
-const STR_SYNC_SECTION: string = '\u3010\u540c\u671f\u5408\u95f8\u53c2\u6570\u3011';
-const STR_YK1_SELECT: string = '\u9065\u63a71\u9009\u62e9\u4fdd\u6301\u65f6\u95f4:';
-const STR_YK2_SELECT: string = '\u9065\u63a72\u9009\u62e9\u4fdd\u6301\u65f6\u95f4:';
-const STR_YK1_TRIP: string = '\u9065\u63a71\u5206\u95f8\u4fdd\u6301\u65f6\u95f4:';
-const STR_YK2_TRIP: string = '\u9065\u63a72\u5206\u95f8\u4fdd\u6301\u65f6\u95f4:';
-const STR_YK1_CLOSE: string = '\u9065\u63a71\u5408\u95f8\u4fdd\u6301\u65f6\u95f4:';
-const STR_YK2_CLOSE: string = '\u9065\u63a72\u5408\u95f8\u4fdd\u6301\u65f6\u95f4:';
-const STR_NO_VOLTAGE: string = '\u65e0\u538b\u5b9a\u503c:';
-const STR_THERE_VOLTAGE: string = '\u6709\u538b\u5b9a\u503c:';
-const STR_VOLTAGE_DIFF: string = '\u538b\u5dee\u95ed\u9501\u5b9a\u503c:';
-const STR_ANGLE_DIFF: string = '\u89d2\u5dee\u95ed\u9501\u5b9a\u503c:';
-const STR_FREQUENCY_DIFF: string = '\u9891\u5dee\u95ed\u9501\u5b9a\u503c:';
-const STR_SYNC_DELAY: string = '\u540c\u671f\u7b49\u5f85\u65f6\u95f4:';
-const STR_BREAKER_CLOSE_TIME: string = '\u65ad\u8def\u5668\u5408\u95f8\u65f6\u95f4:';
-const STR_REMOTE_CLOSE_MODE: string = '\u9065\u63a7\u5408\u95f8\u65b9\u5f0f:';
+interface CommonSettingTeleControllingStructValue {
+  ready: boolean;
+  HoldingTime_YK1_XZ: number;
+  HoldingTime_YK1_TZ: number;
+  HoldingTime_YK1_HZ: number;
+  HoldingTime_YK2_XZ: number;
+  HoldingTime_YK2_TZ: number;
+  HoldingTime_YK2_HZ: number;
+  Sync_NoVoltage: number;
+  Sync_ThereVoltage: number;
+  Sync_Volue_VoltageDifferenceBlock: number;
+  Sync_Volue_AngleDifferenceBlock: number;
+  Sync_Volue_FrequencyDifferenceBlock: number;
+  Sync_DelayTime: number;
+  Sync_BreakerCloseTime: number;
+  Sync_Enable_CloseMode_YK: number;
+  CRC: number;
+}
+
+interface TeleControllingNativeModule {
+  getTeleControllingSetting?: () => CommonSettingTeleControllingStructValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): TeleControllingNativeModule | undefined;
+
+const STR_DEFAULT: string = '默认值';
+const STR_SUBMIT: string = '提交';
+const STR_CLOSE: string = '关闭';
+const STR_BACK: string = '返回';
+const STR_TITLE_LEFT: string = '定值管理';
+const STR_TITLE_RIGHT: string = '—整定遥控参数';
+const STR_FEEDBACK_TITLE: string = '提示';
+const STR_FEEDBACK_OK: string = '确定';
+const STR_CANCEL: string = '取消';
+const STR_SUBMIT_SUCCESS: string = '提交成功';
+const STR_SUBMIT_FAILURE: string = '提交失败';
+const STR_REMOTE_SECTION: string = '【遥控参数】';
+const STR_SYNC_SECTION: string = '【同期合闸参数】';
+const STR_YK1_SELECT: string = '遥控1选择保持时间:';
+const STR_YK2_SELECT: string = '遥控2选择保持时间:';
+const STR_YK1_TRIP: string = '遥控1分闸保持时间:';
+const STR_YK2_TRIP: string = '遥控2分闸保持时间:';
+const STR_YK1_CLOSE: string = '遥控1合闸保持时间:';
+const STR_YK2_CLOSE: string = '遥控2合闸保持时间:';
+const STR_NO_VOLTAGE: string = '无压定值:';
+const STR_THERE_VOLTAGE: string = '有压定值:';
+const STR_VOLTAGE_DIFF: string = '压差闭锁定值:';
+const STR_ANGLE_DIFF: string = '角差闭锁定值:';
+const STR_FREQUENCY_DIFF: string = '频差闭锁定值:';
+const STR_SYNC_DELAY: string = '同期等待时间:';
+const STR_BREAKER_CLOSE_TIME: string = '断路器合闸时间:';
+const STR_REMOTE_CLOSE_MODE: string = '遥控合闸方式:';
 const TIME_TEXT: string = '2024/12/30\n12:12:30';
+
+function isValidTeleControllingNumber(value: number): boolean {
+  return typeof value === 'number' && isFinite(value) && value >= 0;
+}
+
+function formatTeleControllingNumber(value: number): string {
+  if (!isValidTeleControllingNumber(value)) {
+    return '';
+  }
+  return value.toFixed(2);
+}
+
+function getTeleControllingCloseModeText(value: number): string {
+  switch (value) {
+    case 0:
+      return '闭锁';
+    case 1:
+      return '普通';
+    case 2:
+      return '检同期';
+    case 3:
+      return '检线无压且母有压';
+    case 4:
+      return '检线有压且母无压';
+    case 5:
+      return '检线无压且母无压';
+    case 6:
+      return '检线无压或母无压';
+    default:
+      return '';
+  }
+}
+
+function isUsableCommonSettingTeleControllingStructValue(
+  value: CommonSettingTeleControllingStructValue | undefined
+): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  return isValidTeleControllingNumber(value.HoldingTime_YK1_XZ) &&
+    isValidTeleControllingNumber(value.HoldingTime_YK1_TZ) &&
+    isValidTeleControllingNumber(value.HoldingTime_YK1_HZ) &&
+    isValidTeleControllingNumber(value.HoldingTime_YK2_XZ) &&
+    isValidTeleControllingNumber(value.HoldingTime_YK2_TZ) &&
+    isValidTeleControllingNumber(value.HoldingTime_YK2_HZ) &&
+    isValidTeleControllingNumber(value.Sync_NoVoltage) &&
+    isValidTeleControllingNumber(value.Sync_ThereVoltage) &&
+    isValidTeleControllingNumber(value.Sync_Volue_VoltageDifferenceBlock) &&
+    isValidTeleControllingNumber(value.Sync_Volue_AngleDifferenceBlock) &&
+    isValidTeleControllingNumber(value.Sync_Volue_FrequencyDifferenceBlock) &&
+    isValidTeleControllingNumber(value.Sync_DelayTime) &&
+    isValidTeleControllingNumber(value.Sync_BreakerCloseTime) &&
+    value.Sync_Enable_CloseMode_YK >= 0 &&
+    value.Sync_Enable_CloseMode_YK <= 6;
+}
+
+function createCommonSettingTeleControllingDataFromStruct(
+  source: CommonSettingTeleControllingStructValue
+): CommonSettingTeleControllingData {
+  let data = createDefaultCommonSettingTeleControllingData();
+  data.yk1SelectHoldingTime = formatTeleControllingNumber(source.HoldingTime_YK1_XZ);
+  data.yk2SelectHoldingTime = formatTeleControllingNumber(source.HoldingTime_YK2_XZ);
+  data.yk1TripHoldingTime = formatTeleControllingNumber(source.HoldingTime_YK1_TZ);
+  data.yk2TripHoldingTime = formatTeleControllingNumber(source.HoldingTime_YK2_TZ);
+  data.yk1CloseHoldingTime = formatTeleControllingNumber(source.HoldingTime_YK1_HZ);
+  data.yk2CloseHoldingTime = formatTeleControllingNumber(source.HoldingTime_YK2_HZ);
+  data.syncNoVoltage = formatTeleControllingNumber(source.Sync_NoVoltage);
+  data.syncThereVoltage = formatTeleControllingNumber(source.Sync_ThereVoltage);
+  data.syncVoltageDifferenceBlock = formatTeleControllingNumber(source.Sync_Volue_VoltageDifferenceBlock);
+  data.syncAngleDifferenceBlock = formatTeleControllingNumber(source.Sync_Volue_AngleDifferenceBlock);
+  data.syncFrequencyDifferenceBlock = formatTeleControllingNumber(source.Sync_Volue_FrequencyDifferenceBlock);
+  data.syncDelayTime = formatTeleControllingNumber(source.Sync_DelayTime);
+  data.syncBreakerCloseTime = formatTeleControllingNumber(source.Sync_BreakerCloseTime);
+  data.remoteCloseMode = getTeleControllingCloseModeText(source.Sync_Enable_CloseMode_YK);
+  return data;
+}
 
 @Observed
 class BottomActionState {
@@ -92,6 +199,7 @@ export struct CommonSetting_TeleControlling_Set {
 
   private readonly fontSize: CommonSettingTeleControllingFontSize = new CommonSettingTeleControllingFontSize();
   private readonly closeModeOptions: string[] = COMMON_SETTING_TELE_CONTROLLING_CLOSE_MODE_OPTIONS;
+  private cachedTeleControllingNativeModule?: TeleControllingNativeModule;
 
   private readonly pageMaxWidth: number = 1024;
   private readonly bodyWidth: number = 980;
@@ -128,7 +236,9 @@ export struct CommonSetting_TeleControlling_Set {
     } catch (error) {
       this.uiScale = 1;
     }
-    this.loadPersistedData();
+    if (!this.loadNativeTeleControllingData()) {
+      this.loadPersistedData();
+    }
   }
 
   private getDataFilePath(): string {
@@ -149,6 +259,62 @@ export struct CommonSetting_TeleControlling_Set {
       }
     } catch (error) {
       console.error(`load tele controlling data failed: ${JSON.stringify(error)}`);
+    }
+  }
+
+  private isValidTeleControllingNativeModule(module: TeleControllingNativeModule | undefined): boolean {
+    return !!module && typeof module.getTeleControllingSetting === 'function';
+  }
+
+  private loadTeleControllingNativeModule(): TeleControllingNativeModule | undefined {
+    if (this.isValidTeleControllingNativeModule(this.cachedTeleControllingNativeModule)) {
+      return this.cachedTeleControllingNativeModule;
+    }
+    if (this.isValidTeleControllingNativeModule(teleControllingNativeModule)) {
+      this.cachedTeleControllingNativeModule = teleControllingNativeModule;
+      return this.cachedTeleControllingNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidTeleControllingNativeModule(napiModuleWithPath)) {
+      this.cachedTeleControllingNativeModule = napiModuleWithPath;
+      return this.cachedTeleControllingNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidTeleControllingNativeModule(napiModuleWithApp)) {
+      this.cachedTeleControllingNativeModule = napiModuleWithApp;
+      return this.cachedTeleControllingNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidTeleControllingNativeModule(napiModule)) {
+      this.cachedTeleControllingNativeModule = napiModule;
+      return this.cachedTeleControllingNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativeTeleControllingData(): boolean {
+    try {
+      let nativeModule = this.loadTeleControllingNativeModule();
+      if (!nativeModule || typeof nativeModule.getTeleControllingSetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getTeleControllingSetting();
+      if (!isUsableCommonSettingTeleControllingStructValue(structValue)) {
+        return false;
+      }
+
+      this.formData = createCommonSettingTeleControllingDataFromStruct(
+        structValue as CommonSettingTeleControllingStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native tele controlling data failed: ${JSON.stringify(error)}`);
+      return false;
     }
   }
 
@@ -483,7 +649,7 @@ export struct CommonSetting_TeleControlling_Set {
         (value: string) => {
           this.formData.syncAngleDifferenceBlock = value;
         },
-        '\u00b0',
+        '°',
         30,
         150
       );

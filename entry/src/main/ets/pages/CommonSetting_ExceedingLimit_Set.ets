@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
+import * as exceedingLimitNativeModule from 'libentry.so';
 import {
   CommonSettingExceedingLimitData,
   COMMON_SETTING_EXCEEDING_LIMIT_ENABLE_OPTIONS,
@@ -11,6 +12,128 @@ import {
 
 interface AbilityFileContext {
   filesDir: string;
+}
+
+interface CommonSettingExceedingLimitStructValue {
+  ready: boolean;
+  Enable_LineVoltageExceedingUpperLimit: number;
+  Value_LineVoltageExceedingUpperLimit: number;
+  Enable_LineVoltageExceedingLowerLimit: number;
+  Value_LineVoltageExceedingLowerLimit: number;
+  Enable_ZeroSequenceVoltageExceedingUpperLimit: number;
+  Value_ZeroSequenceVoltageExceedingUpperLimit: number;
+  Enable_VoltageImbalanceRateExceedingUpperLimit: number;
+  Value_VoltageImbalanceRateExceedingUpperLimit: number;
+  Enable_PhaseCurrentExceedingUpperLimit: number;
+  Value_PhaseCurrentExceedingUpperLimit: number;
+  Enable_ZeroSequenceCurrentExceedingUpperLimit: number;
+  Value_ZeroSequenceCurrentExceedingUpperLimit: number;
+  Enable_CurrentImbalanceRateExceedingUpperLimit: number;
+  Value_CurrentImbalanceRateExceedingUpperLimit: number;
+  Enable_PhaseDifferentialCurrentExceedingUpperLimit: number;
+  Value_PhaseDifferentialCurrentExceedingUpperLimit: number;
+  Enable_ZeroSequenceDifferentialCurrentExceedingUpperLimit: number;
+  Value_ZeroSequenceDifferentialCurrentExceedingUpperLimit: number;
+  Enable_LoadRateExceedingUpperLimit: number;
+  Value_LoadRateRateExceedingUpperLimit: number;
+  Time_Delay: number;
+  CRC: number;
+}
+
+interface ExceedingLimitNativeModule {
+  getExceedingLimitSetting?: () => CommonSettingExceedingLimitStructValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): ExceedingLimitNativeModule | undefined;
+
+function isValidExceedingLimitNumber(value: number): boolean {
+  return typeof value === 'number' && isFinite(value) && value >= 0;
+}
+
+function formatExceedingLimitNumber(value: number): string {
+  if (!isValidExceedingLimitNumber(value)) {
+    return '';
+  }
+  return value.toFixed(2);
+}
+
+function getExceedingLimitEnableText(value: number): string {
+  if (value === 1) {
+    return '投入';
+  }
+  if (value === 0) {
+    return '退出';
+  }
+  return '';
+}
+
+function isEnableValue(value: number): boolean {
+  return value === 0 || value === 1;
+}
+
+function isUsableCommonSettingExceedingLimitStructValue(
+  value: CommonSettingExceedingLimitStructValue | undefined
+): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  return isEnableValue(value.Enable_LineVoltageExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_LineVoltageExceedingUpperLimit) &&
+    isEnableValue(value.Enable_LineVoltageExceedingLowerLimit) &&
+    isValidExceedingLimitNumber(value.Value_LineVoltageExceedingLowerLimit) &&
+    isEnableValue(value.Enable_ZeroSequenceVoltageExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_ZeroSequenceVoltageExceedingUpperLimit) &&
+    isEnableValue(value.Enable_VoltageImbalanceRateExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_VoltageImbalanceRateExceedingUpperLimit) &&
+    isEnableValue(value.Enable_PhaseCurrentExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_PhaseCurrentExceedingUpperLimit) &&
+    isEnableValue(value.Enable_ZeroSequenceCurrentExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_ZeroSequenceCurrentExceedingUpperLimit) &&
+    isEnableValue(value.Enable_CurrentImbalanceRateExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_CurrentImbalanceRateExceedingUpperLimit) &&
+    isEnableValue(value.Enable_PhaseDifferentialCurrentExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_PhaseDifferentialCurrentExceedingUpperLimit) &&
+    isEnableValue(value.Enable_ZeroSequenceDifferentialCurrentExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_ZeroSequenceDifferentialCurrentExceedingUpperLimit) &&
+    isEnableValue(value.Enable_LoadRateExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Value_LoadRateRateExceedingUpperLimit) &&
+    isValidExceedingLimitNumber(value.Time_Delay);
+}
+
+function createCommonSettingExceedingLimitDataFromStruct(
+  source: CommonSettingExceedingLimitStructValue
+): CommonSettingExceedingLimitData {
+  let data = createDefaultCommonSettingExceedingLimitData();
+  data.delayTime = formatExceedingLimitNumber(source.Time_Delay);
+  data.lineVoltageUpperEnabled = getExceedingLimitEnableText(source.Enable_LineVoltageExceedingUpperLimit);
+  data.lineVoltageUpperValue = formatExceedingLimitNumber(source.Value_LineVoltageExceedingUpperLimit);
+  data.lineVoltageLowerEnabled = getExceedingLimitEnableText(source.Enable_LineVoltageExceedingLowerLimit);
+  data.lineVoltageLowerValue = formatExceedingLimitNumber(source.Value_LineVoltageExceedingLowerLimit);
+  data.zeroSequenceVoltageUpperEnabled = getExceedingLimitEnableText(source.Enable_ZeroSequenceVoltageExceedingUpperLimit);
+  data.zeroSequenceVoltageUpperValue = formatExceedingLimitNumber(source.Value_ZeroSequenceVoltageExceedingUpperLimit);
+  data.voltageImbalanceRateUpperEnabled = getExceedingLimitEnableText(source.Enable_VoltageImbalanceRateExceedingUpperLimit);
+  data.voltageImbalanceRateUpperValue = formatExceedingLimitNumber(source.Value_VoltageImbalanceRateExceedingUpperLimit);
+  data.phaseCurrentUpperEnabled = getExceedingLimitEnableText(source.Enable_PhaseCurrentExceedingUpperLimit);
+  data.phaseCurrentUpperValue = formatExceedingLimitNumber(source.Value_PhaseCurrentExceedingUpperLimit);
+  data.zeroSequenceCurrentUpperEnabled = getExceedingLimitEnableText(source.Enable_ZeroSequenceCurrentExceedingUpperLimit);
+  data.zeroSequenceCurrentUpperValue = formatExceedingLimitNumber(source.Value_ZeroSequenceCurrentExceedingUpperLimit);
+  data.currentImbalanceRateUpperEnabled = getExceedingLimitEnableText(source.Enable_CurrentImbalanceRateExceedingUpperLimit);
+  data.currentImbalanceRateUpperValue = formatExceedingLimitNumber(source.Value_CurrentImbalanceRateExceedingUpperLimit);
+  data.phaseDifferentialCurrentUpperEnabled =
+    getExceedingLimitEnableText(source.Enable_PhaseDifferentialCurrentExceedingUpperLimit);
+  data.phaseDifferentialCurrentUpperValue = formatExceedingLimitNumber(source.Value_PhaseDifferentialCurrentExceedingUpperLimit);
+  data.zeroSequenceDifferentialCurrentUpperEnabled =
+    getExceedingLimitEnableText(source.Enable_ZeroSequenceDifferentialCurrentExceedingUpperLimit);
+  data.zeroSequenceDifferentialCurrentUpperValue =
+    formatExceedingLimitNumber(source.Value_ZeroSequenceDifferentialCurrentExceedingUpperLimit);
+  data.loadRateUpperEnabled = getExceedingLimitEnableText(source.Enable_LoadRateExceedingUpperLimit);
+  data.loadRateUpperValue = formatExceedingLimitNumber(source.Value_LoadRateRateExceedingUpperLimit);
+  return data;
 }
 
 interface ExceedingLimitRowConfig {
@@ -163,6 +286,7 @@ export struct CommonSetting_ExceedingLimit_Set {
 
   private readonly fontSize: CommonSettingExceedingLimitFontSize = new CommonSettingExceedingLimitFontSize();
   private readonly enableOptions: string[] = COMMON_SETTING_EXCEEDING_LIMIT_ENABLE_OPTIONS;
+  private cachedExceedingLimitNativeModule?: ExceedingLimitNativeModule;
 
   private readonly pageBaseWidth: number = 1024;
   private readonly pageBaseHeight: number = 600;
@@ -209,7 +333,9 @@ export struct CommonSetting_ExceedingLimit_Set {
     } catch (error) {
       this.uiScale = 1;
     }
-    this.loadPersistedData();
+    if (!this.loadNativeExceedingLimitData()) {
+      this.loadPersistedData();
+    }
   }
 
   private getDataFilePath(): string {
@@ -230,6 +356,62 @@ export struct CommonSetting_ExceedingLimit_Set {
       }
     } catch (error) {
       console.error(`load exceeding limit data failed: ${JSON.stringify(error)}`);
+    }
+  }
+
+  private isValidExceedingLimitNativeModule(module: ExceedingLimitNativeModule | undefined): boolean {
+    return !!module && typeof module.getExceedingLimitSetting === 'function';
+  }
+
+  private loadExceedingLimitNativeModule(): ExceedingLimitNativeModule | undefined {
+    if (this.isValidExceedingLimitNativeModule(this.cachedExceedingLimitNativeModule)) {
+      return this.cachedExceedingLimitNativeModule;
+    }
+    if (this.isValidExceedingLimitNativeModule(exceedingLimitNativeModule)) {
+      this.cachedExceedingLimitNativeModule = exceedingLimitNativeModule;
+      return this.cachedExceedingLimitNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidExceedingLimitNativeModule(napiModuleWithPath)) {
+      this.cachedExceedingLimitNativeModule = napiModuleWithPath;
+      return this.cachedExceedingLimitNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidExceedingLimitNativeModule(napiModuleWithApp)) {
+      this.cachedExceedingLimitNativeModule = napiModuleWithApp;
+      return this.cachedExceedingLimitNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidExceedingLimitNativeModule(napiModule)) {
+      this.cachedExceedingLimitNativeModule = napiModule;
+      return this.cachedExceedingLimitNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativeExceedingLimitData(): boolean {
+    try {
+      let nativeModule = this.loadExceedingLimitNativeModule();
+      if (!nativeModule || typeof nativeModule.getExceedingLimitSetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getExceedingLimitSetting();
+      if (!isUsableCommonSettingExceedingLimitStructValue(structValue)) {
+        return false;
+      }
+
+      this.formData = createCommonSettingExceedingLimitDataFromStruct(
+        structValue as CommonSettingExceedingLimitStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native exceeding limit data failed: ${JSON.stringify(error)}`);
+      return false;
     }
   }
 

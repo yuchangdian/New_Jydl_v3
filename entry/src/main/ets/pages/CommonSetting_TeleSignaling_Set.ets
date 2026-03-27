@@ -1,12 +1,38 @@
 ﻿import router from '@ohos.router';
 import display from '@ohos.display';
 
+import * as teleSignalingNativeModule from 'libentry.so';
+
 interface TeleSignalingPairRowSpec {
   leftLabel: string;
   leftFieldKey: string;
   rightLabel: string;
   rightFieldKey: string;
 }
+
+interface CommonSettingTeleSignalingStructValue {
+  ready: boolean;
+  YX01_Time: number;
+  YX02_Time: number;
+  YX03_Time: number;
+  YX04_Time: number;
+  YX05_Time: number;
+  YX06_Time: number;
+  YX07_Time: number;
+  YX08_Time: number;
+  Enable_Logic: number;
+  CRC: number;
+}
+
+interface TeleSignalingNativeModule {
+  getTeleSignalingSetting?: () => CommonSettingTeleSignalingStructValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): TeleSignalingNativeModule | undefined;
 
 @Observed
 class CommonSettingTeleSignalingData {
@@ -23,6 +49,64 @@ class CommonSettingTeleSignalingData {
 
 function createDefaultCommonSettingTeleSignalingData(): CommonSettingTeleSignalingData {
   return new CommonSettingTeleSignalingData();
+}
+
+function isValidTeleSignalingInteger(value: number): boolean {
+  return typeof value === 'number' && isFinite(value) && value >= 0;
+}
+
+function formatTeleSignalingTime(value: number): string {
+  if (!isValidTeleSignalingInteger(value)) {
+    return '';
+  }
+  return (value * 0.5).toFixed(2);
+}
+
+function getTeleSignalingLogicModeText(value: number): string {
+  if (value === 0) {
+    return '原值';
+  }
+  if (value === 1) {
+    return '取反';
+  }
+  if (value === 2) {
+    return '屏蔽';
+  }
+  return '';
+}
+
+function isUsableCommonSettingTeleSignalingStructValue(
+  value: CommonSettingTeleSignalingStructValue | undefined
+): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  return isValidTeleSignalingInteger(value.YX01_Time) &&
+    isValidTeleSignalingInteger(value.YX02_Time) &&
+    isValidTeleSignalingInteger(value.YX03_Time) &&
+    isValidTeleSignalingInteger(value.YX04_Time) &&
+    isValidTeleSignalingInteger(value.YX05_Time) &&
+    isValidTeleSignalingInteger(value.YX06_Time) &&
+    isValidTeleSignalingInteger(value.YX07_Time) &&
+    isValidTeleSignalingInteger(value.YX08_Time) &&
+    (value.Enable_Logic === 0 || value.Enable_Logic === 1 || value.Enable_Logic === 2);
+}
+
+function createCommonSettingTeleSignalingDataFromStruct(
+  source: CommonSettingTeleSignalingStructValue
+): CommonSettingTeleSignalingData {
+  let data = createDefaultCommonSettingTeleSignalingData();
+  data.yx01Time = formatTeleSignalingTime(source.YX01_Time);
+  data.yx02Time = formatTeleSignalingTime(source.YX02_Time);
+  data.yx03Time = formatTeleSignalingTime(source.YX03_Time);
+  data.yx04Time = formatTeleSignalingTime(source.YX04_Time);
+  data.yx05Time = formatTeleSignalingTime(source.YX05_Time);
+  data.yx06Time = formatTeleSignalingTime(source.YX06_Time);
+  data.yx07Time = formatTeleSignalingTime(source.YX07_Time);
+  data.yx08Time = formatTeleSignalingTime(source.YX08_Time);
+  data.logicMode = getTeleSignalingLogicModeText(source.Enable_Logic);
+  return data;
 }
 
 const COMMON_SETTING_TELE_SIGNALING_ROW_SPECS: TeleSignalingPairRowSpec[] = [
@@ -100,6 +184,7 @@ export struct CommonSetting_TeleSignaling_Set {
 
   private readonly fontSize: CommonSettingTeleSignalingFontSize = new CommonSettingTeleSignalingFontSize();
   private readonly logicOptions: string[] = ['原值', '取反', '屏蔽'];
+  private cachedTeleSignalingNativeModule?: TeleSignalingNativeModule;
 
   private readonly pageMaxWidth: number = 1024;
   private readonly headerHeight: number = 80;
@@ -140,6 +225,63 @@ export struct CommonSetting_TeleSignaling_Set {
       this.uiScale = scale > 0 ? scale : 1;
     } catch (error) {
       this.uiScale = 1;
+    }
+    this.loadNativeTeleSignalingData();
+  }
+
+  private isValidTeleSignalingNativeModule(module: TeleSignalingNativeModule | undefined): boolean {
+    return !!module && typeof module.getTeleSignalingSetting === 'function';
+  }
+
+  private loadTeleSignalingNativeModule(): TeleSignalingNativeModule | undefined {
+    if (this.isValidTeleSignalingNativeModule(this.cachedTeleSignalingNativeModule)) {
+      return this.cachedTeleSignalingNativeModule;
+    }
+    if (this.isValidTeleSignalingNativeModule(teleSignalingNativeModule)) {
+      this.cachedTeleSignalingNativeModule = teleSignalingNativeModule;
+      return this.cachedTeleSignalingNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidTeleSignalingNativeModule(napiModuleWithPath)) {
+      this.cachedTeleSignalingNativeModule = napiModuleWithPath;
+      return this.cachedTeleSignalingNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidTeleSignalingNativeModule(napiModuleWithApp)) {
+      this.cachedTeleSignalingNativeModule = napiModuleWithApp;
+      return this.cachedTeleSignalingNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidTeleSignalingNativeModule(napiModule)) {
+      this.cachedTeleSignalingNativeModule = napiModule;
+      return this.cachedTeleSignalingNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativeTeleSignalingData(): boolean {
+    try {
+      let nativeModule = this.loadTeleSignalingNativeModule();
+      if (!nativeModule || typeof nativeModule.getTeleSignalingSetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getTeleSignalingSetting();
+      if (!isUsableCommonSettingTeleSignalingStructValue(structValue)) {
+        return false;
+      }
+
+      this.formData = createCommonSettingTeleSignalingDataFromStruct(
+        structValue as CommonSettingTeleSignalingStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native tele signaling data failed: ${JSON.stringify(error)}`);
+      return false;
     }
   }
 

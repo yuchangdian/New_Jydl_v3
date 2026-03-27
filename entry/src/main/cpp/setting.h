@@ -125,6 +125,7 @@ typedef struct
     uint32_t	CRC;	//校验码
 }CommonSetting_TeleMeasuring_Struct;
 extern CommonSetting_TeleMeasuring_Struct TeleMeasuringSetting;
+extern bool TeleMeasuringSettingReady;
 extern uint32_t CommonSetting_YC_Length_1Byte;		// 遥测参数定值长度（单位：字节）;
 extern uint32_t CommonSetting_YC_CRCLength_4Byte;	// 遥测参数定值CRC长度（单位：4字节）;
 
@@ -148,6 +149,7 @@ typedef struct
     uint32_t	CRC;	//校验码
 }CommonSetting_TeleSignaling_Struct;
 extern CommonSetting_TeleSignaling_Struct TeleSignalingSetting;
+extern bool TeleSignalingSettingReady;
 extern uint32_t CommonSetting_YX_Length_1Byte;		// 遥信参数定值长度（单位：字节）;
 extern uint32_t CommonSetting_YX_CRCLength_4Byte;	// 遥信参数定值CRC长度（单位：4字节）;
 
@@ -181,6 +183,7 @@ typedef struct
     uint32_t	CRC;	//校验码
 }CommonSetting_TeleControlling_Struct;
 extern CommonSetting_TeleControlling_Struct TeleControllingSetting;
+extern bool TeleControllingSettingReady;
 extern uint32_t CommonSetting_YK_Length_1Byte;		// 遥控参数定值长度（单位：字节）;
 extern uint32_t CommonSetting_YK_CRCLength_4Byte;	// 遥控参数定值CRC长度（单位：4字节）;
 
@@ -225,6 +228,7 @@ typedef struct
     uint32_t	CRC;	//校验码
 }CommonSetting_ExceedingLimit_Struct;
 extern CommonSetting_ExceedingLimit_Struct ExceedingLimitSetting;
+extern bool ExceedingLimitSettingReady;
 extern uint32_t CommonSetting_ExceedingLimit_Length_1Byte;		// 越限报警参数定值长度（单位：字节）;
 extern uint32_t CommonSetting_ExceedingLimit_CRCLength_4Byte;	// 越限报警参数定值CRC长度（单位：4字节）;
 
@@ -311,6 +315,7 @@ typedef struct
     uint32_t CRC;	//校验码
 }CommonSetting_Statistics_Struct;
 extern CommonSetting_Statistics_Struct StatisticsSetting;
+extern bool StatisticsSettingReady;
 extern uint32_t CommonSetting_Statistics_Length_1Byte;		// 统计参数定值长度（单位：字节）;
 extern uint32_t CommonSetting_Statistics_CRCLength_4Byte;	// 统计参数定值CRC长度（单位：4字节）;
 

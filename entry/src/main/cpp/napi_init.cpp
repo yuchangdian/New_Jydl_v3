@@ -158,6 +158,11 @@ static napi_value Init(napi_env env, napi_value exports)
         {"getBaseFreqDisplayData", nullptr, GetBaseFreqDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getPrimarySystemSetting", nullptr, GetPrimarySystemSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getAnalogQuantitySetting", nullptr, GetAnalogQuantitySetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getTeleMeasuringSetting", nullptr, GetTeleMeasuringSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getTeleSignalingSetting", nullptr, GetTeleSignalingSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getTeleControllingSetting", nullptr, GetTeleControllingSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getExceedingLimitSetting", nullptr, GetExceedingLimitSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getStatisticsSetting", nullptr, GetStatisticsSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"sendTcpData", nullptr, SendTcpData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"add", nullptr, Add, nullptr, nullptr, nullptr, napi_default, nullptr}
         

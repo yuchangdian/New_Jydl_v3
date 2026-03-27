@@ -1,6 +1,7 @@
 ﻿import router from '@ohos.router';
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
+import * as statisticsNativeModule from 'libentry.so';
 import {
   CommonSettingStatisticsField,
   COMMON_SETTING_STATISTICS_ENABLE_OPTIONS,
@@ -12,6 +13,126 @@ import {
 
 interface AbilityFileContext {
   filesDir: string;
+}
+
+interface CommonSettingStatisticsStructValue {
+  ready: boolean;
+  Enable_Bus: number;
+  Enable_Line: number;
+  Enable_VoltageMaxValue: number;
+  PeriodType_VoltageMaxValue: number;
+  PeriodLength_VoltageMaxValue: number;
+  Enable_VoltageMinValue: number;
+  PeriodType_VoltageMinValue: number;
+  PeriodLength_VoltageMinValue: number;
+  Enable_VoltageOnTimeValue: number;
+  PeriodType_VoltageOnTimeValue: number;
+  PeriodLength_VoltageOnTimeValue: number;
+  Enable_VoltageImbalanceMaxValue: number;
+  PeriodType_VoltageImbalanceMaxValue: number;
+  PeriodLength_VoltageImbalanceMaxValue: number;
+  Enable_VoltageQualifiedRateOnTimeValue: number;
+  PeriodType_VoltageQualifiedRateOnTimeValue: number;
+  PeriodLength_VoltageQualifiedRateOnTimeValue: number;
+  Enable_CurrentMaxValue: number;
+  PeriodType_CurrentMaxValue: number;
+  PeriodLength_CurrentMaxValue: number;
+  Enable_CurrentMinValue: number;
+  PeriodType_CurrentMinValue: number;
+  PeriodLength_CurrentMinValue: number;
+  Enable_CurrentOnTimeValue: number;
+  PeriodType_CurrentOnTimeValue: number;
+  PeriodLength_CurrentOnTimeValue: number;
+  Enable_CurrentImbalanceMaxValue: number;
+  PeriodType_CurrentImbalanceMaxValue: number;
+  PeriodLength_CurrentImbalanceMaxValue: number;
+  Enable_PowerMaxValue: number;
+  PeriodType_PowerMaxValue: number;
+  PeriodLength_PowerMaxValue: number;
+  Enable_PowerOnTimeValue: number;
+  PeriodType_PowerOnTimeValue: number;
+  PeriodLength_PowerOnTimeValue: number;
+  Enable_PowerFactorMaxValue: number;
+  PeriodType_PowerFactorMaxValue: number;
+  PeriodLength_PowerFactorMaxValue: number;
+  Enable_PowerFactorOnTimeValue: number;
+  PeriodType_PowerFactorrOnTimeValue: number;
+  PeriodLength_PowerFactorOnTimeValue: number;
+  Enable_LoadRateOnTimeValue: number;
+  PeriodType_LoadRateOnTimeValue: number;
+  PeriodLength_LoadRateOnTimeValue: number;
+  Enable_PositiveActivePowerOnTimeValue: number;
+  PeriodType_PositiveActivePowerOnTimeValue: number;
+  PeriodLength_PositiveActivePowerOnTimeValue: number;
+  Enable_PositiveReactivePowerOnTimeValue: number;
+  PeriodType_PositiveReactivePowerOnTimeValue: number;
+  PeriodLength_PositiveReactivePowerOnTimeValue: number;
+  Enable_ReverseActivePowerOnTimeValue: number;
+  PeriodType_ReverseActivePowerOnTimeValue: number;
+  PeriodLength_ReverseActivePowerOnTimeValue: number;
+  Enable_ReverseReactivePowerOnTimeValue: number;
+  PeriodType_ReverseReactivePowerOnTimeValue: number;
+  PeriodLength_ReverseReactivePowerOnTimeValue: number;
+  CRC: number;
+}
+
+interface StatisticsNativeModule {
+  getStatisticsSetting?: () => CommonSettingStatisticsStructValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): StatisticsNativeModule | undefined;
+
+function isValidStatisticsInteger(value: number): boolean {
+  return typeof value === 'number' && isFinite(value) && value >= 0;
+}
+
+function getStatisticsEnableText(value: number): string {
+  if (value === 1) {
+    return '投入';
+  }
+  if (value === 0) {
+    return '退出';
+  }
+  return '';
+}
+
+function getStatisticsPeriodTypeText(value: number): string {
+  if (value === 1) {
+    return '分钟级';
+  }
+  if (value === 2) {
+    return '小时级';
+  }
+  if (value === 3) {
+    return '日级';
+  }
+  return '';
+}
+
+function formatStatisticsPeriodLength(value: number): string {
+  if (!isValidStatisticsInteger(value)) {
+    return '';
+  }
+  return value.toString();
+}
+
+function isStatisticsEnableValue(value: number): boolean {
+  return value === 0 || value === 1;
+}
+
+function isStatisticsPeriodTypeValue(value: number): boolean {
+  return value === 1 || value === 2 || value === 3;
+}
+
+function setStatisticsFieldValue(fields: CommonSettingStatisticsField[], fieldKey: string, value: string): void {
+  let field = fields.find((item: CommonSettingStatisticsField) => item.key === fieldKey);
+  if (field) {
+    field.value = value;
+  }
 }
 
 interface StatisticsToggleConfig {
@@ -170,6 +291,154 @@ const COMMON_SETTING_STATISTICS_PERIOD_SECTIONS: StatisticsPeriodConfig[] = [
   }
 ];
 
+function isUsableCommonSettingStatisticsStructValue(
+  value: CommonSettingStatisticsStructValue | undefined
+): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  return isStatisticsEnableValue(value.Enable_Bus) &&
+    isStatisticsEnableValue(value.Enable_Line) &&
+    isStatisticsEnableValue(value.Enable_VoltageMaxValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_VoltageMaxValue) &&
+    isValidStatisticsInteger(value.PeriodLength_VoltageMaxValue) &&
+    isStatisticsEnableValue(value.Enable_VoltageMinValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_VoltageMinValue) &&
+    isValidStatisticsInteger(value.PeriodLength_VoltageMinValue) &&
+    isStatisticsEnableValue(value.Enable_VoltageOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_VoltageOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_VoltageOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_VoltageImbalanceMaxValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_VoltageImbalanceMaxValue) &&
+    isValidStatisticsInteger(value.PeriodLength_VoltageImbalanceMaxValue) &&
+    isStatisticsEnableValue(value.Enable_VoltageQualifiedRateOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_VoltageQualifiedRateOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_VoltageQualifiedRateOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_CurrentMaxValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_CurrentMaxValue) &&
+    isValidStatisticsInteger(value.PeriodLength_CurrentMaxValue) &&
+    isStatisticsEnableValue(value.Enable_CurrentMinValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_CurrentMinValue) &&
+    isValidStatisticsInteger(value.PeriodLength_CurrentMinValue) &&
+    isStatisticsEnableValue(value.Enable_CurrentOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_CurrentOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_CurrentOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_CurrentImbalanceMaxValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_CurrentImbalanceMaxValue) &&
+    isValidStatisticsInteger(value.PeriodLength_CurrentImbalanceMaxValue) &&
+    isStatisticsEnableValue(value.Enable_PowerMaxValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_PowerMaxValue) &&
+    isValidStatisticsInteger(value.PeriodLength_PowerMaxValue) &&
+    isStatisticsEnableValue(value.Enable_PowerOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_PowerOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_PowerOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_PowerFactorMaxValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_PowerFactorMaxValue) &&
+    isValidStatisticsInteger(value.PeriodLength_PowerFactorMaxValue) &&
+    isStatisticsEnableValue(value.Enable_PowerFactorOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_PowerFactorrOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_PowerFactorOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_LoadRateOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_LoadRateOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_LoadRateOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_PositiveActivePowerOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_PositiveActivePowerOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_PositiveActivePowerOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_PositiveReactivePowerOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_PositiveReactivePowerOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_PositiveReactivePowerOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_ReverseActivePowerOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_ReverseActivePowerOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_ReverseActivePowerOnTimeValue) &&
+    isStatisticsEnableValue(value.Enable_ReverseReactivePowerOnTimeValue) &&
+    isStatisticsPeriodTypeValue(value.PeriodType_ReverseReactivePowerOnTimeValue) &&
+    isValidStatisticsInteger(value.PeriodLength_ReverseReactivePowerOnTimeValue);
+}
+
+function createCommonSettingStatisticsFieldsFromStruct(
+  source: CommonSettingStatisticsStructValue
+): CommonSettingStatisticsField[] {
+  let fields = createDefaultCommonSettingStatisticsFields();
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_Bus', getStatisticsEnableText(source.Enable_Bus));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_Line', getStatisticsEnableText(source.Enable_Line));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_VoltageMaxValue', getStatisticsEnableText(source.Enable_VoltageMaxValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_VoltageMaxValue', getStatisticsPeriodTypeText(source.PeriodType_VoltageMaxValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_VoltageMaxValue', formatStatisticsPeriodLength(source.PeriodLength_VoltageMaxValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_VoltageMinValue', getStatisticsEnableText(source.Enable_VoltageMinValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_VoltageMinValue', getStatisticsPeriodTypeText(source.PeriodType_VoltageMinValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_VoltageMinValue', formatStatisticsPeriodLength(source.PeriodLength_VoltageMinValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_VoltageOnTimeValue', getStatisticsEnableText(source.Enable_VoltageOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_VoltageOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_VoltageOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_VoltageOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_VoltageOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_VoltageImbalanceMaxValue', getStatisticsEnableText(source.Enable_VoltageImbalanceMaxValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_VoltageImbalanceMaxValue', getStatisticsPeriodTypeText(source.PeriodType_VoltageImbalanceMaxValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_VoltageImbalanceMaxValue', formatStatisticsPeriodLength(source.PeriodLength_VoltageImbalanceMaxValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_VoltageQualifiedRateOnTimeValue', getStatisticsEnableText(source.Enable_VoltageQualifiedRateOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_VoltageQualifiedRateOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_VoltageQualifiedRateOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_VoltageQualifiedRateOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_VoltageQualifiedRateOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_CurrentMaxValue', getStatisticsEnableText(source.Enable_CurrentMaxValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_CurrentMaxValue', getStatisticsPeriodTypeText(source.PeriodType_CurrentMaxValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_CurrentMaxValue', formatStatisticsPeriodLength(source.PeriodLength_CurrentMaxValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_CurrentMinValue', getStatisticsEnableText(source.Enable_CurrentMinValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_CurrentMinValue', getStatisticsPeriodTypeText(source.PeriodType_CurrentMinValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_CurrentMinValue', formatStatisticsPeriodLength(source.PeriodLength_CurrentMinValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_CurrentOnTimeValue', getStatisticsEnableText(source.Enable_CurrentOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_CurrentOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_CurrentOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_CurrentOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_CurrentOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_CurrentImbalanceMaxValue', getStatisticsEnableText(source.Enable_CurrentImbalanceMaxValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_CurrentImbalanceMaxValue', getStatisticsPeriodTypeText(source.PeriodType_CurrentImbalanceMaxValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_CurrentImbalanceMaxValue', formatStatisticsPeriodLength(source.PeriodLength_CurrentImbalanceMaxValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_PowerMaxValue', getStatisticsEnableText(source.Enable_PowerMaxValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_PowerMaxValue', getStatisticsPeriodTypeText(source.PeriodType_PowerMaxValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_PowerMaxValue', formatStatisticsPeriodLength(source.PeriodLength_PowerMaxValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_PowerOnTimeValue', getStatisticsEnableText(source.Enable_PowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_PowerOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_PowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_PowerOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_PowerOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_PowerFactorMaxValue', getStatisticsEnableText(source.Enable_PowerFactorMaxValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_PowerFactorMaxValue', getStatisticsPeriodTypeText(source.PeriodType_PowerFactorMaxValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_PowerFactorMaxValue', formatStatisticsPeriodLength(source.PeriodLength_PowerFactorMaxValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_PowerFactorOnTimeValue', getStatisticsEnableText(source.Enable_PowerFactorOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_PowerFactorOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_PowerFactorrOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_PowerFactorOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_PowerFactorOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_LoadRateOnTimeValue', getStatisticsEnableText(source.Enable_LoadRateOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_LoadRateOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_LoadRateOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_LoadRateOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_LoadRateOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_PositiveActivePowerOnTimeValue', getStatisticsEnableText(source.Enable_PositiveActivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_PositiveActivePowerOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_PositiveActivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_PositiveActivePowerOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_PositiveActivePowerOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_PositiveReactivePowerOnTimeValue', getStatisticsEnableText(source.Enable_PositiveReactivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_PositiveReactivePowerOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_PositiveReactivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_PositiveReactivePowerOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_PositiveReactivePowerOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_ReverseActivePowerOnTimeValue', getStatisticsEnableText(source.Enable_ReverseActivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_ReverseActivePowerOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_ReverseActivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_ReverseActivePowerOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_ReverseActivePowerOnTimeValue));
+
+  setStatisticsFieldValue(fields, 'C_Box_Stats_En_ReverseReactivePowerOnTimeValue', getStatisticsEnableText(source.Enable_ReverseReactivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'C_Box_Stats_PDType_ReverseReactivePowerOnTimeValue', getStatisticsPeriodTypeText(source.PeriodType_ReverseReactivePowerOnTimeValue));
+  setStatisticsFieldValue(fields, 'Edit_Stats_PDLen_ReverseReactivePowerOnTimeValue', formatStatisticsPeriodLength(source.PeriodLength_ReverseReactivePowerOnTimeValue));
+
+  return fields;
+}
+
 @Observed
 class BottomActionState {
   defaultText: string = '默认值';
@@ -220,6 +489,7 @@ export struct CommonSetting_Statistics_Set {
   private readonly fontSize: CommonSettingStatisticsFontSize = new CommonSettingStatisticsFontSize();
   private readonly enableOptions: string[] = COMMON_SETTING_STATISTICS_ENABLE_OPTIONS;
   private readonly periodTypeOptions: string[] = COMMON_SETTING_STATISTICS_PERIOD_TYPE_OPTIONS;
+  private cachedStatisticsNativeModule?: StatisticsNativeModule;
 
   private readonly pageMaxWidth: number = 1024;
   private readonly pageBaseWidth: number = 1024;
@@ -266,7 +536,9 @@ export struct CommonSetting_Statistics_Set {
     } catch (error) {
       this.uiScale = 1;
     }
-    this.loadPersistedData();
+    if (!this.loadNativeStatisticsData()) {
+      this.loadPersistedData();
+    }
   }
 
   private getDataFilePath(): string {
@@ -287,6 +559,62 @@ export struct CommonSetting_Statistics_Set {
       }
     } catch (error) {
       console.error(`load statistics data failed: ${JSON.stringify(error)}`);
+    }
+  }
+
+  private isValidStatisticsNativeModule(module: StatisticsNativeModule | undefined): boolean {
+    return !!module && typeof module.getStatisticsSetting === 'function';
+  }
+
+  private loadStatisticsNativeModule(): StatisticsNativeModule | undefined {
+    if (this.isValidStatisticsNativeModule(this.cachedStatisticsNativeModule)) {
+      return this.cachedStatisticsNativeModule;
+    }
+    if (this.isValidStatisticsNativeModule(statisticsNativeModule)) {
+      this.cachedStatisticsNativeModule = statisticsNativeModule;
+      return this.cachedStatisticsNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidStatisticsNativeModule(napiModuleWithPath)) {
+      this.cachedStatisticsNativeModule = napiModuleWithPath;
+      return this.cachedStatisticsNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidStatisticsNativeModule(napiModuleWithApp)) {
+      this.cachedStatisticsNativeModule = napiModuleWithApp;
+      return this.cachedStatisticsNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidStatisticsNativeModule(napiModule)) {
+      this.cachedStatisticsNativeModule = napiModule;
+      return this.cachedStatisticsNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativeStatisticsData(): boolean {
+    try {
+      let nativeModule = this.loadStatisticsNativeModule();
+      if (!nativeModule || typeof nativeModule.getStatisticsSetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getStatisticsSetting();
+      if (!isUsableCommonSettingStatisticsStructValue(structValue)) {
+        return false;
+      }
+
+      this.formData = createCommonSettingStatisticsFieldsFromStruct(
+        structValue as CommonSettingStatisticsStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native statistics data failed: ${JSON.stringify(error)}`);
+      return false;
     }
   }
 

@@ -125,31 +125,43 @@ extern DigitalInputData_Struct DigitalInputData;
 
 typedef struct
 {
-    uint16_t Time_ms;		//0~59999
-    uint8_t Time_min;	//0~59
-    uint8_t Time_hour;	//0~23
-    uint8_t Time_day;	//1~31
-    uint8_t Time_month;	//1~12
-    uint8_t Time_year;	//0~99
-    float Ua_Rms, Ua_Phase;
-    float Ub_Rms, Ub_Phase;
-    float Uc_Rms, Uc_Phase;
-    float Uo_Rms, Uo_Phase;
+	uint16_t Time_ms;			//0~59999
+	uint8_t Time_min;			//0~59
+	uint8_t Time_hour;		//0~23
+	uint8_t Time_day;			//1~31
+	uint8_t Time_month;		//1~12
+	uint8_t Time_year;		//0~99
+	
+	uint32_t Flag_PTP_LockOK;
+	
+	float Ua_Frequency;
+	float Ub_Frequency;
+	float Uc_Frequency;
+	float Ux_Frequency;
+	
+	float Ua_Rms, Ua_Phase;
+	float Ub_Rms, Ub_Phase;
+	float Uc_Rms, Uc_Phase;
+	float Uo_Rms, Uo_Phase;
 
-    float IA_Rms, IA_Phase;
-    float IB_Rms, IB_Phase;
-    float IC_Rms, IC_Phase;
-    float Io_Rms, Io_Phase;
+	float IA_Rms, IA_Phase;
+	float IB_Rms, IB_Phase;
+	float IC_Rms, IC_Phase;
+	float Io_Rms, Io_Phase;
 
-    float Ia_Rms, Ia_Phase;
-    float Ib_Rms, Ib_Phase;
-    float Ic_Rms, Ic_Phase;
-    float Is_Rms, Is_Phase;
-
-    float Ux_Rms, Ux_Phase;
-    float Iby1_Rms, Iby1_Phase;
-    float Iby2_Rms, Iby2_Phase;
-    float Iby3_Rms, Iby3_Phase;
+	float Ia_Rms, Ia_Phase;
+	float Ib_Rms, Ib_Phase;
+	float Ic_Rms, Ic_Phase;
+	float Is_Rms, Is_Phase;					//»¤Ì×µçÁ÷	£¨²»ÏÔÊ¾£©
+	
+	float Ux_Rms, Ux_Phase;
+	float Iby1_Rms, Iby1_Phase;			//±¸ÓÃµçÁ÷	£¨²»ÏÔÊ¾£©
+	float Iby2_Rms, Iby2_Phase;			//±¸ÓÃµçÁ÷	£¨²»ÏÔÊ¾£©
+	float Iby3_Rms, Iby3_Phase;			//±¸ÓÃµçÁ÷	£¨²»ÏÔÊ¾£©
+	float Pa, Qa, Sa, Fa; //AÏàÓÐ¹¦¡¢ÎÞ¹¦¡¢ÊÓÔÚ¡¢¹¦ÂÊÒòÊý
+    float Pb, Qb, Sb, Fb; //BÏàÓÐ¹¦¡¢ÎÞ¹¦¡¢ÊÓÔÚ¡¢¹¦ÂÊÒòÊý
+    float Pc, Qc, Sc, Fc; //CÏàÓÐ¹¦¡¢ÎÞ¹¦¡¢ÊÓÔÚ¡¢¹¦ÂÊÒòÊý
+    float Pt, Qt, St, Ft; //ºÏÏàÓÐ¹¦¡¢ÎÞ¹¦¡¢ÊÓÔÚ¡¢¹¦ÂÊÒòÊý
 }__attribute__ ((packed,aligned(1))) YC_BaseFreq_Struct;	//宸ラ閬ユ祴鏁版嵁缁撴瀯
 extern YC_BaseFreq_Struct BaseFreq_Dsip;
 extern bool BaseFreqDisplayReady;

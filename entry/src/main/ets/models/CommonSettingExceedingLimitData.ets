@@ -142,12 +142,14 @@ export function deserializeCommonSettingExceedingLimitData(
     data.phaseDifferentialCurrentUpperValue = typeof parsed.phaseDifferentialCurrentUpperValue === 'string'
       ? parsed.phaseDifferentialCurrentUpperValue
       : data.phaseDifferentialCurrentUpperValue;
-    data.zeroSequenceDifferentialCurrentUpperEnabled = typeof parsed.zeroSequenceDifferentialCurrentUpperEnabled === 'string'
-      ? parsed.zeroSequenceDifferentialCurrentUpperEnabled
-      : data.zeroSequenceDifferentialCurrentUpperEnabled;
-    data.zeroSequenceDifferentialCurrentUpperValue = typeof parsed.zeroSequenceDifferentialCurrentUpperValue === 'string'
-      ? parsed.zeroSequenceDifferentialCurrentUpperValue
-      : data.zeroSequenceDifferentialCurrentUpperValue;
+    data.zeroSequenceDifferentialCurrentUpperEnabled =
+      typeof parsed.zeroSequenceDifferentialCurrentUpperEnabled === 'string'
+        ? parsed.zeroSequenceDifferentialCurrentUpperEnabled
+        : data.zeroSequenceDifferentialCurrentUpperEnabled;
+    data.zeroSequenceDifferentialCurrentUpperValue =
+      typeof parsed.zeroSequenceDifferentialCurrentUpperValue === 'string'
+        ? parsed.zeroSequenceDifferentialCurrentUpperValue
+        : data.zeroSequenceDifferentialCurrentUpperValue;
     data.loadRateUpperEnabled = typeof parsed.loadRateUpperEnabled === 'string'
       ? parsed.loadRateUpperEnabled
       : data.loadRateUpperEnabled;

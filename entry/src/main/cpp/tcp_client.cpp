@@ -82,6 +82,159 @@ void LogPrimarySystemPayloadHex(const std::uint8_t *data, std::size_t length)
     }
 }
 
+void LogAnalogQuantityParameter(
+    const char *groupName,
+    const CommonSetting_AnalogQuantity_Parameter_Struct &parameter)
+{
+    TCP_LOGI(
+        "AnalogQuantitySetting %{public}s U=(%{public}.3f,%{public}.3f,%{public}.3f,%{public}.3f)",
+        groupName,
+        static_cast<double>(parameter.Ua),
+        static_cast<double>(parameter.Ub),
+        static_cast<double>(parameter.Uc),
+        static_cast<double>(parameter.Uo));
+
+    TCP_LOGI(
+        "AnalogQuantitySetting %{public}s protectI=(%{public}.3f,%{public}.3f,%{public}.3f,%{public}.3f)",
+        groupName,
+        static_cast<double>(parameter.IA),
+        static_cast<double>(parameter.IB),
+        static_cast<double>(parameter.IC),
+        static_cast<double>(parameter.Io));
+
+    TCP_LOGI(
+        "AnalogQuantitySetting %{public}s measureI=(%{public}.3f,%{public}.3f,%{public}.3f,%{public}.3f)",
+        groupName,
+        static_cast<double>(parameter.Ia),
+        static_cast<double>(parameter.Ib),
+        static_cast<double>(parameter.Ic),
+        static_cast<double>(parameter.Is));
+
+    TCP_LOGI(
+        "AnalogQuantitySetting %{public}s extra=(%{public}.3f,%{public}.3f,%{public}.3f,%{public}.3f)",
+        groupName,
+        static_cast<double>(parameter.Ux),
+        static_cast<double>(parameter.Iby1),
+        static_cast<double>(parameter.Iby2),
+        static_cast<double>(parameter.Iby3));
+}
+
+void LogAnalogQuantitySetting(const CommonSetting_AnalogQuantity_Struct &setting)
+{
+    LogAnalogQuantityParameter("Reference", setting.Reference);
+    LogAnalogQuantityParameter("Correction", setting.Correction);
+    LogAnalogQuantityParameter("ZeroDrift", setting.ZeroDrift);
+    TCP_LOGI("AnalogQuantitySetting crc=%{public}u", setting.CRC);
+}
+
+void LogTeleMeasuringSetting(const CommonSetting_TeleMeasuring_Struct &setting)
+{
+    TCP_LOGI(
+        "TeleMeasuringSetting cycle=%{public}.3f primaryEnergy=%{public}u "
+        "freq=%{public}.3f acV=%{public}.3f dcV=%{public}.3f",
+        static_cast<double>(setting.Cycle_Detection),
+        setting.Enable_PrimaryEnergy,
+        static_cast<double>(setting.DeadBand_Frequency),
+        static_cast<double>(setting.DeadBand_ACvoltage),
+        static_cast<double>(setting.DeadBand_DCvoltage));
+
+    TCP_LOGI(
+        "TeleMeasuringSetting acI=%{public}.3f power=%{public}.3f powerFactor=%{public}.3f crc=%{public}u",
+        static_cast<double>(setting.DeadBand_ACcurrent),
+        static_cast<double>(setting.DeadBand_Power),
+        static_cast<double>(setting.DeadBand_PowerFactor),
+        setting.CRC);
+}
+
+void LogTeleSignalingSetting(const CommonSetting_TeleSignaling_Struct &setting)
+{
+    TCP_LOGI(
+        "TeleSignalingSetting yx01=%{public}u yx02=%{public}u yx03=%{public}u yx04=%{public}u",
+        setting.YX01_Time,
+        setting.YX02_Time,
+        setting.YX03_Time,
+        setting.YX04_Time);
+
+    TCP_LOGI(
+        "TeleSignalingSetting yx05=%{public}u yx06=%{public}u yx07=%{public}u yx08=%{public}u",
+        setting.YX05_Time,
+        setting.YX06_Time,
+        setting.YX07_Time,
+        setting.YX08_Time);
+
+    TCP_LOGI(
+        "TeleSignalingSetting logic=%{public}u crc=%{public}u",
+        setting.Enable_Logic,
+        setting.CRC);
+}
+
+void LogTeleControllingSetting(const CommonSetting_TeleControlling_Struct &setting)
+{
+    TCP_LOGI(
+        "TeleControllingSetting yk1=(%{public}u,%{public}u,%{public}u) yk2=(%{public}u,%{public}u,%{public}u)",
+        setting.HoldingTime_YK1_XZ,
+        setting.HoldingTime_YK1_TZ,
+        setting.HoldingTime_YK1_HZ,
+        setting.HoldingTime_YK2_XZ,
+        setting.HoldingTime_YK2_TZ,
+        setting.HoldingTime_YK2_HZ);
+
+    TCP_LOGI(
+        "TeleControllingSetting syncVoltage no=%{public}.3f yes=%{public}.3f diff=%{public}.3f",
+        static_cast<double>(setting.Sync_NoVoltage),
+        static_cast<double>(setting.Sync_ThereVoltage),
+        static_cast<double>(setting.Sync_Volue_VoltageDifferenceBlock));
+
+    TCP_LOGI(
+        "TeleControllingSetting syncAngle=%{public}.3f syncFreq=%{public}.3f delay=%{public}u breakerClose=%{public}u",
+        static_cast<double>(setting.Sync_Volue_AngleDifferenceBlock),
+        static_cast<double>(setting.Sync_Volue_FrequencyDifferenceBlock),
+        setting.Sync_DelayTime,
+        setting.Sync_BreakerCloseTime);
+
+    TCP_LOGI(
+        "TeleControllingSetting closeMode=%{public}u crc=%{public}u",
+        setting.Sync_Enable_CloseMode_YK,
+        setting.CRC);
+}
+
+void LogExceedingLimitSetting(const CommonSetting_ExceedingLimit_Struct &setting)
+{
+    TCP_LOGI(
+        "ExceedingLimitSetting lineV=(%{public}u,%{public}.3f) lineVLow=(%{public}u,%{public}.3f) zeroV=(%{public}u,%{public}.3f)",
+        setting.Enable_LineVoltageExceedingUpperLimit,
+        static_cast<double>(setting.Value_LineVoltageExceedingUpperLimit),
+        setting.Enable_LineVoltageExceedingLowerLimit,
+        static_cast<double>(setting.Value_LineVoltageExceedingLowerLimit),
+        setting.Enable_ZeroSequenceVoltageExceedingUpperLimit,
+        static_cast<double>(setting.Value_ZeroSequenceVoltageExceedingUpperLimit));
+
+    TCP_LOGI(
+        "ExceedingLimitSetting voltageImb=(%{public}u,%{public}.3f) phaseI=(%{public}u,%{public}.3f) zeroI=(%{public}u,%{public}.3f)",
+        setting.Enable_VoltageImbalanceRateExceedingUpperLimit,
+        static_cast<double>(setting.Value_VoltageImbalanceRateExceedingUpperLimit),
+        setting.Enable_PhaseCurrentExceedingUpperLimit,
+        static_cast<double>(setting.Value_PhaseCurrentExceedingUpperLimit),
+        setting.Enable_ZeroSequenceCurrentExceedingUpperLimit,
+        static_cast<double>(setting.Value_ZeroSequenceCurrentExceedingUpperLimit));
+
+    TCP_LOGI(
+        "ExceedingLimitSetting currentImb=(%{public}u,%{public}.3f) phaseDiff=(%{public}u,%{public}.3f) zeroDiff=(%{public}u,%{public}.3f)",
+        setting.Enable_CurrentImbalanceRateExceedingUpperLimit,
+        static_cast<double>(setting.Value_CurrentImbalanceRateExceedingUpperLimit),
+        setting.Enable_PhaseDifferentialCurrentExceedingUpperLimit,
+        static_cast<double>(setting.Value_PhaseDifferentialCurrentExceedingUpperLimit),
+        setting.Enable_ZeroSequenceDifferentialCurrentExceedingUpperLimit,
+        static_cast<double>(setting.Value_ZeroSequenceDifferentialCurrentExceedingUpperLimit));
+
+    TCP_LOGI(
+        "ExceedingLimitSetting loadRate=(%{public}u,%{public}.3f) delay=%{public}u crc=%{public}u",
+        setting.Enable_LoadRateExceedingUpperLimit,
+        static_cast<double>(setting.Value_LoadRateRateExceedingUpperLimit),
+        setting.Time_Delay,
+        setting.CRC);
+}
+
 bool IsAllBytesValue(const std::uint8_t *data, std::size_t length, std::uint8_t expected)
 {
     if (data == nullptr || length == 0) {
@@ -537,6 +690,26 @@ void TcpClient::DecodeRemoteSignalPacket(std::uint16_t objectAddr, std::size_t *
                 TCP_LOGI("RemoteSignal confirm CommonSetting_AnalogQuantity. state=%{public}s",
                     stateBool ? "true" : "false");
                 break;
+            case YX_ObjectAddr_CommonSetting_TeleMeasuring:
+                TCP_LOGI("RemoteSignal confirm CommonSetting_TeleMeasuring. state=%{public}s",
+                    stateBool ? "true" : "false");
+                break;
+            case YX_ObjectAddr_CommonSetting_TeleSignaling:
+                TCP_LOGI("RemoteSignal confirm CommonSetting_TeleSignaling. state=%{public}s",
+                    stateBool ? "true" : "false");
+                break;
+            case YX_ObjectAddr_CommonSetting_TeleControlling:
+                TCP_LOGI("RemoteSignal confirm CommonSetting_TeleControlling. state=%{public}s",
+                    stateBool ? "true" : "false");
+                break;
+            case YX_ObjectAddr_CommonSetting_ExceedingLimit:
+                TCP_LOGI("RemoteSignal confirm CommonSetting_ExceedingLimit. state=%{public}s",
+                    stateBool ? "true" : "false");
+                break;
+            case YX_ObjectAddr_CommonSetting_Statistics:
+                TCP_LOGI("RemoteSignal confirm CommonSetting_Statistics. state=%{public}s",
+                    stateBool ? "true" : "false");
+                break;
             default:
                 TCP_LOGI("RemoteSignal confirm unsupported RAState object=%{public}u state=%{public}s",
                     objectAddr, stateBool ? "true" : "false");
@@ -773,6 +946,7 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
                     std::memcpy(&AnalogQuantitySetting, &analogQuantityBuf, sizeof(AnalogQuantitySetting));
                     AnalogQuantitySettingReady = true;
                     TCP_LOGI("CommonSetting_AnalogQuantity updated");
+                    LogAnalogQuantitySetting(AnalogQuantitySetting);
                 } else {
                     TCP_LOGW("CommonSetting_AnalogQuantity CRC error. calc=%{public}u packet=%{public}u",
                         tempCRC, analogQuantityBuf.CRC);
@@ -780,6 +954,105 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
             } else {
                 TCP_LOGW("CommonSetting_AnalogQuantity length mismatch. expected=%{public}d actual=%{public}d",
                     static_cast<int>(CommonSetting_AnalogQuantity_Length_1Byte), dataLength);
+            }
+            break;
+        case YT_ObjectAddr_CommonSetting_TeleMeasuring:
+            if (payloadLength == CommonSetting_YC_Length_1Byte) {
+                CommonSetting_TeleMeasuring_Struct teleMeasuringBuf {};
+                std::memcpy(&teleMeasuringBuf, decodeBuffer_.data() + payloadOffset, sizeof(teleMeasuringBuf));
+                const std::uint32_t tempCRC =
+                    CRC32(reinterpret_cast<std::uint32_t *>(&teleMeasuringBuf), CommonSetting_YC_CRCLength_4Byte);
+                if (tempCRC == teleMeasuringBuf.CRC) {
+                    std::memcpy(&TeleMeasuringSetting, &teleMeasuringBuf, sizeof(TeleMeasuringSetting));
+                    TeleMeasuringSettingReady = true;
+                    TCP_LOGI("CommonSetting_TeleMeasuring updated");
+                    LogTeleMeasuringSetting(TeleMeasuringSetting);
+                } else {
+                    TCP_LOGW("CommonSetting_TeleMeasuring CRC error. calc=%{public}u packet=%{public}u",
+                        tempCRC, teleMeasuringBuf.CRC);
+                }
+            } else {
+                TCP_LOGW("CommonSetting_TeleMeasuring length mismatch. expected=%{public}d actual=%{public}d",
+                    static_cast<int>(CommonSetting_YC_Length_1Byte), dataLength);
+            }
+            break;
+        case YT_ObjectAddr_CommonSetting_TeleSignaling:
+            if (payloadLength == CommonSetting_YX_Length_1Byte) {
+                CommonSetting_TeleSignaling_Struct teleSignalingBuf {};
+                std::memcpy(&teleSignalingBuf, decodeBuffer_.data() + payloadOffset, sizeof(teleSignalingBuf));
+                const std::uint32_t tempCRC =
+                    CRC32(reinterpret_cast<std::uint32_t *>(&teleSignalingBuf), CommonSetting_YX_CRCLength_4Byte);
+                if (tempCRC == teleSignalingBuf.CRC) {
+                    std::memcpy(&TeleSignalingSetting, &teleSignalingBuf, sizeof(TeleSignalingSetting));
+                    TeleSignalingSettingReady = true;
+                    TCP_LOGI("CommonSetting_TeleSignaling updated");
+                    LogTeleSignalingSetting(TeleSignalingSetting);
+                } else {
+                    TCP_LOGW("CommonSetting_TeleSignaling CRC error. calc=%{public}u packet=%{public}u",
+                        tempCRC, teleSignalingBuf.CRC);
+                }
+            } else {
+                TCP_LOGW("CommonSetting_TeleSignaling length mismatch. expected=%{public}d actual=%{public}d",
+                    static_cast<int>(CommonSetting_YX_Length_1Byte), dataLength);
+            }
+            break;
+        case YT_ObjectAddr_CommonSetting_TeleControlling:
+            if (payloadLength == CommonSetting_YK_Length_1Byte) {
+                CommonSetting_TeleControlling_Struct teleControllingBuf {};
+                std::memcpy(&teleControllingBuf, decodeBuffer_.data() + payloadOffset, sizeof(teleControllingBuf));
+                const std::uint32_t tempCRC =
+                    CRC32(reinterpret_cast<std::uint32_t *>(&teleControllingBuf), CommonSetting_YK_CRCLength_4Byte);
+                if (tempCRC == teleControllingBuf.CRC) {
+                    std::memcpy(&TeleControllingSetting, &teleControllingBuf, sizeof(TeleControllingSetting));
+                    TeleControllingSettingReady = true;
+                    TCP_LOGI("CommonSetting_TeleControlling updated");
+                    LogTeleControllingSetting(TeleControllingSetting);
+                } else {
+                    TCP_LOGW("CommonSetting_TeleControlling CRC error. calc=%{public}u packet=%{public}u",
+                        tempCRC, teleControllingBuf.CRC);
+                }
+            } else {
+                TCP_LOGW("CommonSetting_TeleControlling length mismatch. expected=%{public}d actual=%{public}d",
+                    static_cast<int>(CommonSetting_YK_Length_1Byte), dataLength);
+            }
+            break;
+        case YT_ObjectAddr_CommonSetting_ExceedingLimit:
+            if (payloadLength == CommonSetting_ExceedingLimit_Length_1Byte) {
+                CommonSetting_ExceedingLimit_Struct exceedingLimitBuf {};
+                std::memcpy(&exceedingLimitBuf, decodeBuffer_.data() + payloadOffset, sizeof(exceedingLimitBuf));
+                const std::uint32_t tempCRC =
+                    CRC32(reinterpret_cast<std::uint32_t *>(&exceedingLimitBuf), CommonSetting_ExceedingLimit_CRCLength_4Byte);
+                if (tempCRC == exceedingLimitBuf.CRC) {
+                    std::memcpy(&ExceedingLimitSetting, &exceedingLimitBuf, sizeof(ExceedingLimitSetting));
+                    ExceedingLimitSettingReady = true;
+                    TCP_LOGI("CommonSetting_ExceedingLimit updated");
+                    LogExceedingLimitSetting(ExceedingLimitSetting);
+                } else {
+                    TCP_LOGW("CommonSetting_ExceedingLimit CRC error. calc=%{public}u packet=%{public}u",
+                        tempCRC, exceedingLimitBuf.CRC);
+                }
+            } else {
+                TCP_LOGW("CommonSetting_ExceedingLimit length mismatch. expected=%{public}d actual=%{public}d",
+                    static_cast<int>(CommonSetting_ExceedingLimit_Length_1Byte), dataLength);
+            }
+            break;
+        case YT_ObjectAddr_CommonSetting_Statistics:
+            if (payloadLength == CommonSetting_Statistics_Length_1Byte) {
+                CommonSetting_Statistics_Struct statisticsBuf {};
+                std::memcpy(&statisticsBuf, decodeBuffer_.data() + payloadOffset, sizeof(statisticsBuf));
+                const std::uint32_t tempCRC =
+                    CRC32(reinterpret_cast<std::uint32_t *>(&statisticsBuf), CommonSetting_Statistics_CRCLength_4Byte);
+                if (tempCRC == statisticsBuf.CRC) {
+                    std::memcpy(&StatisticsSetting, &statisticsBuf, sizeof(StatisticsSetting));
+                    StatisticsSettingReady = true;
+                    TCP_LOGI("CommonSetting_Statistics updated");
+                } else {
+                    TCP_LOGW("CommonSetting_Statistics CRC error. calc=%{public}u packet=%{public}u",
+                        tempCRC, statisticsBuf.CRC);
+                }
+            } else {
+                TCP_LOGW("CommonSetting_Statistics length mismatch. expected=%{public}d actual=%{public}d",
+                    static_cast<int>(CommonSetting_Statistics_Length_1Byte), dataLength);
             }
             break;
         default:

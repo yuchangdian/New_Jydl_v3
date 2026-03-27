@@ -1,6 +1,31 @@
 ﻿import router from '@ohos.router';
 import display from '@ohos.display';
 
+import * as teleMeasuringNativeModule from 'libentry.so';
+
+interface CommonSettingTeleMeasuringStructValue {
+  ready: boolean;
+  Cycle_Detection: number;
+  DeadBand_Frequency: number;
+  DeadBand_ACvoltage: number;
+  DeadBand_DCvoltage: number;
+  DeadBand_ACcurrent: number;
+  DeadBand_Power: number;
+  DeadBand_PowerFactor: number;
+  Enable_PrimaryEnergy: number;
+  CRC: number;
+}
+
+interface TeleMeasuringNativeModule {
+  getTeleMeasuringSetting?: () => CommonSettingTeleMeasuringStructValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): TeleMeasuringNativeModule | undefined;
+
 @Observed
 class CommonSettingTeleMeasuringData {
   cycleDetection: string = '00.00';
@@ -15,6 +40,59 @@ class CommonSettingTeleMeasuringData {
 
 function createDefaultCommonSettingTeleMeasuringData(): CommonSettingTeleMeasuringData {
   return new CommonSettingTeleMeasuringData();
+}
+
+function isValidTeleMeasuringNumber(value: number): boolean {
+  return typeof value === 'number' && isFinite(value);
+}
+
+function formatTeleMeasuringNumber(value: number): string {
+  if (!isValidTeleMeasuringNumber(value)) {
+    return '';
+  }
+  return value.toFixed(2);
+}
+
+function getPrimaryEnergyModeText(value: number): string {
+  if (value === 1) {
+    return '一次值';
+  }
+  if (value === 0) {
+    return '二次值';
+  }
+  return '';
+}
+
+function isUsableCommonSettingTeleMeasuringStructValue(
+  value: CommonSettingTeleMeasuringStructValue | undefined
+): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  return isValidTeleMeasuringNumber(value.Cycle_Detection) &&
+    isValidTeleMeasuringNumber(value.DeadBand_Frequency) &&
+    isValidTeleMeasuringNumber(value.DeadBand_ACvoltage) &&
+    isValidTeleMeasuringNumber(value.DeadBand_DCvoltage) &&
+    isValidTeleMeasuringNumber(value.DeadBand_ACcurrent) &&
+    isValidTeleMeasuringNumber(value.DeadBand_Power) &&
+    isValidTeleMeasuringNumber(value.DeadBand_PowerFactor) &&
+    (value.Enable_PrimaryEnergy === 0 || value.Enable_PrimaryEnergy === 1);
+}
+
+function createCommonSettingTeleMeasuringDataFromStruct(
+  source: CommonSettingTeleMeasuringStructValue
+): CommonSettingTeleMeasuringData {
+  let data = createDefaultCommonSettingTeleMeasuringData();
+  data.cycleDetection = formatTeleMeasuringNumber(source.Cycle_Detection);
+  data.primaryEnergyMode = getPrimaryEnergyModeText(source.Enable_PrimaryEnergy);
+  data.frequencyDeadBand = formatTeleMeasuringNumber(source.DeadBand_Frequency);
+  data.acVoltageDeadBand = formatTeleMeasuringNumber(source.DeadBand_ACvoltage);
+  data.dcVoltageDeadBand = formatTeleMeasuringNumber(source.DeadBand_DCvoltage);
+  data.acCurrentDeadBand = formatTeleMeasuringNumber(source.DeadBand_ACcurrent);
+  data.powerDeadBand = formatTeleMeasuringNumber(source.DeadBand_Power);
+  data.powerFactorDeadBand = formatTeleMeasuringNumber(source.DeadBand_PowerFactor);
+  return data;
 }
 
 @Observed
@@ -65,6 +143,7 @@ export struct CommonSetting_TeleMeasuring_Set {
 
   private readonly fontSize: CommonSettingTeleMeasuringFontSize = new CommonSettingTeleMeasuringFontSize();
   private readonly primaryEnergyOptions: string[] = ['一次值', '二次值'];
+  private cachedTeleMeasuringNativeModule?: TeleMeasuringNativeModule;
 
   private readonly pageMaxWidth: number = 1024;
   private readonly headerHeight: number = 80;
@@ -97,6 +176,63 @@ export struct CommonSetting_TeleMeasuring_Set {
       this.uiScale = scale > 0 ? scale : 1;
     } catch (error) {
       this.uiScale = 1;
+    }
+    this.loadNativeTeleMeasuringData();
+  }
+
+  private isValidTeleMeasuringNativeModule(module: TeleMeasuringNativeModule | undefined): boolean {
+    return !!module && typeof module.getTeleMeasuringSetting === 'function';
+  }
+
+  private loadTeleMeasuringNativeModule(): TeleMeasuringNativeModule | undefined {
+    if (this.isValidTeleMeasuringNativeModule(this.cachedTeleMeasuringNativeModule)) {
+      return this.cachedTeleMeasuringNativeModule;
+    }
+    if (this.isValidTeleMeasuringNativeModule(teleMeasuringNativeModule)) {
+      this.cachedTeleMeasuringNativeModule = teleMeasuringNativeModule;
+      return this.cachedTeleMeasuringNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidTeleMeasuringNativeModule(napiModuleWithPath)) {
+      this.cachedTeleMeasuringNativeModule = napiModuleWithPath;
+      return this.cachedTeleMeasuringNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidTeleMeasuringNativeModule(napiModuleWithApp)) {
+      this.cachedTeleMeasuringNativeModule = napiModuleWithApp;
+      return this.cachedTeleMeasuringNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidTeleMeasuringNativeModule(napiModule)) {
+      this.cachedTeleMeasuringNativeModule = napiModule;
+      return this.cachedTeleMeasuringNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativeTeleMeasuringData(): boolean {
+    try {
+      let nativeModule = this.loadTeleMeasuringNativeModule();
+      if (!nativeModule || typeof nativeModule.getTeleMeasuringSetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getTeleMeasuringSetting();
+      if (!isUsableCommonSettingTeleMeasuringStructValue(structValue)) {
+        return false;
+      }
+
+      this.formData = createCommonSettingTeleMeasuringDataFromStruct(
+        structValue as CommonSettingTeleMeasuringStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native tele measuring data failed: ${JSON.stringify(error)}`);
+      return false;
     }
   }
 
