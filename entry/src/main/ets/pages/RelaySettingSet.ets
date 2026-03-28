@@ -1,5 +1,6 @@
-import router from '@ohos.router';
+﻿import router from '@ohos.router';
 import display from '@ohos.display';
+import fs from '@ohos.file.fs';
 import {
   RELAY_SETTING_PROFILES_STORE_KEY,
   RelayFieldBinding,
@@ -8,20 +9,33 @@ import {
   RelayStoredField,
   buildRelayFieldBindings,
   createDefaultRelaySettingProfile,
-  createDefaultRelaySettingProfilesStore,
+  createDefaultRelaySettingProfileForSetZone,
   relayDefaultSelectOptions,
   relayDefaultStoredField,
   relayFindFieldBinding,
   relayFormatStoredField,
-  relayLoadProfilesStoreFromSession,
-  relayNormalizeZoneCode,
+  relayLegacyZoneCodeForIndex,
   relayParseStoredField,
   relayReadProfileField,
   relayRememberProfilesStoreInSession,
   relaySerializeProfilesStore,
+  relaySetZoneCodeForIndex,
+  relaySetZoneCodeToIndex,
+  relaySetZoneCodeToLegacyZoneCode,
+  relayNormalizeSetZoneCode,
   relayWriteProfileField,
-  relayZoneCodeToIndex
+  RELAY_PROFILE_COUNT
 } from './RelaySettingProfiles';
+import {
+  createRelayMainSections,
+  createRelayMonitorSections,
+  RelayCellSpec,
+  RelayMonitorFieldSpec,
+  RelayMonitorSectionSpec,
+  RelayRowItemSpec,
+  RelayRowSpec,
+  RelaySectionSpec
+} from './RelaySettingSetSchema';
 
 const RELAY_SETTING_STORE_KEY: string = 'relay_setting_set_store';
 
@@ -71,669 +85,16 @@ class RelayValueEntry {
   }
 }
 
-class RelayCellSpec {
-  id: string;
-  kind: string;
-  text: string;
-  weight: number;
-  bindingIndex: number = -1;
-  labelText: string = '请选择';
-  unitText: string = '';
-  labelMinWidth: number = 0;
-  valueMinWidth: number = 0;
-  selectMinWidth: number = 0;
-  unitMinWidth: number = 0;
-  unitLeftMargin: number = 0;
-  inputFontFamily: string = 'monospace';
-
-  constructor(id: string, kind: string, text: string, weight: number) {
-    this.id = id;
-    this.kind = kind;
-    this.text = text;
-    this.weight = weight;
-  }
+interface AbilityFileContext {
+  filesDir: string;
 }
 
-class RelayRowItemSpec {
-  id: string;
-  kind: string;
-  weight: number;
-  cells: RelayCellSpec[];
-
-  constructor(id: string, kind: string, weight: number, cells: RelayCellSpec[] = []) {
-    this.id = id;
-    this.kind = kind;
-    this.weight = weight;
-    this.cells = cells;
-  }
-}
-
-class RelayRowSpec {
-  id: string;
-  leftMargin: number;
-  rightMargin: number;
-  items: RelayRowItemSpec[];
-
-  constructor(id: string, leftMargin: number, rightMargin: number, items: RelayRowItemSpec[]) {
-    this.id = id;
-    this.leftMargin = leftMargin;
-    this.rightMargin = rightMargin;
-    this.items = items;
-  }
-}
-
-class RelaySectionSpec {
-  id: string;
-  title: string;
-  rows: RelayRowSpec[];
-
-  constructor(id: string, title: string, rows: RelayRowSpec[]) {
-    this.id = id;
-    this.title = title;
-    this.rows = rows;
-  }
-}
-
-class RelayMonitorFieldSpec {
-  id: string;
-  label: string;
-  value: string;
-  unit: string;
-  kind: string;
-  boxWidth: number;
-  bindingIndex: number = -1;
-  resolvedBoxWidth: number = 0;
-  inputFontFamily: string = 'monospace';
-
-  constructor(
-    id: string,
-    label: string,
-    value: string,
-    unit: string = '',
-    kind: string = 'input',
-    boxWidth: number = 112
-  ) {
-    this.id = id;
-    this.label = label;
-    this.value = value;
-    this.unit = unit;
-    this.kind = kind;
-    this.boxWidth = boxWidth;
-  }
-}
-
-class RelayMonitorSectionSpec {
-  id: string;
-  title: string;
-  fields: RelayMonitorFieldSpec[];
-
-  constructor(id: string, title: string, fields: RelayMonitorFieldSpec[]) {
-    this.id = id;
-    this.title = title;
-    this.fields = fields;
-  }
-}
-
-const RELAY_MAIN_SECTIONS: RelaySectionSpec[] = [
-  new RelaySectionSpec('section-01', '【公共定值】', [
-    new RelayRowSpec('section-01-row-01', 40, 0, [
-        new RelayRowItemSpec('section-01-row-01-item-01', 'group', 8, [new RelayCellSpec('section-01-row-01-item-01-cell-01', 'label', '故障指示灯复位：', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-02', 'group', 5, [new RelayCellSpec('section-01-row-01-item-02-cell-01', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-03', 'spacer', 2),
-        new RelayRowItemSpec('section-01-row-01-item-04', 'group', 12, [new RelayCellSpec('section-01-row-01-item-04-cell-01', 'label', '故障指示灯复归时间：', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-05', 'group', 3, [new RelayCellSpec('section-01-row-01-item-05-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-06', 'group', 2, [new RelayCellSpec('section-01-row-01-item-06-cell-01', 'unit', 's', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-07', 'spacer', 3),
-        new RelayRowItemSpec('section-01-row-01-item-08', 'group', 11, [new RelayCellSpec('section-01-row-01-item-08-cell-01', 'label', '故障遥信保持时间：', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-09', 'group', 3, [new RelayCellSpec('section-01-row-01-item-09-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-10', 'group', 2, [new RelayCellSpec('section-01-row-01-item-10-cell-01', 'unit', 's', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-11', 'spacer', 1)
-    ]),
-    new RelayRowSpec('section-01-row-02', 40, 0, [
-        new RelayRowItemSpec('section-01-row-02-item-01', 'group', 8, [new RelayCellSpec('section-01-row-02-item-01-cell-01', 'label', '无压定值：', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-02', 'group', 4, [new RelayCellSpec('section-01-row-02-item-02-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-03', 'group', 2, [new RelayCellSpec('section-01-row-02-item-03-cell-01', 'unit', 'V', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-04', 'spacer', 1),
-        new RelayRowItemSpec('section-01-row-02-item-05', 'group', 12, [new RelayCellSpec('section-01-row-02-item-05-cell-01', 'label', '无电流定值：', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-06', 'group', 3, [new RelayCellSpec('section-01-row-02-item-06-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-07', 'group', 2, [new RelayCellSpec('section-01-row-02-item-07-cell-01', 'unit', 'A', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-08', 'spacer', 3),
-        new RelayRowItemSpec('section-01-row-02-item-09', 'group', 11, [new RelayCellSpec('section-01-row-02-item-09-cell-01', 'label', '有压定值：', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-10', 'group', 3, [new RelayCellSpec('section-01-row-02-item-10-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-11', 'group', 2, [new RelayCellSpec('section-01-row-02-item-11-cell-01', 'unit', 'V', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-12', 'spacer', 1)
-    ]),
-    new RelayRowSpec('section-01-row-03', 40, 0, [
-        new RelayRowItemSpec('section-01-row-03-item-01', 'group', 10, [new RelayCellSpec('section-01-row-03-item-01-cell-01', 'label', '过量继电器返回系数：', 1)]),
-        new RelayRowItemSpec('section-01-row-03-item-02', 'group', 5, [new RelayCellSpec('section-01-row-03-item-02-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-03-item-03', 'spacer', 10),
-        new RelayRowItemSpec('section-01-row-03-item-04', 'group', 10, [new RelayCellSpec('section-01-row-03-item-04-cell-01', 'label', '欠量继电器返回系数：', 1)]),
-        new RelayRowItemSpec('section-01-row-03-item-05', 'group', 5, [new RelayCellSpec('section-01-row-03-item-05-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-03-item-06', 'spacer', 10)
-    ]),
-    new RelayRowSpec('section-01-row-04', 40, 0, [
-        new RelayRowItemSpec('section-01-row-04-item-01', 'group', 15, [new RelayCellSpec('section-01-row-04-item-01-cell-01', 'label', '3Io折算至外接零序CT二次值：', 1)]),
-        new RelayRowItemSpec('section-01-row-04-item-02', 'group', 5, [new RelayCellSpec('section-01-row-04-item-02-cell-01', 'select', '折算', 1)]),
-        new RelayRowItemSpec('section-01-row-04-item-03', 'spacer', 30)
-    ])
-  ]),
-  new RelaySectionSpec('section-02', '【通信定值】', [
-    new RelayRowSpec('section-02-row-01', 40, 0, [
-        new RelayRowItemSpec('section-02-row-01-item-01', 'group', 10, [new RelayCellSpec('section-02-row-01-item-01-cell-01', 'label', '通道A边缘终端单元MAC：', 1), new RelayCellSpec('section-02-row-01-item-01-cell-02', 'input', '00:00:00:00:00:00', 1)]),
-        new RelayRowItemSpec('section-02-row-01-item-02', 'spacer', 1),
-        new RelayRowItemSpec('section-02-row-01-item-03', 'group', 10, [new RelayCellSpec('section-02-row-01-item-03-cell-01', 'label', '通道B边缘终端单元MAC：', 1), new RelayCellSpec('section-02-row-01-item-03-cell-02', 'input', '00:00:00:00:00:00', 1)])
-    ]),
-    new RelayRowSpec('section-02-row-02', 40, 0, [
-        new RelayRowItemSpec('section-02-row-02-item-01', 'group', 10, [new RelayCellSpec('section-02-row-02-item-01-cell-01', 'label', '通道A本侧保护单元MAC：', 1), new RelayCellSpec('section-02-row-02-item-01-cell-02', 'input', '00:00:00:00:00:00', 1)]),
-        new RelayRowItemSpec('section-02-row-02-item-02', 'spacer', 1),
-        new RelayRowItemSpec('section-02-row-02-item-03', 'group', 10, [new RelayCellSpec('section-02-row-02-item-03-cell-01', 'label', '通道B本侧保护单元MAC：', 1), new RelayCellSpec('section-02-row-02-item-03-cell-02', 'input', '00:00:00:00:00:00', 1)])
-    ]),
-    new RelayRowSpec('section-02-row-03', 40, 0, [
-        new RelayRowItemSpec('section-02-row-03-item-01', 'group', 10, [new RelayCellSpec('section-02-row-03-item-01-cell-01', 'label', '通道A对侧保护单元MAC：', 1), new RelayCellSpec('section-02-row-03-item-01-cell-02', 'input', '00:00:00:00:00:00', 1)]),
-        new RelayRowItemSpec('section-02-row-03-item-02', 'spacer', 1),
-        new RelayRowItemSpec('section-02-row-03-item-03', 'group', 10, [new RelayCellSpec('section-02-row-03-item-03-cell-01', 'label', '通道B对侧保护单元MAC：', 1), new RelayCellSpec('section-02-row-03-item-03-cell-02', 'input', '00:00:00:00:00:00', 1)])
-    ]),
-    new RelayRowSpec('section-02-row-04', 40, 0, [
-        new RelayRowItemSpec('section-02-row-04-item-01', 'group', 6, [new RelayCellSpec('section-02-row-04-item-01-cell-01', 'label', '边缘终端单元识别码：', 1)]),
-        new RelayRowItemSpec('section-02-row-04-item-02', 'group', 4, [new RelayCellSpec('section-02-row-04-item-02-cell-01', 'input', '12345678', 1)]),
-        new RelayRowItemSpec('section-02-row-04-item-03', 'spacer', 5),
-        new RelayRowItemSpec('section-02-row-04-item-04', 'spacer', 11),
-        new RelayRowItemSpec('section-02-row-04-item-05', 'spacer', 4)
-    ]),
-    new RelayRowSpec('section-02-row-05', 40, 0, [
-        new RelayRowItemSpec('section-02-row-05-item-01', 'group', 6, [new RelayCellSpec('section-02-row-05-item-01-cell-01', 'label', '本侧保护单元识别码：', 1)]),
-        new RelayRowItemSpec('section-02-row-05-item-02', 'group', 4, [new RelayCellSpec('section-02-row-05-item-02-cell-01', 'input', '12345678', 1)]),
-        new RelayRowItemSpec('section-02-row-05-item-03', 'spacer', 5),
-        new RelayRowItemSpec('section-02-row-05-item-04', 'group', 7, [new RelayCellSpec('section-02-row-05-item-04-cell-01', 'label', '对侧保护单元识别码：', 1)]),
-        new RelayRowItemSpec('section-02-row-05-item-05', 'group', 4, [new RelayCellSpec('section-02-row-05-item-05-cell-01', 'input', '12345678', 1)]),
-        new RelayRowItemSpec('section-02-row-05-item-06', 'spacer', 4)
-    ])
-  ]),
-  new RelaySectionSpec('section-03', '【纵联保护公共定值】', [
-    new RelayRowSpec('section-03-row-01', 40, 0, [
-        new RelayRowItemSpec('section-03-row-01-item-01', 'group', 10, [new RelayCellSpec('section-03-row-01-item-01-cell-01', 'label', 'CT断线闭锁纵联保护：', 5), new RelayCellSpec('section-03-row-01-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-03-row-01-item-02', 'spacer', 5),
-        new RelayRowItemSpec('section-03-row-01-item-03', 'group', 11, [new RelayCellSpec('section-03-row-01-item-03-cell-01', 'label', 'CT饱和闭锁纵联保护：', 5), new RelayCellSpec('section-03-row-01-item-03-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-03-row-01-item-04', 'spacer', 4)
-    ]),
-    new RelayRowSpec('section-03-row-02', 40, 0, [
-        new RelayRowItemSpec('section-03-row-02-item-01', 'group', 10, [new RelayCellSpec('section-03-row-02-item-01-cell-01', 'label', '两侧启动相互闭锁：', 5), new RelayCellSpec('section-03-row-02-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-03-row-02-item-02', 'spacer', 5),
-        new RelayRowItemSpec('section-03-row-02-item-03', 'group', 11, [new RelayCellSpec('section-03-row-02-item-03-cell-01', 'label', '远方跳闸受启动元件控制：', 5), new RelayCellSpec('section-03-row-02-item-03-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-03-row-02-item-04', 'spacer', 4)
-    ])
-  ]),
-  new RelaySectionSpec('section-04', '【纵联保护启动元件】', [
-    new RelayRowSpec('section-04-row-01', 40, 0, [
-        new RelayRowItemSpec('section-04-row-01-item-01', 'group', 10, [new RelayCellSpec('section-04-row-01-item-01-cell-01', 'label', '电流突变量启动元件：', 5), new RelayCellSpec('section-04-row-01-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-04-row-01-item-02', 'spacer', 5),
-        new RelayRowItemSpec('section-04-row-01-item-03', 'group', 12, [new RelayCellSpec('section-04-row-01-item-03-cell-01', 'label', '电流突变量启动元件定值：', 10), new RelayCellSpec('section-04-row-01-item-03-cell-02', 'spacer', '', 6), new RelayCellSpec('section-04-row-01-item-03-cell-03', 'input', '820.00', 5), new RelayCellSpec('section-04-row-01-item-03-cell-04', 'unit', 'A', 1)]),
-        new RelayRowItemSpec('section-04-row-01-item-04', 'spacer', 3)
-    ]),
-    new RelayRowSpec('section-04-row-02', 40, 0, [
-        new RelayRowItemSpec('section-04-row-02-item-01', 'group', 10, [new RelayCellSpec('section-04-row-02-item-01-cell-01', 'label', '相电流启动元件：', 5), new RelayCellSpec('section-04-row-02-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-04-row-02-item-02', 'spacer', 5),
-        new RelayRowItemSpec('section-04-row-02-item-03', 'group', 12, [new RelayCellSpec('section-04-row-02-item-03-cell-01', 'label', '相电流启动元件定值：', 10), new RelayCellSpec('section-04-row-02-item-03-cell-02', 'spacer', '', 6), new RelayCellSpec('section-04-row-02-item-03-cell-03', 'input', '820.00', 5), new RelayCellSpec('section-04-row-02-item-03-cell-04', 'unit', 'A', 1)]),
-        new RelayRowItemSpec('section-04-row-02-item-04', 'spacer', 3)
-    ]),
-    new RelayRowSpec('section-04-row-03', 40, 0, [
-        new RelayRowItemSpec('section-04-row-03-item-01', 'group', 10, [new RelayCellSpec('section-04-row-03-item-01-cell-01', 'label', '零序电流变量启动元件：', 5), new RelayCellSpec('section-04-row-03-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-04-row-03-item-02', 'spacer', 5),
-        new RelayRowItemSpec('section-04-row-03-item-03', 'group', 12, [new RelayCellSpec('section-04-row-03-item-03-cell-01', 'label', '零序电流变量启动元件定值：', 10), new RelayCellSpec('section-04-row-03-item-03-cell-02', 'spacer', '', 6), new RelayCellSpec('section-04-row-03-item-03-cell-03', 'input', '820.00', 5), new RelayCellSpec('section-04-row-03-item-03-cell-04', 'unit', 'A', 1)]),
-        new RelayRowItemSpec('section-04-row-03-item-04', 'spacer', 3)
-    ]),
-    new RelayRowSpec('section-04-row-04', 40, 0, [
-        new RelayRowItemSpec('section-04-row-04-item-01', 'group', 10, [new RelayCellSpec('section-04-row-04-item-01-cell-01', 'label', '电流突变量启动元件：', 5), new RelayCellSpec('section-04-row-04-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-04-row-04-item-02', 'spacer', 5),
-        new RelayRowItemSpec('section-04-row-04-item-03', 'group', 12, [new RelayCellSpec('section-04-row-04-item-03-cell-01', 'label', '电流突变量启动元件定值：', 10), new RelayCellSpec('section-04-row-04-item-03-cell-02', 'spacer', '', 6), new RelayCellSpec('section-04-row-04-item-03-cell-03', 'input', '820.00', 5), new RelayCellSpec('section-04-row-04-item-03-cell-04', 'unit', 'A', 1)]),
-        new RelayRowItemSpec('section-04-row-04-item-04', 'spacer', 3)
-    ])
-  ]),
-  new RelaySectionSpec('section-05', '【分相电流差动保护】', [
-    new RelayRowSpec('section-05-row-01', 40, 0, [
-        new RelayRowItemSpec('section-05-row-01-item-01', 'group', 8, [new RelayCellSpec('section-05-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-05-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-05-row-01-item-01-cell-03', 'spacer', '', 3)]),
-        new RelayRowItemSpec('section-05-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-05-row-01-item-03', 'group', 10, [new RelayCellSpec('section-05-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-05-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-05-row-01-item-03-cell-03', 'spacer', '', 3)]),
-        new RelayRowItemSpec('section-05-row-01-item-04', 'spacer', 0),
-        new RelayRowItemSpec('section-05-row-01-item-05', 'group', 9, [new RelayCellSpec('section-05-row-01-item-05-cell-01', 'label', '差流定值：', 10), new RelayCellSpec('section-05-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-05-row-01-item-05-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-05-row-01-item-05-cell-04', 'spacer', '', 2)]),
-        new RelayRowItemSpec('section-05-row-01-item-06', 'spacer', 0),
-        new RelayRowItemSpec('section-05-row-01-item-07', 'group', 11, [new RelayCellSpec('section-05-row-01-item-07-cell-01', 'label', '差流高定值：', 10), new RelayCellSpec('section-05-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-05-row-01-item-07-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-05-row-01-item-07-cell-04', 'spacer', '', 2)])
-    ])
-  ]),
-  new RelaySectionSpec('section-06', '【零序纵联保护】', [
-    new RelayRowSpec('section-06-row-01', 40, 0, [
-        new RelayRowItemSpec('section-06-row-01-item-01', 'group', 8, [new RelayCellSpec('section-06-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-06-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-06-row-01-item-01-cell-03', 'spacer', '', 3)]),
-        new RelayRowItemSpec('section-06-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-06-row-01-item-03', 'group', 10, [new RelayCellSpec('section-06-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-06-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-06-row-01-item-03-cell-03', 'spacer', '', 3)]),
-        new RelayRowItemSpec('section-06-row-01-item-04', 'spacer', 0),
-        new RelayRowItemSpec('section-06-row-01-item-05', 'group', 9, [new RelayCellSpec('section-06-row-01-item-05-cell-01', 'label', '电流定值：', 10), new RelayCellSpec('section-06-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-06-row-01-item-05-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-06-row-01-item-05-cell-04', 'spacer', '', 2)]),
-        new RelayRowItemSpec('section-06-row-01-item-06', 'spacer', 0),
-        new RelayRowItemSpec('section-06-row-01-item-07', 'group', 11, [new RelayCellSpec('section-06-row-01-item-07-cell-01', 'label', '电流高定值：', 10), new RelayCellSpec('section-06-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-06-row-01-item-07-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-06-row-01-item-07-cell-04', 'spacer', '', 2)])
-    ]),
-    new RelayRowSpec('section-06-row-02', 40, 0, [
-        new RelayRowItemSpec('section-06-row-02-item-01', 'group', 10, [new RelayCellSpec('section-06-row-02-item-01-cell-01', 'label', '电流比例系数：', 10), new RelayCellSpec('section-06-row-02-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-06-row-02-item-01-cell-03', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-06-row-02-item-02', 'spacer', 25)
-    ])
-  ]),
-  new RelaySectionSpec('section-07', '【过电流保护公共定值】', [
-    new RelayRowSpec('section-07-row-01', 40, 0, [
-        new RelayRowItemSpec('section-07-row-01-item-01', 'group', 9, [new RelayCellSpec('section-07-row-01-item-01-cell-01', 'label', '线电压闭锁定值：', 12), new RelayCellSpec('section-07-row-01-item-01-cell-02', 'spacer', '', 2), new RelayCellSpec('section-07-row-01-item-01-cell-03', 'input', '820.00', 8), new RelayCellSpec('section-07-row-01-item-01-cell-04', 'unit', 'V', 1)]),
-        new RelayRowItemSpec('section-07-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-07-row-01-item-03', 'group', 11, [new RelayCellSpec('section-07-row-01-item-03-cell-01', 'label', '负序电压闭锁定值：', 12), new RelayCellSpec('section-07-row-01-item-03-cell-02', 'spacer', '', 2), new RelayCellSpec('section-07-row-01-item-03-cell-03', 'input', '820.00', 8), new RelayCellSpec('section-07-row-01-item-03-cell-04', 'unit', 'V', 1)]),
-        new RelayRowItemSpec('section-07-row-01-item-04', 'spacer', 2)
-    ]),
-    new RelayRowSpec('section-07-row-02', 40, 0, [
-        new RelayRowItemSpec('section-07-row-02-item-01', 'group', 10, [new RelayCellSpec('section-07-row-02-item-01-cell-01', 'label', '涌流抑制比：', 12), new RelayCellSpec('section-07-row-02-item-01-cell-02', 'spacer', '', 6), new RelayCellSpec('section-07-row-02-item-01-cell-03', 'input', '820.00', 8), new RelayCellSpec('section-07-row-02-item-01-cell-04', 'unit', '%', 1)]),
-        new RelayRowItemSpec('section-07-row-02-item-02', 'spacer', 20)
-    ])
-  ]),
-  new RelaySectionSpec('section-08', '【过电流保护I段】', [
-    new RelayRowSpec('section-08-row-01', 40, 0, [
-        new RelayRowItemSpec('section-08-row-01-item-01', 'group', 10, [new RelayCellSpec('section-08-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-08-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-08-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-08-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-08-row-01-item-03', 'group', 10, [new RelayCellSpec('section-08-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-08-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-08-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-08-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-08-row-01-item-05', 'group', 10, [new RelayCellSpec('section-08-row-01-item-05-cell-01', 'label', '复压元件：', 5), new RelayCellSpec('section-08-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-08-row-01-item-05-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-08-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-08-row-01-item-07', 'group', 10, [new RelayCellSpec('section-08-row-01-item-07-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-08-row-01-item-07-cell-02', 'select', '投入', 1), new RelayCellSpec('section-08-row-01-item-07-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-08-row-01-item-08', 'spacer', 2),
-        new RelayRowItemSpec('section-08-row-01-item-09', 'group', 10, [new RelayCellSpec('section-08-row-01-item-09-cell-01', 'label', '涌流抑制：', 5), new RelayCellSpec('section-08-row-01-item-09-cell-02', 'select', '投入', 1), new RelayCellSpec('section-08-row-01-item-09-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-08-row-02', 40, 0, [
-        new RelayRowItemSpec('section-08-row-02-item-01', 'group', 10, [new RelayCellSpec('section-08-row-02-item-01-cell-01', 'label', '电流定值：', 10), new RelayCellSpec('section-08-row-02-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-08-row-02-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-08-row-02-item-01-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-08-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-08-row-02-item-03', 'group', 10, [new RelayCellSpec('section-08-row-02-item-03-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-08-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-08-row-02-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-08-row-02-item-03-cell-04', 'spacer', '', 4)]),
-        new RelayRowItemSpec('section-08-row-02-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-09', '【过电流保护II段】', [
-    new RelayRowSpec('section-09-row-01', 40, 0, [
-        new RelayRowItemSpec('section-09-row-01-item-01', 'group', 10, [new RelayCellSpec('section-09-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-09-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-09-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-09-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-09-row-01-item-03', 'group', 10, [new RelayCellSpec('section-09-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-09-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-09-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-09-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-09-row-01-item-05', 'group', 10, [new RelayCellSpec('section-09-row-01-item-05-cell-01', 'label', '复压元件：', 5), new RelayCellSpec('section-09-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-09-row-01-item-05-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-09-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-09-row-01-item-07', 'group', 10, [new RelayCellSpec('section-09-row-01-item-07-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-09-row-01-item-07-cell-02', 'select', '投入', 1), new RelayCellSpec('section-09-row-01-item-07-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-09-row-01-item-08', 'spacer', 2),
-        new RelayRowItemSpec('section-09-row-01-item-09', 'group', 10, [new RelayCellSpec('section-09-row-01-item-09-cell-01', 'label', '涌流抑制：', 5), new RelayCellSpec('section-09-row-01-item-09-cell-02', 'select', '投入', 1), new RelayCellSpec('section-09-row-01-item-09-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-09-row-02', 40, 0, [
-        new RelayRowItemSpec('section-09-row-02-item-01', 'group', 10, [new RelayCellSpec('section-09-row-02-item-01-cell-01', 'label', '电流定值：', 10), new RelayCellSpec('section-09-row-02-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-09-row-02-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-09-row-02-item-01-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-09-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-09-row-02-item-03', 'group', 10, [new RelayCellSpec('section-09-row-02-item-03-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-09-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-09-row-02-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-09-row-02-item-03-cell-04', 'spacer', '', 4)]),
-        new RelayRowItemSpec('section-09-row-02-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-10', '【过电流保护III段】', [
-    new RelayRowSpec('section-10-row-01', 40, 0, [
-        new RelayRowItemSpec('section-10-row-01-item-01', 'group', 10, [new RelayCellSpec('section-10-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-10-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-10-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-10-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-10-row-01-item-03', 'group', 10, [new RelayCellSpec('section-10-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-10-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-10-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-10-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-10-row-01-item-05', 'group', 10, [new RelayCellSpec('section-10-row-01-item-05-cell-01', 'label', '复压元件：', 5), new RelayCellSpec('section-10-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-10-row-01-item-05-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-10-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-10-row-01-item-07', 'group', 10, [new RelayCellSpec('section-10-row-01-item-07-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-10-row-01-item-07-cell-02', 'select', '投入', 1), new RelayCellSpec('section-10-row-01-item-07-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-10-row-01-item-08', 'spacer', 2),
-        new RelayRowItemSpec('section-10-row-01-item-09', 'group', 10, [new RelayCellSpec('section-10-row-01-item-09-cell-01', 'label', '涌流抑制：', 5), new RelayCellSpec('section-10-row-01-item-09-cell-02', 'select', '投入', 1), new RelayCellSpec('section-10-row-01-item-09-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-10-row-02', 40, 0, [
-        new RelayRowItemSpec('section-10-row-02-item-01', 'group', 10, [new RelayCellSpec('section-10-row-02-item-01-cell-01', 'label', '电流定值：', 10), new RelayCellSpec('section-10-row-02-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-10-row-02-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-10-row-02-item-01-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-10-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-10-row-02-item-03', 'group', 10, [new RelayCellSpec('section-10-row-02-item-03-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-10-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-10-row-02-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-10-row-02-item-03-cell-04', 'spacer', '', 0)]),
-        new RelayRowItemSpec('section-10-row-02-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-11', '【反时限过电流保护】', [
-    new RelayRowSpec('section-11-row-01', 40, 0, [
-        new RelayRowItemSpec('section-11-row-01-item-01', 'group', 10, [new RelayCellSpec('section-11-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-11-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-11-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-11-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-11-row-01-item-03', 'group', 10, [new RelayCellSpec('section-11-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-11-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-11-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-11-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-11-row-01-item-05', 'group', 10, [new RelayCellSpec('section-11-row-01-item-05-cell-01', 'label', '复压元件：', 5), new RelayCellSpec('section-11-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-11-row-01-item-05-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-11-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-11-row-01-item-07', 'group', 10, [new RelayCellSpec('section-11-row-01-item-07-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-11-row-01-item-07-cell-02', 'select', '投入', 1), new RelayCellSpec('section-11-row-01-item-07-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-11-row-01-item-08', 'spacer', 2),
-        new RelayRowItemSpec('section-11-row-01-item-09', 'group', 10, [new RelayCellSpec('section-11-row-01-item-09-cell-01', 'label', '涌流抑制：', 5), new RelayCellSpec('section-11-row-01-item-09-cell-02', 'select', '投入', 1), new RelayCellSpec('section-11-row-01-item-09-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-11-row-02', 40, 0, [
-        new RelayRowItemSpec('section-11-row-02-item-01', 'group', 10, [new RelayCellSpec('section-11-row-02-item-01-cell-01', 'label', '反时限特性：', 5), new RelayCellSpec('section-11-row-02-item-01-cell-02', 'select', '一般反时限', 1), new RelayCellSpec('section-11-row-02-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-11-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-11-row-02-item-03', 'group', 10, [new RelayCellSpec('section-11-row-02-item-03-cell-01', 'label', '电流基准值：', 10), new RelayCellSpec('section-11-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-11-row-02-item-03-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-11-row-02-item-03-cell-04', 'spacer', '', 4)]),
-        new RelayRowItemSpec('section-11-row-02-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-11-row-02-item-05', 'group', 9, [new RelayCellSpec('section-11-row-02-item-05-cell-01', 'label', '反时限时间定值：', 10), new RelayCellSpec('section-11-row-02-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-11-row-02-item-05-cell-03', 'unit', 's', 1), new RelayCellSpec('section-11-row-02-item-05-cell-04', 'spacer', '', 1)]),
-        new RelayRowItemSpec('section-11-row-02-item-06', 'spacer', 1)
-    ])
-  ]),
-  new RelaySectionSpec('section-12', '【PT断线相过电流保护】', [
-    new RelayRowSpec('section-12-row-01', 40, 0, [
-        new RelayRowItemSpec('section-12-row-01-item-01', 'group', 8, [new RelayCellSpec('section-12-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-12-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-12-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-12-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-12-row-01-item-03', 'group', 10, [new RelayCellSpec('section-12-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-12-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-12-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-12-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-12-row-01-item-05', 'group', 10, [new RelayCellSpec('section-12-row-01-item-05-cell-01', 'label', '电流定值：', 10), new RelayCellSpec('section-12-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-12-row-01-item-05-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-12-row-01-item-05-cell-04', 'spacer', '', 2)]),
-        new RelayRowItemSpec('section-12-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-12-row-01-item-07', 'group', 10, [new RelayCellSpec('section-12-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-12-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-12-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-12-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ])
-  ]),
-  new RelaySectionSpec('section-13', '【过电流保护加速段】', [
-    new RelayRowSpec('section-13-row-01', 40, 0, [
-        new RelayRowItemSpec('section-13-row-01-item-01', 'group', 11, [new RelayCellSpec('section-13-row-01-item-01-cell-01', 'label', '手合加速段投/退：', 5), new RelayCellSpec('section-13-row-01-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-13-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-13-row-01-item-03', 'group', 13, [new RelayCellSpec('section-13-row-01-item-03-cell-01', 'label', '手合加速段投入时间：', 12), new RelayCellSpec('section-13-row-01-item-03-cell-02', 'spacer', '', 10), new RelayCellSpec('section-13-row-01-item-03-cell-03', 'input', '820.00', 8), new RelayCellSpec('section-13-row-01-item-03-cell-04', 'unit', 's', 1)]),
-        new RelayRowItemSpec('section-13-row-01-item-04', 'spacer', 7)
-    ]),
-    new RelayRowSpec('section-13-row-02', 40, 0, [
-        new RelayRowItemSpec('section-13-row-02-item-01', 'group', 11, [new RelayCellSpec('section-13-row-02-item-01-cell-01', 'label', '重合闸后加速段投/退：', 5), new RelayCellSpec('section-13-row-02-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-13-row-02-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-13-row-02-item-03', 'group', 13, [new RelayCellSpec('section-13-row-02-item-03-cell-01', 'label', '重合闸后加速段投入时间：', 12), new RelayCellSpec('section-13-row-02-item-03-cell-02', 'spacer', '', 10), new RelayCellSpec('section-13-row-02-item-03-cell-03', 'input', '820.00', 8), new RelayCellSpec('section-13-row-02-item-03-cell-04', 'unit', 's', 1)]),
-        new RelayRowItemSpec('section-13-row-02-item-04', 'spacer', 7)
-    ]),
-    new RelayRowSpec('section-13-row-03', 40, 0, [
-        new RelayRowItemSpec('section-13-row-03-item-01', 'group', 10, [new RelayCellSpec('section-13-row-03-item-01-cell-01', 'label', '复压元件：', 5), new RelayCellSpec('section-13-row-03-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-13-row-03-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-13-row-03-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-13-row-03-item-03', 'group', 10, [new RelayCellSpec('section-13-row-03-item-03-cell-01', 'label', '电流定值：', 12), new RelayCellSpec('section-13-row-03-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-13-row-03-item-03-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-13-row-03-item-03-cell-04', 'spacer', '', 18)]),
-        new RelayRowItemSpec('section-13-row-03-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-13-row-03-item-05', 'group', 7, [new RelayCellSpec('section-13-row-03-item-05-cell-01', 'label', '时间定值：', 12), new RelayCellSpec('section-13-row-03-item-05-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-13-row-03-item-05-cell-03', 'unit', 's', 1), new RelayCellSpec('section-13-row-03-item-05-cell-04', 'spacer', '', 0)])
-    ])
-  ]),
-  new RelaySectionSpec('section-14', '【零序过流保护I段】', [
-    new RelayRowSpec('section-14-row-01', 40, 0, [
-        new RelayRowItemSpec('section-14-row-01-item-01', 'group', 10, [new RelayCellSpec('section-14-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-14-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-14-row-01-item-01-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-14-row-01-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-14-row-01-item-03', 'group', 10, [new RelayCellSpec('section-14-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-14-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-14-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-14-row-01-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-14-row-01-item-05', 'group', 10, [new RelayCellSpec('section-14-row-01-item-05-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-14-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-14-row-01-item-05-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-14-row-02', 40, 0, [
-        new RelayRowItemSpec('section-14-row-02-item-01', 'group', 10, [new RelayCellSpec('section-14-row-02-item-01-cell-01', 'label', '电流定值：', 12), new RelayCellSpec('section-14-row-02-item-01-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-14-row-02-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-14-row-02-item-01-cell-04', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-14-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-14-row-02-item-03', 'group', 10, [new RelayCellSpec('section-14-row-02-item-03-cell-01', 'label', '时间定值：', 12), new RelayCellSpec('section-14-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-14-row-02-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-14-row-02-item-03-cell-04', 'spacer', '', 0)]),
-        new RelayRowItemSpec('section-14-row-02-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-15', '【零序过流保护II段】', [
-    new RelayRowSpec('section-15-row-01', 40, 0, [
-        new RelayRowItemSpec('section-15-row-01-item-01', 'group', 10, [new RelayCellSpec('section-15-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-15-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-15-row-01-item-01-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-15-row-01-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-15-row-01-item-03', 'group', 10, [new RelayCellSpec('section-15-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-15-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-15-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-15-row-01-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-15-row-01-item-05', 'group', 10, [new RelayCellSpec('section-15-row-01-item-05-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-15-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-15-row-01-item-05-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-15-row-02', 40, 0, [
-        new RelayRowItemSpec('section-15-row-02-item-01', 'group', 10, [new RelayCellSpec('section-15-row-02-item-01-cell-01', 'label', '电流定值：', 12), new RelayCellSpec('section-15-row-02-item-01-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-15-row-02-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-15-row-02-item-01-cell-04', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-15-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-15-row-02-item-03', 'group', 10, [new RelayCellSpec('section-15-row-02-item-03-cell-01', 'label', '时间定值：', 12), new RelayCellSpec('section-15-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-15-row-02-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-15-row-02-item-03-cell-04', 'spacer', '', 0)]),
-        new RelayRowItemSpec('section-15-row-02-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-16', '【零序过流保护III段】', [
-    new RelayRowSpec('section-16-row-01', 40, 0, [
-        new RelayRowItemSpec('section-16-row-01-item-01', 'group', 10, [new RelayCellSpec('section-16-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-16-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-16-row-01-item-01-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-16-row-01-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-16-row-01-item-03', 'group', 10, [new RelayCellSpec('section-16-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-16-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-16-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-16-row-01-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-16-row-01-item-05', 'group', 10, [new RelayCellSpec('section-16-row-01-item-05-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-16-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-16-row-01-item-05-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-16-row-02', 40, 0, [
-        new RelayRowItemSpec('section-16-row-02-item-01', 'group', 10, [new RelayCellSpec('section-16-row-02-item-01-cell-01', 'label', '电流定值：', 12), new RelayCellSpec('section-16-row-02-item-01-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-16-row-02-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-16-row-02-item-01-cell-04', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-16-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-16-row-02-item-03', 'group', 10, [new RelayCellSpec('section-16-row-02-item-03-cell-01', 'label', '时间定值：', 12), new RelayCellSpec('section-16-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-16-row-02-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-16-row-02-item-03-cell-04', 'spacer', '', 0)]),
-        new RelayRowItemSpec('section-16-row-02-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-17', '【反时限零序过流保护】', [
-    new RelayRowSpec('section-17-row-01', 40, 0, [
-        new RelayRowItemSpec('section-17-row-01-item-01', 'group', 10, [new RelayCellSpec('section-17-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-17-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-17-row-01-item-01-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-17-row-01-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-17-row-01-item-03', 'group', 10, [new RelayCellSpec('section-17-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-17-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-17-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-17-row-01-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-17-row-01-item-05', 'group', 10, [new RelayCellSpec('section-17-row-01-item-05-cell-01', 'label', '方向元件：', 5), new RelayCellSpec('section-17-row-01-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-17-row-01-item-05-cell-03', 'spacer', '', 5)])
-    ]),
-    new RelayRowSpec('section-17-row-02', 40, 0, [
-        new RelayRowItemSpec('section-17-row-02-item-01', 'group', 10, [new RelayCellSpec('section-17-row-02-item-01-cell-01', 'label', '反时限特性：', 5), new RelayCellSpec('section-17-row-02-item-01-cell-02', 'select', '一般反时限', 1), new RelayCellSpec('section-17-row-02-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-17-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-17-row-02-item-03', 'group', 10, [new RelayCellSpec('section-17-row-02-item-03-cell-01', 'label', '电流基准值：', 10), new RelayCellSpec('section-17-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-17-row-02-item-03-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-17-row-02-item-03-cell-04', 'spacer', '', 4)]),
-        new RelayRowItemSpec('section-17-row-02-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-17-row-02-item-05', 'group', 9, [new RelayCellSpec('section-17-row-02-item-05-cell-01', 'label', '反时限时间定值：', 10), new RelayCellSpec('section-17-row-02-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-17-row-02-item-05-cell-03', 'unit', 's', 1), new RelayCellSpec('section-17-row-02-item-05-cell-04', 'spacer', '', 1)]),
-        new RelayRowItemSpec('section-17-row-02-item-06', 'spacer', 1)
-    ])
-  ]),
-  new RelaySectionSpec('section-18', '【零序过流保护加速段】', [
-    new RelayRowSpec('section-18-row-01', 40, 0, [
-        new RelayRowItemSpec('section-18-row-01-item-01', 'group', 12, [new RelayCellSpec('section-18-row-01-item-01-cell-01', 'label', '手合加速段投/退：', 5), new RelayCellSpec('section-18-row-01-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-18-row-01-item-02', 'spacer', 1),
-        new RelayRowItemSpec('section-18-row-01-item-03', 'group', 13, [new RelayCellSpec('section-18-row-01-item-03-cell-01', 'label', '手合加速段投入时间：', 10), new RelayCellSpec('section-18-row-01-item-03-cell-02', 'spacer', '', 8), new RelayCellSpec('section-18-row-01-item-03-cell-03', 'input', '820.00', 10), new RelayCellSpec('section-18-row-01-item-03-cell-04', 'unit', 's', 1)]),
-        new RelayRowItemSpec('section-18-row-01-item-04', 'spacer', 10)
-    ]),
-    new RelayRowSpec('section-18-row-02', 40, 0, [
-        new RelayRowItemSpec('section-18-row-02-item-01', 'group', 12, [new RelayCellSpec('section-18-row-02-item-01-cell-01', 'label', '重合闸后加速段投/退：', 5), new RelayCellSpec('section-18-row-02-item-01-cell-02', 'select', '投入', 1)]),
-        new RelayRowItemSpec('section-18-row-02-item-02', 'spacer', 1),
-        new RelayRowItemSpec('section-18-row-02-item-03', 'group', 13, [new RelayCellSpec('section-18-row-02-item-03-cell-01', 'label', '重合闸后加速段投入时间：', 10), new RelayCellSpec('section-18-row-02-item-03-cell-02', 'spacer', '', 8), new RelayCellSpec('section-18-row-02-item-03-cell-03', 'input', '820.00', 10), new RelayCellSpec('section-18-row-02-item-03-cell-04', 'unit', 's', 1)]),
-        new RelayRowItemSpec('section-18-row-02-item-04', 'spacer', 10)
-    ]),
-    new RelayRowSpec('section-18-row-03', 40, 0, [
-        new RelayRowItemSpec('section-18-row-03-item-01', 'group', 10, [new RelayCellSpec('section-18-row-03-item-01-cell-01', 'label', '电流定值：', 12), new RelayCellSpec('section-18-row-03-item-01-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-18-row-03-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-18-row-03-item-01-cell-04', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-18-row-03-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-18-row-03-item-03', 'group', 10, [new RelayCellSpec('section-18-row-03-item-03-cell-01', 'label', '时间定值：', 12), new RelayCellSpec('section-18-row-03-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-18-row-03-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-18-row-03-item-03-cell-04', 'spacer', '', 0)]),
-        new RelayRowItemSpec('section-18-row-03-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-19', '【自适应零序过流保护】', [
-    new RelayRowSpec('section-19-row-01', 40, 0, [
-        new RelayRowItemSpec('section-19-row-01-item-01', 'group', 10, [new RelayCellSpec('section-19-row-01-item-01-cell-01', 'label', '电流门槛值：', 12), new RelayCellSpec('section-19-row-01-item-01-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-19-row-01-item-01-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-19-row-01-item-01-cell-04', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-19-row-01-item-02', 'spacer', 1),
-        new RelayRowItemSpec('section-19-row-01-item-03', 'group', 12, [new RelayCellSpec('section-19-row-01-item-03-cell-01', 'label', '零序补偿系数：', 8), new RelayCellSpec('section-19-row-01-item-03-cell-02', 'input', '820.00', 1), new RelayCellSpec('section-19-row-01-item-03-cell-03', 'unit', '+j', 1), new RelayCellSpec('section-19-row-01-item-03-cell-04', 'input', '820.00', 1), new RelayCellSpec('section-19-row-01-item-03-cell-05', 'spacer', '', 7)]),
-        new RelayRowItemSpec('section-19-row-01-item-04', 'spacer', 1),
-        new RelayRowItemSpec('section-19-row-01-item-05', 'group', 12, [new RelayCellSpec('section-19-row-01-item-05-cell-01', 'label', '系统阻抗：', 8), new RelayCellSpec('section-19-row-01-item-05-cell-02', 'input', '820.00', 1), new RelayCellSpec('section-19-row-01-item-05-cell-03', 'unit', '+j', 1), new RelayCellSpec('section-19-row-01-item-05-cell-04', 'input', '820.00', 1), new RelayCellSpec('section-19-row-01-item-05-cell-05', 'spacer', '', 7)])
-    ]),
-    new RelayRowSpec('section-19-row-02', 40, 0, [
-        new RelayRowItemSpec('section-19-row-02-item-01', 'group', 20, [new RelayCellSpec('section-19-row-02-item-01-cell-01', 'label', 'I段投/退：', 5), new RelayCellSpec('section-19-row-02-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-19-row-02-item-01-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-19-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-19-row-02-item-03', 'group', 20, [new RelayCellSpec('section-19-row-02-item-03-cell-01', 'label', 'II段投/退：', 5), new RelayCellSpec('section-19-row-02-item-03-cell-02', 'select', '投入', 1), new RelayCellSpec('section-19-row-02-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-19-row-02-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-19-row-02-item-05', 'group', 20, [new RelayCellSpec('section-19-row-02-item-05-cell-01', 'label', 'III段投/退：', 5), new RelayCellSpec('section-19-row-02-item-05-cell-02', 'select', '投入', 1), new RelayCellSpec('section-19-row-02-item-05-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-19-row-02-item-06', 'spacer', 3),
-        new RelayRowItemSpec('section-19-row-02-item-07', 'group', 20, [new RelayCellSpec('section-19-row-02-item-07-cell-01', 'label', '反时限投投/退：', 5), new RelayCellSpec('section-19-row-02-item-07-cell-02', 'select', '投入', 1), new RelayCellSpec('section-19-row-02-item-07-cell-03', 'spacer', '', 10)])
-    ]),
-    new RelayRowSpec('section-19-row-03', 40, 0, [
-        new RelayRowItemSpec('section-19-row-03-item-01', 'group', 20, [new RelayCellSpec('section-19-row-03-item-01-cell-01', 'label', '手合加速段投/退：', 8), new RelayCellSpec('section-19-row-03-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-19-row-03-item-01-cell-03', 'spacer', '', 7)]),
-        new RelayRowItemSpec('section-19-row-03-item-02', 'spacer', 12),
-        new RelayRowItemSpec('section-19-row-03-item-03', 'group', 20, [new RelayCellSpec('section-19-row-03-item-03-cell-01', 'label', '重合闸后加速段投/退：', 8), new RelayCellSpec('section-19-row-03-item-03-cell-02', 'select', '投入', 1), new RelayCellSpec('section-19-row-03-item-03-cell-03', 'spacer', '', 7)]),
-        new RelayRowItemSpec('section-19-row-03-item-04', 'spacer', 10)
-    ])
-  ]),
-  new RelaySectionSpec('section-20', '【重合闸保护】', [
-    new RelayRowSpec('section-20-row-01', 40, 0, [
-        new RelayRowItemSpec('section-20-row-01-item-01', 'group', 10, [new RelayCellSpec('section-20-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-20-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-20-row-01-item-01-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-20-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-20-row-01-item-03', 'group', 15, [new RelayCellSpec('section-20-row-01-item-03-cell-01', 'label', '重合闸方式：', 10), new RelayCellSpec('section-20-row-01-item-03-cell-02', 'select', '闭锁', 16), new RelayCellSpec('section-20-row-01-item-03-cell-03', 'spacer', '', 1)]),
-        new RelayRowItemSpec('section-20-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-20-row-01-item-05', 'group', 15, [new RelayCellSpec('section-20-row-01-item-05-cell-01', 'label', '重合闸后加速段投入时间：', 10), new RelayCellSpec('section-20-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-20-row-01-item-05-cell-03', 'unit', 's', 1), new RelayCellSpec('section-20-row-01-item-05-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-20-row-01-item-06', 'spacer', 1)
-    ]),
-    new RelayRowSpec('section-20-row-02', 40, 0, [
-        new RelayRowItemSpec('section-20-row-02-item-01', 'group', 10, [new RelayCellSpec('section-20-row-02-item-01-cell-01', 'label', '开关偷跳：', 5), new RelayCellSpec('section-20-row-02-item-01-cell-02', 'select', '不重合', 1), new RelayCellSpec('section-20-row-02-item-01-cell-03', 'spacer', '', 3)]),
-        new RelayRowItemSpec('section-20-row-02-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-20-row-02-item-03', 'group', 15, [new RelayCellSpec('section-20-row-02-item-03-cell-01', 'label', '大电流闭锁：', 10), new RelayCellSpec('section-20-row-02-item-03-cell-02', 'select', '投入', 5), new RelayCellSpec('section-20-row-02-item-03-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-20-row-02-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-20-row-02-item-05', 'group', 15, [new RelayCellSpec('section-20-row-02-item-05-cell-01', 'label', '大电流闭锁值：', 10), new RelayCellSpec('section-20-row-02-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-20-row-02-item-05-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-20-row-02-item-05-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-20-row-02-item-06', 'spacer', 1)
-    ]),
-    new RelayRowSpec('section-20-row-03', 40, 0, [
-        new RelayRowItemSpec('section-20-row-03-item-01', 'group', 10, [new RelayCellSpec('section-20-row-03-item-01-cell-01', 'label', '检同期角度：', 10), new RelayCellSpec('section-20-row-03-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-20-row-03-item-01-cell-03', 'unit', '°', 1), new RelayCellSpec('section-20-row-03-item-01-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-20-row-03-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-20-row-03-item-03', 'group', 15, [new RelayCellSpec('section-20-row-03-item-03-cell-01', 'label', '检同期开发时间定值：', 10), new RelayCellSpec('section-20-row-03-item-03-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-20-row-03-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-20-row-03-item-03-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-20-row-03-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-20-row-03-item-05', 'group', 15, [new RelayCellSpec('section-20-row-03-item-05-cell-01', 'label', '检无压开放时间定值：', 10), new RelayCellSpec('section-20-row-03-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-20-row-03-item-05-cell-03', 'unit', 's', 1), new RelayCellSpec('section-20-row-03-item-05-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-20-row-03-item-06', 'spacer', 1)
-    ]),
-    new RelayRowSpec('section-20-row-04', 40, 0, [
-        new RelayRowItemSpec('section-20-row-04-item-01', 'group', 10, [new RelayCellSpec('section-20-row-04-item-01-cell-01', 'label', '跳闸时间定值：', 10), new RelayCellSpec('section-20-row-04-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-20-row-04-item-01-cell-03', 'unit', 's', 1), new RelayCellSpec('section-20-row-04-item-01-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-20-row-04-item-02', 'spacer', 35)
-    ])
-  ]),
-  new RelaySectionSpec('section-21', '【过负荷保护】', [
-    new RelayRowSpec('section-21-row-01', 40, 0, [
-        new RelayRowItemSpec('section-21-row-01-item-01', 'group', 10, [new RelayCellSpec('section-21-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-21-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-21-row-01-item-01-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-21-row-01-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-21-row-01-item-03', 'group', 10, [new RelayCellSpec('section-21-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-21-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-21-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-21-row-01-item-04', 'spacer', 3),
-        new RelayRowItemSpec('section-21-row-01-item-05', 'group', 10, [new RelayCellSpec('section-21-row-01-item-05-cell-01', 'label', '电流定值：', 12), new RelayCellSpec('section-21-row-01-item-05-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-21-row-01-item-05-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-21-row-01-item-05-cell-04', 'spacer', '', 10)])
-    ]),
-    new RelayRowSpec('section-21-row-02', 40, 0, [
-        new RelayRowItemSpec('section-21-row-02-item-01', 'group', 10, [new RelayCellSpec('section-21-row-02-item-01-cell-01', 'label', '跳闸时间定值：', 12), new RelayCellSpec('section-21-row-02-item-01-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-21-row-02-item-01-cell-03', 'unit', 's', 1), new RelayCellSpec('section-21-row-02-item-01-cell-04', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-21-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-21-row-02-item-03', 'group', 10, [new RelayCellSpec('section-21-row-02-item-03-cell-01', 'label', '告警时间定值：', 12), new RelayCellSpec('section-21-row-02-item-03-cell-02', 'input', '820.00', 8), new RelayCellSpec('section-21-row-02-item-03-cell-03', 'unit', 's', 1), new RelayCellSpec('section-21-row-02-item-03-cell-04', 'spacer', '', 0)]),
-        new RelayRowItemSpec('section-21-row-02-item-04', 'spacer', 13)
-    ])
-  ]),
-  new RelaySectionSpec('section-22', '【低电压保护】', [
-    new RelayRowSpec('section-22-row-01', 40, 0, [
-        new RelayRowItemSpec('section-22-row-01-item-01', 'group', 8, [new RelayCellSpec('section-22-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-22-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-22-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-22-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-22-row-01-item-03', 'group', 10, [new RelayCellSpec('section-22-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-22-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-22-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-22-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-22-row-01-item-05', 'group', 10, [new RelayCellSpec('section-22-row-01-item-05-cell-01', 'label', '电压定值：', 10), new RelayCellSpec('section-22-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-22-row-01-item-05-cell-03', 'unit', 'V', 1), new RelayCellSpec('section-22-row-01-item-05-cell-04', 'spacer', '', 2)]),
-        new RelayRowItemSpec('section-22-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-22-row-01-item-07', 'group', 10, [new RelayCellSpec('section-22-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-22-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-22-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-22-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ]),
-    new RelayRowSpec('section-22-row-02', 40, 0, [
-        new RelayRowItemSpec('section-22-row-02-item-01', 'group', 10, [new RelayCellSpec('section-22-row-02-item-01-cell-01', 'label', '低压闭锁定值：', 10), new RelayCellSpec('section-22-row-02-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-22-row-02-item-01-cell-03', 'unit', 'V', 1), new RelayCellSpec('section-22-row-02-item-01-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-22-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-22-row-02-item-03', 'group', 10, [new RelayCellSpec('section-22-row-02-item-03-cell-01', 'label', '电压滑差闭锁：', 10), new RelayCellSpec('section-22-row-02-item-03-cell-02', 'select', '投入', 5), new RelayCellSpec('section-22-row-02-item-03-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-22-row-02-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-22-row-02-item-05', 'group', 11, [new RelayCellSpec('section-22-row-02-item-05-cell-01', 'label', '电压滑差闭锁定值：', 10), new RelayCellSpec('section-22-row-02-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-22-row-02-item-05-cell-03', 'unit', 'V/s', 1), new RelayCellSpec('section-22-row-02-item-05-cell-04', 'spacer', '', 8)])
-    ]),
-    new RelayRowSpec('section-22-row-03', 40, 0, [
-        new RelayRowItemSpec('section-22-row-03-item-01', 'group', 11, [new RelayCellSpec('section-22-row-03-item-01-cell-01', 'label', '滑差解除闭锁定值：', 10), new RelayCellSpec('section-22-row-03-item-01-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-22-row-03-item-01-cell-03', 'unit', 'V/s', 1), new RelayCellSpec('section-22-row-03-item-01-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-22-row-03-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-22-row-03-item-03', 'group', 10, [new RelayCellSpec('section-22-row-03-item-03-cell-01', 'label', '无流闭锁：', 10), new RelayCellSpec('section-22-row-03-item-03-cell-02', 'select', '投入', 5), new RelayCellSpec('section-22-row-03-item-03-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-22-row-03-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-22-row-03-item-05', 'group', 11, [new RelayCellSpec('section-22-row-03-item-05-cell-01', 'label', '无流闭锁定值：', 10), new RelayCellSpec('section-22-row-03-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-22-row-03-item-05-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-22-row-03-item-05-cell-04', 'spacer', '', 8)])
-    ])
-  ]),
-  new RelaySectionSpec('section-23', '【过电压保护】', [
-    new RelayRowSpec('section-23-row-01', 40, 0, [
-        new RelayRowItemSpec('section-23-row-01-item-01', 'group', 8, [new RelayCellSpec('section-23-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-23-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-23-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-23-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-23-row-01-item-03', 'group', 10, [new RelayCellSpec('section-23-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-23-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-23-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-23-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-23-row-01-item-05', 'group', 10, [new RelayCellSpec('section-23-row-01-item-05-cell-01', 'label', '电压定值：', 10), new RelayCellSpec('section-23-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-23-row-01-item-05-cell-03', 'unit', 'V', 1), new RelayCellSpec('section-23-row-01-item-05-cell-04', 'spacer', '', 2)]),
-        new RelayRowItemSpec('section-23-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-23-row-01-item-07', 'group', 10, [new RelayCellSpec('section-23-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-23-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-23-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-23-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ])
-  ]),
-  new RelaySectionSpec('section-24', '【低频保护】', [
-    new RelayRowSpec('section-24-row-01', 40, 0, [
-        new RelayRowItemSpec('section-24-row-01-item-01', 'group', 8, [new RelayCellSpec('section-24-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-24-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-24-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-24-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-24-row-01-item-03', 'group', 10, [new RelayCellSpec('section-24-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-24-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-24-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-24-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-24-row-01-item-05', 'group', 10, [new RelayCellSpec('section-24-row-01-item-05-cell-01', 'label', '频率定值：', 10), new RelayCellSpec('section-24-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-24-row-01-item-05-cell-03', 'unit', 'Hz', 1), new RelayCellSpec('section-24-row-01-item-05-cell-04', 'spacer', '', 2)]),
-        new RelayRowItemSpec('section-24-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-24-row-01-item-07', 'group', 10, [new RelayCellSpec('section-24-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-24-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-24-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-24-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ]),
-    new RelayRowSpec('section-24-row-02', 40, 0, [
-        new RelayRowItemSpec('section-24-row-02-item-01', 'group', 10, [new RelayCellSpec('section-24-row-02-item-01-cell-01', 'label', '跳闸模式：', 5), new RelayCellSpec('section-24-row-02-item-01-cell-02', 'select', '解列', 1), new RelayCellSpec('section-24-row-02-item-01-cell-03', 'spacer', '', 3)]),
-        new RelayRowItemSpec('section-24-row-02-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-24-row-02-item-03', 'group', 10, [new RelayCellSpec('section-24-row-02-item-03-cell-01', 'label', '频率滑流闭锁：', 10), new RelayCellSpec('section-24-row-02-item-03-cell-02', 'select', '投入', 5), new RelayCellSpec('section-24-row-02-item-03-cell-03', 'spacer', '', 10)]),
-        new RelayRowItemSpec('section-24-row-02-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-24-row-02-item-05', 'group', 11, [new RelayCellSpec('section-24-row-02-item-05-cell-01', 'label', '频率滑差闭锁定值：', 10), new RelayCellSpec('section-24-row-02-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-24-row-02-item-05-cell-03', 'unit', 'Hz/s', 1), new RelayCellSpec('section-24-row-02-item-05-cell-04', 'spacer', '', 8)])
-    ]),
-    new RelayRowSpec('section-24-row-03', 40, 0, [
-        new RelayRowItemSpec('section-24-row-03-item-01', 'group', 10, [new RelayCellSpec('section-24-row-03-item-01-cell-01', 'label', '无流闭锁：', 5), new RelayCellSpec('section-24-row-03-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-24-row-03-item-01-cell-03', 'spacer', '', 3)]),
-        new RelayRowItemSpec('section-24-row-03-item-02', 'spacer', 3),
-        new RelayRowItemSpec('section-24-row-03-item-03', 'group', 10, [new RelayCellSpec('section-24-row-03-item-03-cell-01', 'label', '无流闭锁定值：', 10), new RelayCellSpec('section-24-row-03-item-03-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-24-row-03-item-03-cell-03', 'unit', 'A', 1), new RelayCellSpec('section-24-row-03-item-03-cell-04', 'spacer', '', 8)]),
-        new RelayRowItemSpec('section-24-row-03-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-24-row-03-item-05', 'group', 11, [new RelayCellSpec('section-24-row-03-item-05-cell-01', 'label', '低压闭锁定值：', 10), new RelayCellSpec('section-24-row-03-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-24-row-03-item-05-cell-03', 'unit', 'V', 1), new RelayCellSpec('section-24-row-03-item-05-cell-04', 'spacer', '', 8)])
-    ])
-  ]),
-  new RelaySectionSpec('section-25', '【高频保护】', [
-    new RelayRowSpec('section-25-row-01', 40, 0, [
-        new RelayRowItemSpec('section-25-row-01-item-01', 'group', 8, [new RelayCellSpec('section-25-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-25-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-25-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-25-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-25-row-01-item-03', 'group', 10, [new RelayCellSpec('section-25-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-25-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-25-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-25-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-25-row-01-item-05', 'group', 10, [new RelayCellSpec('section-25-row-01-item-05-cell-01', 'label', '频率定值：', 10), new RelayCellSpec('section-25-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-25-row-01-item-05-cell-03', 'unit', 'Hz', 1), new RelayCellSpec('section-25-row-01-item-05-cell-04', 'spacer', '', 1)]),
-        new RelayRowItemSpec('section-25-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-25-row-01-item-07', 'group', 10, [new RelayCellSpec('section-25-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-25-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-25-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-25-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ])
-  ]),
-  new RelaySectionSpec('section-26', '【逆功率保护】', [
-    new RelayRowSpec('section-26-row-01', 40, 0, [
-        new RelayRowItemSpec('section-26-row-01-item-01', 'group', 8, [new RelayCellSpec('section-26-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-26-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-26-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-26-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-26-row-01-item-03', 'group', 10, [new RelayCellSpec('section-26-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-26-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-26-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-26-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-26-row-01-item-05', 'group', 10, [new RelayCellSpec('section-26-row-01-item-05-cell-01', 'label', '功率定值：', 10), new RelayCellSpec('section-26-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-26-row-01-item-05-cell-03', 'unit', 'kW', 1), new RelayCellSpec('section-26-row-01-item-05-cell-04', 'spacer', '', 1)]),
-        new RelayRowItemSpec('section-26-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-26-row-01-item-07', 'group', 10, [new RelayCellSpec('section-26-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-26-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-26-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-26-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ])
-  ]),
-  new RelaySectionSpec('section-27', '【谐波电流保护】', [
-    new RelayRowSpec('section-27-row-01', 40, 0, [
-        new RelayRowItemSpec('section-27-row-01-item-01', 'group', 8, [new RelayCellSpec('section-27-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-27-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-27-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-27-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-27-row-01-item-03', 'group', 10, [new RelayCellSpec('section-27-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-27-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-27-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-27-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-27-row-01-item-05', 'group', 10, [new RelayCellSpec('section-27-row-01-item-05-cell-01', 'label', 'THDu定值：', 10), new RelayCellSpec('section-27-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-27-row-01-item-05-cell-03', 'unit', '%', 1), new RelayCellSpec('section-27-row-01-item-05-cell-04', 'spacer', '', 1)]),
-        new RelayRowItemSpec('section-27-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-27-row-01-item-07', 'group', 10, [new RelayCellSpec('section-27-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-27-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-27-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-27-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ])
-  ]),
-  new RelaySectionSpec('section-28', '【谐波电压保护】', [
-    new RelayRowSpec('section-28-row-01', 40, 0, [
-        new RelayRowItemSpec('section-28-row-01-item-01', 'group', 8, [new RelayCellSpec('section-28-row-01-item-01-cell-01', 'label', '投/退：', 5), new RelayCellSpec('section-28-row-01-item-01-cell-02', 'select', '投入', 1), new RelayCellSpec('section-28-row-01-item-01-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-28-row-01-item-02', 'spacer', 2),
-        new RelayRowItemSpec('section-28-row-01-item-03', 'group', 10, [new RelayCellSpec('section-28-row-01-item-03-cell-01', 'label', '保护模式：', 5), new RelayCellSpec('section-28-row-01-item-03-cell-02', 'select', '跳闸', 1), new RelayCellSpec('section-28-row-01-item-03-cell-03', 'spacer', '', 5)]),
-        new RelayRowItemSpec('section-28-row-01-item-04', 'spacer', 2),
-        new RelayRowItemSpec('section-28-row-01-item-05', 'group', 10, [new RelayCellSpec('section-28-row-01-item-05-cell-01', 'label', 'THDu定值：', 10), new RelayCellSpec('section-28-row-01-item-05-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-28-row-01-item-05-cell-03', 'unit', '%', 1), new RelayCellSpec('section-28-row-01-item-05-cell-04', 'spacer', '', 1)]),
-        new RelayRowItemSpec('section-28-row-01-item-06', 'spacer', 2),
-        new RelayRowItemSpec('section-28-row-01-item-07', 'group', 10, [new RelayCellSpec('section-28-row-01-item-07-cell-01', 'label', '时间定值：', 10), new RelayCellSpec('section-28-row-01-item-07-cell-02', 'input', '820.00', 10), new RelayCellSpec('section-28-row-01-item-07-cell-03', 'unit', 's', 1), new RelayCellSpec('section-28-row-01-item-07-cell-04', 'spacer', '', 0)])
-    ])
-  ])
-];
-const RELAY_MONITOR_SECTIONS: RelayMonitorSectionSpec[] = [
-  new RelayMonitorSectionSpec('bus-pt-monitor', '【母线PT断线监测】', [
-    new RelayMonitorFieldSpec('bus-pt-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('bus-pt-block', '闭锁相关保护：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('bus-pt-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ]),
-  new RelayMonitorSectionSpec('line-pt-monitor', '【线路PT断线监测】', [
-    new RelayMonitorFieldSpec('line-pt-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('line-pt-block', '闭锁相关保护：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('line-pt-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ]),
-  new RelayMonitorSectionSpec('ct-monitor', '【CT断线监测】', [
-    new RelayMonitorFieldSpec('ct-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('ct-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ]),
-  new RelayMonitorSectionSpec('cb-monitor', '【控制回路断线监测】', [
-    new RelayMonitorFieldSpec('cb-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('cb-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ]),
-  new RelayMonitorSectionSpec('spring-monitor', '【弹簧未储能监测】', [
-    new RelayMonitorFieldSpec('spring-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('spring-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ]),
-  new RelayMonitorSectionSpec('twj-monitor', '【TWJ异常监测】', [
-    new RelayMonitorFieldSpec('twj-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('twj-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ]),
-  new RelayMonitorSectionSpec('freq-monitor', '【频率异常监测】', [
-    new RelayMonitorFieldSpec('freq-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('freq-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ]),
-  new RelayMonitorSectionSpec('ground-monitor', '【接地监测】', [
-    new RelayMonitorFieldSpec('ground-enable', '投/退：', '投入', '', 'select', 88),
-    new RelayMonitorFieldSpec('ground-delay', '告警延时定值：', '820.00', 's', 'input', 116)
-  ])
-];
-
-const RELAY_FIELD_BINDINGS: RelayFieldBinding[] = buildRelayFieldBindings(RELAY_MAIN_SECTIONS, RELAY_MONITOR_SECTIONS);
-const RELAY_BOUND_MAIN_CELLS: RelayCellSpec[] = [];
-const RELAY_BOUND_MONITOR_FIELDS: RelayMonitorFieldSpec[] = [];
+let RELAY_MAIN_SECTIONS: RelaySectionSpec[] = [];
+let RELAY_MONITOR_SECTIONS: RelayMonitorSectionSpec[] = [];
+let RELAY_FIELD_BINDINGS: RelayFieldBinding[] = [];
+let RELAY_BOUND_MAIN_CELLS: RelayCellSpec[] = [];
+let RELAY_BOUND_MONITOR_FIELDS: RelayMonitorFieldSpec[] = [];
+let RELAY_SCHEMA_READY: boolean = false;
 
 function relayLabelCellMinWidth(text: string): number {
   if (text.length >= 18) {
@@ -999,6 +360,8 @@ function relayPrepareMonitorFieldLayout(field: RelayMonitorFieldSpec): void {
 }
 
 function relayBindFieldSpecs(): void {
+  RELAY_BOUND_MAIN_CELLS = [];
+  RELAY_BOUND_MONITOR_FIELDS = [];
   for (let sectionIndex = 0; sectionIndex < RELAY_MAIN_SECTIONS.length; sectionIndex++) {
     let section = RELAY_MAIN_SECTIONS[sectionIndex];
     for (let rowIndex = 0; rowIndex < section.rows.length; rowIndex++) {
@@ -1039,14 +402,23 @@ function relayBindFieldSpecs(): void {
   }
 }
 
-relayBindFieldSpecs();
+function relayEnsureSchemaReady(): void {
+  if (RELAY_SCHEMA_READY) {
+    return;
+  }
+  RELAY_MAIN_SECTIONS = createRelayMainSections();
+  RELAY_MONITOR_SECTIONS = createRelayMonitorSections();
+  RELAY_FIELD_BINDINGS = buildRelayFieldBindings(RELAY_MAIN_SECTIONS, RELAY_MONITOR_SECTIONS);
+  relayBindFieldSpecs();
+  RELAY_SCHEMA_READY = true;
+}
 
 @Observed
 class RelaySettingVM {
   headerMode: HeaderModeState = new HeaderModeState();
   noticeText: string = '';
   titleLeft: string = '定值管理';
-  titleRight: string = '—整定 00 区保护定值';
+  titleRight: string = '—整定 01 区保护定值';
   actions: BottomActionState = new BottomActionState();
   timeText: string = '2024/12/30\n12:12:30';
 }
@@ -1106,18 +478,22 @@ struct RelaySettingSet {
   @State vm: RelaySettingVM = new RelaySettingVM();
   @State uiScale: number = 1;
   @State modeInSelected: boolean = true;
-  @State currentZoneCode: string = '00';
+  @State currentZoneCode: string = '01';
   @State currentProfileIndex: number = 0;
   @State currentDisplayValues: string[] = [];
   @State currentWidthCache: number[] = [];
+  @State visibleSectionCount: number = 0;
+  @State visibleMonitorSectionCount: number = 0;
   @State selectOverlayVisible: boolean = false;
   @State selectOverlayTitle: string = '请选择';
   @State selectOverlayOptions: string[] = [];
   @State selectOverlayValue: string = '';
   @State selectOverlayTargetBindingIndex: number = -1;
 
-  private profilesStore: RelaySettingProfilesStore = new RelaySettingProfilesStore();
+  private currentProfileData: RelaySettingProfile = new RelaySettingProfile('01');
   private loadToken: number = 0;
+  private sectionRenderToken: number = 0;
+  private loadStartedAt: number = 0;
   private readonly checkBoxSize: number = 28;
   private readonly noticeFontSize: number = 18;
   private readonly midFontSize: number = 18;
@@ -1133,6 +509,13 @@ struct RelaySettingSet {
   private readonly fieldBoxRadius: number = 1;
   private readonly bottomButtonHeight: number = 46;
   private readonly bottomButtonRadius: number = 14;
+  private readonly sectionRenderBatchSize: number = 4;
+  private readonly monitorRenderBatchSize: number = 1;
+  private readonly initialSectionRenderCount: number = 4;
+  private readonly progressiveRenderStartDelayMs: number = 320;
+  private readonly progressiveRenderBatchDelayMs: number = 48;
+  private readonly zoneStoreDirectoryName: string = 'relay_setting';
+  private readonly zoneMigrationFlagFileName: string = 'migration_01_20.done';
 
   private s(v: number): number {
     return Math.round(v * this.uiScale);
@@ -1183,16 +566,13 @@ struct RelaySettingSet {
     return relayFindFieldBinding(RELAY_FIELD_BINDINGS, fieldId);
   }
 
-  private currentProfile(): RelaySettingProfile | undefined {
-    if (this.currentProfileIndex < 0 || this.currentProfileIndex >= this.profilesStore.profiles.length) {
-      return undefined;
-    }
-    return this.profilesStore.profiles[this.currentProfileIndex];
+  private currentProfile(): RelaySettingProfile {
+    return this.currentProfileData;
   }
 
   private syncCurrentZoneState(zoneCode?: string): void {
-    this.currentZoneCode = relayNormalizeZoneCode(zoneCode ? zoneCode : this.currentZoneCode);
-    this.currentProfileIndex = relayZoneCodeToIndex(this.currentZoneCode);
+    this.currentZoneCode = relayNormalizeSetZoneCode(zoneCode ? zoneCode : this.currentZoneCode);
+    this.currentProfileIndex = relaySetZoneCodeToIndex(this.currentZoneCode);
     this.syncCurrentZoneTitle();
   }
 
@@ -1208,12 +588,127 @@ struct RelaySettingSet {
     return entries[index].value;
   }
 
-  private migrateLegacyProfilesStore(): RelaySettingProfilesStore {
-    let store = createDefaultRelaySettingProfilesStore(RELAY_FIELD_BINDINGS);
+  private createDefaultCurrentZoneProfile(zoneCode: string = this.currentZoneCode): RelaySettingProfile {
+    return createDefaultRelaySettingProfileForSetZone(zoneCode, RELAY_FIELD_BINDINGS);
+  }
+
+  private relaySettingStoreDirectoryPath(): string {
+    let context = getContext(this) as AbilityFileContext;
+    return `${context.filesDir}/${this.zoneStoreDirectoryName}`;
+  }
+
+  private ensureRelaySettingStoreDirectory(): string {
+    let directoryPath = this.relaySettingStoreDirectoryPath();
+    if (!fs.accessSync(directoryPath)) {
+      fs.mkdirSync(directoryPath);
+    }
+    return directoryPath;
+  }
+
+  private relayZoneProfileFilePath(zoneCode: string): string {
+    return `${this.ensureRelaySettingStoreDirectory()}/zone_${relayNormalizeSetZoneCode(zoneCode)}.json`;
+  }
+
+  private relayMigrationFlagFilePath(): string {
+    return `${this.ensureRelaySettingStoreDirectory()}/${this.zoneMigrationFlagFileName}`;
+  }
+
+  private hasRelayMigrationFlag(): boolean {
+    try {
+      return fs.accessSync(this.relayMigrationFlagFilePath());
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private markRelayMigrationCompleted(): void {
+    let flagFilePath = this.relayMigrationFlagFilePath();
+    let file = fs.openSync(flagFilePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+    try {
+      fs.writeSync(file.fd, 'done', { encoding: 'utf-8' });
+    } finally {
+      fs.closeSync(file);
+    }
+  }
+
+  private normalizeProfileFromSource(
+    sourceProfile: RelaySettingProfile | undefined,
+    zoneCode: string
+  ): RelaySettingProfile {
+    let normalizedProfile = this.createDefaultCurrentZoneProfile(zoneCode);
+    if (!sourceProfile) {
+      return normalizedProfile;
+    }
+    for (let bindingIndex = 0; bindingIndex < RELAY_FIELD_BINDINGS.length; bindingIndex++) {
+      let binding = RELAY_FIELD_BINDINGS[bindingIndex];
+      let sourceField = relayReadProfileField(sourceProfile, binding);
+      let normalizedField = relayParseStoredField(
+        relayFormatStoredField(sourceField, binding),
+        binding,
+        relayDefaultStoredField(binding)
+      );
+      relayWriteProfileField(normalizedProfile, binding, normalizedField);
+    }
+    return normalizedProfile;
+  }
+
+  private loadRelayZoneProfileFromFile(zoneCode: string): RelaySettingProfile | undefined {
+    let filePath = this.relayZoneProfileFilePath(zoneCode);
+    if (!fs.accessSync(filePath)) {
+      return undefined;
+    }
+    try {
+      let raw = fs.readTextSync(filePath);
+      if (raw.trim().length === 0) {
+        return undefined;
+      }
+      let parsed = JSON.parse(raw) as RelaySettingProfile;
+      return this.normalizeProfileFromSource(parsed, zoneCode);
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  private saveRelayZoneProfile(zoneCode: string, profile: RelaySettingProfile): void {
+    let normalizedZoneCode = relayNormalizeSetZoneCode(zoneCode);
+    let normalizedProfile = this.normalizeProfileFromSource(profile, normalizedZoneCode);
+    let filePath = this.relayZoneProfileFilePath(normalizedZoneCode);
+    let file = fs.openSync(filePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+    try {
+      fs.writeSync(file.fd, JSON.stringify(normalizedProfile), { encoding: 'utf-8' });
+    } finally {
+      fs.closeSync(file);
+    }
+  }
+
+  private loadLegacyZoneProfileFromSerializedStore(zoneCode: string): RelaySettingProfile | undefined {
+    if (this.relaySettingProfilesStore.trim().length === 0) {
+      return undefined;
+    }
+    try {
+      let parsedStore = JSON.parse(this.relaySettingProfilesStore) as RelaySettingProfilesStore;
+      if (!parsedStore || !Array.isArray(parsedStore.profiles)) {
+        return undefined;
+      }
+      let legacyIndex = relaySetZoneCodeToIndex(zoneCode);
+      let sourceProfile = parsedStore.profiles[legacyIndex] as RelaySettingProfile;
+      if (!sourceProfile) {
+        return undefined;
+      }
+      return this.normalizeProfileFromSource(sourceProfile, zoneCode);
+    } catch (error) {
+      return undefined;
+    }
+  }
+
+  private loadLegacyZoneProfileFromLineStore(zoneCode: string): RelaySettingProfile | undefined {
     let entries = this.deserializeValueEntries(this.relaySettingStore);
     if (entries.length === 0) {
-      return store;
+      return undefined;
     }
+    let legacyZoneCode = relaySetZoneCodeToLegacyZoneCode(zoneCode);
+    let profile = this.createDefaultCurrentZoneProfile(zoneCode);
+    let hasMatchedEntry = false;
 
     for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
       let entry = entries[entryIndex];
@@ -1221,68 +716,107 @@ struct RelaySettingSet {
       if (splitIndex <= 0 || splitIndex >= entry.key.length - 1) {
         continue;
       }
-
-      let rawZoneCode = entry.key.substring(0, splitIndex).trim();
-      if (!/^\d{1,2}$/.test(rawZoneCode)) {
+      if (entry.key.substring(0, splitIndex).trim() !== legacyZoneCode) {
         continue;
       }
-
       let binding = this.bindingForFieldId(entry.key.substring(splitIndex + 1));
       if (!binding) {
         continue;
       }
-
-      let normalizedZoneCode = relayNormalizeZoneCode(rawZoneCode);
-      let targetProfile = store.profiles[relayZoneCodeToIndex(normalizedZoneCode)];
-      let previousField = relayReadProfileField(targetProfile, binding);
+      let previousField = relayReadProfileField(profile, binding);
       let nextField = relayParseStoredField(
         entry.value,
         binding,
         previousField ? previousField : relayDefaultStoredField(binding)
       );
-      relayWriteProfileField(targetProfile, binding, nextField);
+      relayWriteProfileField(profile, binding, nextField);
+      hasMatchedEntry = true;
     }
 
-    return store;
+    return hasMatchedEntry ? profile : undefined;
   }
 
-  private loadProfilesStore(): RelaySettingProfilesStore {
-    let nextStore = relayLoadProfilesStoreFromSession(this.relaySettingProfilesStore, RELAY_FIELD_BINDINGS);
-    if (nextStore) {
-      return nextStore;
+  private loadLegacyZoneProfile(zoneCode: string): RelaySettingProfile | undefined {
+    let profileFromStore = this.loadLegacyZoneProfileFromSerializedStore(zoneCode);
+    if (profileFromStore) {
+      return profileFromStore;
     }
-
-    if (this.relaySettingProfilesStore.trim().length === 0) {
-      let migratedStore = this.migrateLegacyProfilesStore();
-      let serializedStore = relaySerializeProfilesStore(migratedStore);
-      this.relaySettingProfilesStore = serializedStore;
-      relayRememberProfilesStoreInSession(serializedStore, migratedStore);
-      return migratedStore;
-    }
-
-    let defaultStore = createDefaultRelaySettingProfilesStore(RELAY_FIELD_BINDINGS);
-    relayRememberProfilesStoreInSession(this.relaySettingProfilesStore, defaultStore);
-    return defaultStore;
+    return this.loadLegacyZoneProfileFromLineStore(zoneCode);
   }
 
-  private tryPrepareCurrentZoneFromSession(): boolean {
-    let nextStore = relayLoadProfilesStoreFromSession(this.relaySettingProfilesStore, RELAY_FIELD_BINDINGS);
-    if (!nextStore) {
-      return false;
+  private loadRelayZoneProfile(zoneCode: string): RelaySettingProfile {
+    let normalizedZoneCode = relayNormalizeSetZoneCode(zoneCode);
+    let profileFromFile = this.loadRelayZoneProfileFromFile(normalizedZoneCode);
+    if (profileFromFile) {
+      return profileFromFile;
     }
-    this.profilesStore = nextStore;
-    this.rebuildCurrentZoneCache();
-    this.isLoading = false;
-    return true;
+
+    let legacyProfile = this.loadLegacyZoneProfile(normalizedZoneCode);
+    if (legacyProfile) {
+      return legacyProfile;
+    }
+
+    return this.createDefaultCurrentZoneProfile(normalizedZoneCode);
+  }
+
+  private buildLegacyMirrorStore(): RelaySettingProfilesStore {
+    let mirrorStore = new RelaySettingProfilesStore();
+    mirrorStore.profiles = [];
+
+    for (let profileIndex = 0; profileIndex < RELAY_PROFILE_COUNT; profileIndex++) {
+      let setZoneCode = relaySetZoneCodeForIndex(profileIndex);
+      let setProfile = setZoneCode === this.currentZoneCode
+        ? this.normalizeProfileFromSource(this.currentProfileData, setZoneCode)
+        : this.loadRelayZoneProfileFromFile(setZoneCode);
+      let normalizedSetProfile = setProfile ? setProfile : this.loadLegacyZoneProfile(setZoneCode);
+      let finalSetProfile = normalizedSetProfile ? normalizedSetProfile : this.createDefaultCurrentZoneProfile(setZoneCode);
+      let legacyProfile = createDefaultRelaySettingProfile(relayLegacyZoneCodeForIndex(profileIndex), RELAY_FIELD_BINDINGS);
+
+      for (let bindingIndex = 0; bindingIndex < RELAY_FIELD_BINDINGS.length; bindingIndex++) {
+        let binding = RELAY_FIELD_BINDINGS[bindingIndex];
+        let sourceField = relayReadProfileField(finalSetProfile, binding);
+        relayWriteProfileField(
+          legacyProfile,
+          binding,
+          sourceField ? sourceField : relayDefaultStoredField(binding)
+        );
+      }
+
+      mirrorStore.profiles.push(legacyProfile);
+    }
+
+    return mirrorStore;
+  }
+
+  private syncLegacyMirrorStore(): void {
+    let mirrorStore = this.buildLegacyMirrorStore();
+    let serializedStore = relaySerializeProfilesStore(mirrorStore);
+    this.relaySettingProfilesStore = serializedStore;
+    relayRememberProfilesStoreInSession(serializedStore, mirrorStore);
+  }
+
+  private migrateLegacyRelayProfilesIfNeeded(): void {
+    if (this.hasRelayMigrationFlag()) {
+      return;
+    }
+
+    this.ensureRelaySettingStoreDirectory();
+    for (let profileIndex = 0; profileIndex < RELAY_PROFILE_COUNT; profileIndex++) {
+      let setZoneCode = relaySetZoneCodeForIndex(profileIndex);
+      let existingProfile = this.loadRelayZoneProfileFromFile(setZoneCode);
+      let profileToSave = existingProfile ? existingProfile : this.loadRelayZoneProfile(setZoneCode);
+      this.saveRelayZoneProfile(setZoneCode, profileToSave);
+    }
+    this.markRelayMigrationCompleted();
+    this.syncLegacyMirrorStore();
   }
 
   private saveValueEntries(noticeText: string = ''): void {
     if (this.isLoading) {
       return;
     }
-    let serializedStore = relaySerializeProfilesStore(this.profilesStore);
-    this.relaySettingProfilesStore = serializedStore;
-    relayRememberProfilesStoreInSession(serializedStore, this.profilesStore);
+    this.saveRelayZoneProfile(this.currentZoneCode, this.currentProfileData);
+    this.syncLegacyMirrorStore();
     this.vm.noticeText = noticeText;
   }
 
@@ -1290,10 +824,7 @@ struct RelaySettingSet {
     if (this.isLoading) {
       return;
     }
-    if (this.currentProfileIndex < 0 || this.currentProfileIndex >= this.profilesStore.profiles.length) {
-      return;
-    }
-    this.profilesStore.profiles[this.currentProfileIndex] = createDefaultRelaySettingProfile(this.currentZoneCode, RELAY_FIELD_BINDINGS);
+    this.currentProfileData = this.createDefaultCurrentZoneProfile(this.currentZoneCode);
     this.rebuildCurrentZoneCache();
     this.saveValueEntries();
   }
@@ -1776,33 +1307,80 @@ struct RelaySettingSet {
     return this.widthAtBindingIndex(cell.bindingIndex, cell.selectMinWidth);
   }
 
+  private scheduleRemainingSectionRender(loadToken: number): void {
+    this.sectionRenderToken++;
+    let currentRenderToken = this.sectionRenderToken;
+
+    let renderNextBatch = () => {
+      if (loadToken !== this.loadToken || currentRenderToken !== this.sectionRenderToken) {
+        return;
+      }
+      if (this.visibleSectionCount >= RELAY_MAIN_SECTIONS.length &&
+        this.visibleMonitorSectionCount >= RELAY_MONITOR_SECTIONS.length) {
+        console.info(`RelaySettingSet 全部分组渲染完成，区号=${this.currentZoneCode}，耗时=${Date.now() - this.loadStartedAt}ms`);
+        return;
+      }
+
+      if (this.visibleSectionCount < RELAY_MAIN_SECTIONS.length) {
+        this.visibleSectionCount = Math.min(
+          this.visibleSectionCount + this.sectionRenderBatchSize,
+          RELAY_MAIN_SECTIONS.length
+        );
+      } else {
+        this.visibleMonitorSectionCount = Math.min(
+          this.visibleMonitorSectionCount + this.monitorRenderBatchSize,
+          RELAY_MONITOR_SECTIONS.length
+        );
+      }
+      setTimeout(() => {
+        renderNextBatch();
+      }, this.progressiveRenderBatchDelayMs);
+    };
+
+    setTimeout(() => {
+      renderNextBatch();
+    }, this.progressiveRenderStartDelayMs);
+  }
+
   private prepareCurrentZone(loadToken: number): void {
     if (loadToken !== this.loadToken) {
       return;
     }
 
     try {
-      let nextStore = this.loadProfilesStore();
+      relayEnsureSchemaReady();
       if (loadToken !== this.loadToken) {
         return;
       }
-      this.profilesStore = nextStore;
+      let profileFromFile = this.loadRelayZoneProfileFromFile(this.currentZoneCode);
+      this.currentProfileData = profileFromFile ? profileFromFile : this.loadRelayZoneProfile(this.currentZoneCode);
+      if (!profileFromFile) {
+        this.saveRelayZoneProfile(this.currentZoneCode, this.currentProfileData);
+      }
       this.rebuildCurrentZoneCache();
+      this.visibleSectionCount = Math.min(this.initialSectionRenderCount, RELAY_MAIN_SECTIONS.length);
+      this.visibleMonitorSectionCount = 0;
+      console.info(`RelaySettingSet 首批分组就绪，区号=${this.currentZoneCode}，耗时=${Date.now() - this.loadStartedAt}ms`);
     } catch (e) {
       if (loadToken !== this.loadToken) {
         return;
       }
-      this.profilesStore = createDefaultRelaySettingProfilesStore(RELAY_FIELD_BINDINGS);
+      this.currentProfileData = this.createDefaultCurrentZoneProfile(this.currentZoneCode);
       this.rebuildCurrentZoneCache();
+      this.visibleSectionCount = Math.min(this.initialSectionRenderCount, RELAY_MAIN_SECTIONS.length);
+      this.visibleMonitorSectionCount = 0;
       this.vm.noticeText = '';
     } finally {
       if (loadToken === this.loadToken) {
         this.isLoading = false;
+        this.scheduleRemainingSectionRender(loadToken);
       }
     }
   }
   aboutToAppear(): void {
     this.loadToken++;
+    this.sectionRenderToken++;
+    this.loadStartedAt = Date.now();
     this.modeInSelected = this.vm.headerMode.inMode.checked;
     this.selectOverlayVisible = false;
     this.selectOverlayTargetBindingIndex = -1;
@@ -1810,7 +1388,9 @@ struct RelaySettingSet {
     this.isLoading = true;
     this.currentDisplayValues = [];
     this.currentWidthCache = [];
-    this.syncCurrentZoneState('00');
+    this.visibleSectionCount = 0;
+    this.visibleMonitorSectionCount = 0;
+    this.syncCurrentZoneState('01');
     try {
       let d = display.getDefaultDisplaySync();
       let sx = d.width / 1024;
@@ -1828,10 +1408,6 @@ struct RelaySettingSet {
       this.syncCurrentZoneState();
     }
 
-    if (this.tryPrepareCurrentZoneFromSession()) {
-      return;
-    }
-
     let currentLoadToken = this.loadToken;
     setTimeout(() => {
       this.prepareCurrentZone(currentLoadToken);
@@ -1840,6 +1416,7 @@ struct RelaySettingSet {
 
   aboutToDisappear(): void {
     this.loadToken++;
+    this.sectionRenderToken++;
     this.selectOverlayVisible = false;
     this.selectOverlayTargetBindingIndex = -1;
   }
@@ -1859,14 +1436,16 @@ struct RelaySettingSet {
           this.LoadingBody();
         } else {
           List() {
-            ForEach(RELAY_MAIN_SECTIONS, (section: RelaySectionSpec) => {
+            ForEach(RELAY_MAIN_SECTIONS.slice(0, this.visibleSectionCount), (section: RelaySectionSpec) => {
               ListItem() {
                 this.SectionCard(section);
               }
             }, (section: RelaySectionSpec) => section.id)
 
-            ListItem() {
-              this.MonitorSections();
+            if (this.visibleMonitorSectionCount > 0) {
+              ListItem() {
+                this.MonitorSections();
+              }
             }
           }
           .layoutWeight(1)
@@ -2119,7 +1698,7 @@ struct RelaySettingSet {
   @Builder
   MonitorSections() {
     Column() {
-      ForEach(RELAY_MONITOR_SECTIONS, (section: RelayMonitorSectionSpec, index: number) => {
+      ForEach(RELAY_MONITOR_SECTIONS.slice(0, this.visibleMonitorSectionCount), (section: RelayMonitorSectionSpec, index: number) => {
         this.MonitorSection(section, index === 0);
       }, (section: RelayMonitorSectionSpec) => section.id)
     }

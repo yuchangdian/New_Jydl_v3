@@ -1,6 +1,8 @@
 export const RELAY_SETTING_PROFILES_STORE_KEY: string = 'relay_setting_profiles_store_v2';
 export const RELAY_SETTING_STORE_VERSION: number = 2;
 export const RELAY_PROFILE_COUNT: number = 20;
+export const RELAY_SET_ZONE_MIN: number = 1;
+export const RELAY_SET_ZONE_MAX: number = RELAY_PROFILE_COUNT;
 
 export type RelayStoredFieldValueType = 'number' | 'enum' | 'string';
 export type RelayGroupKey =
@@ -215,6 +217,13 @@ class RelayProfilesSessionCache {
 }
 
 const RELAY_PROFILES_SESSION_CACHE: RelayProfilesSessionCache = new RelayProfilesSessionCache();
+
+class RelayFieldBindingLookupCache {
+  source?: RelayFieldBinding[];
+  lookup: Map<string, RelayFieldBinding> = new Map<string, RelayFieldBinding>();
+}
+
+const RELAY_FIELD_BINDING_LOOKUP_CACHE: RelayFieldBindingLookupCache = new RelayFieldBindingLookupCache();
 
 function relayDefaultNumber(text: string): number {
   let parsed = Number(text);
@@ -519,16 +528,23 @@ export function buildRelayFieldBindings(
   return bindings;
 }
 
-export function relayFindFieldBinding(bindings: RelayFieldBinding[], fieldId: string): RelayFieldBinding | undefined {
-  for (let i = 0; i < bindings.length; i++) {
-    if (bindings[i].fieldId === fieldId) {
-      return bindings[i];
+function relayFieldBindingLookup(bindings: RelayFieldBinding[]): Map<string, RelayFieldBinding> {
+  if (RELAY_FIELD_BINDING_LOOKUP_CACHE.source !== bindings) {
+    let nextLookup = new Map<string, RelayFieldBinding>();
+    for (let i = 0; i < bindings.length; i++) {
+      nextLookup.set(bindings[i].fieldId, bindings[i]);
     }
+    RELAY_FIELD_BINDING_LOOKUP_CACHE.source = bindings;
+    RELAY_FIELD_BINDING_LOOKUP_CACHE.lookup = nextLookup;
   }
-  return undefined;
+  return RELAY_FIELD_BINDING_LOOKUP_CACHE.lookup;
 }
 
-export function relayNormalizeZoneCode(zoneCode: string | undefined): string {
+export function relayFindFieldBinding(bindings: RelayFieldBinding[], fieldId: string): RelayFieldBinding | undefined {
+  return relayFieldBindingLookup(bindings).get(fieldId);
+}
+
+export function relayNormalizeLegacyZoneCode(zoneCode: string | undefined): string {
   let normalized = zoneCode ? zoneCode.trim() : '';
   if (!/^\d{1,2}$/.test(normalized)) {
     return '00';
@@ -541,12 +557,55 @@ export function relayNormalizeZoneCode(zoneCode: string | undefined): string {
   return normalized;
 }
 
+export function relayLegacyZoneCodeToIndex(zoneCode: string | undefined): number {
+  return Number(relayNormalizeLegacyZoneCode(zoneCode));
+}
+
+export function relayLegacyZoneCodeForIndex(index: number): string {
+  return index.toString().padStart(2, '0');
+}
+
+export function relayNormalizeZoneCode(zoneCode: string | undefined): string {
+  return relayNormalizeLegacyZoneCode(zoneCode);
+}
+
 export function relayZoneCodeToIndex(zoneCode: string | undefined): number {
-  return Number(relayNormalizeZoneCode(zoneCode));
+  return relayLegacyZoneCodeToIndex(zoneCode);
 }
 
 export function relayZoneCodeForIndex(index: number): string {
-  return index.toString().padStart(2, '0');
+  return relayLegacyZoneCodeForIndex(index);
+}
+
+export function relayNormalizeSetZoneCode(zoneCode: string | undefined): string {
+  let normalized = zoneCode ? zoneCode.trim() : '';
+  if (!/^\d{1,2}$/.test(normalized)) {
+    return '01';
+  }
+  let zoneIndex = Number(normalized);
+  if (isNaN(zoneIndex) || zoneIndex < RELAY_SET_ZONE_MIN || zoneIndex > RELAY_SET_ZONE_MAX) {
+    return '01';
+  }
+  return zoneIndex.toString().padStart(2, '0');
+}
+
+export function relaySetZoneCodeToIndex(zoneCode: string | undefined): number {
+  return Number(relayNormalizeSetZoneCode(zoneCode)) - 1;
+}
+
+export function relaySetZoneCodeForIndex(index: number): string {
+  if (isNaN(index) || index < 0 || index >= RELAY_PROFILE_COUNT) {
+    return '01';
+  }
+  return (index + 1).toString().padStart(2, '0');
+}
+
+export function relayLegacyZoneCodeToSetZoneCode(zoneCode: string | undefined): string {
+  return relaySetZoneCodeForIndex(relayLegacyZoneCodeToIndex(zoneCode));
+}
+
+export function relaySetZoneCodeToLegacyZoneCode(zoneCode: string | undefined): string {
+  return relayLegacyZoneCodeForIndex(relaySetZoneCodeToIndex(zoneCode));
 }
 
 export function relayStripUnitSuffix(value: string, unit: string): string {
@@ -734,6 +793,17 @@ export function createDefaultRelaySettingProfile(
   bindings: RelayFieldBinding[]
 ): RelaySettingProfile {
   let profile = new RelaySettingProfile(relayNormalizeZoneCode(zoneCode));
+  for (let i = 0; i < bindings.length; i++) {
+    relayWriteProfileField(profile, bindings[i], relayDefaultStoredField(bindings[i]));
+  }
+  return profile;
+}
+
+export function createDefaultRelaySettingProfileForSetZone(
+  zoneCode: string,
+  bindings: RelayFieldBinding[]
+): RelaySettingProfile {
+  let profile = new RelaySettingProfile(relayNormalizeSetZoneCode(zoneCode));
   for (let i = 0; i < bindings.length; i++) {
     relayWriteProfileField(profile, bindings[i], relayDefaultStoredField(bindings[i]));
   }

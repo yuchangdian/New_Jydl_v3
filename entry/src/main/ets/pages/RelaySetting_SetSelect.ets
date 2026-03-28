@@ -22,7 +22,7 @@ class RelaySettingSelectVM {
 export struct RelaySetting_SetSelect {
   @State vm: RelaySettingSelectVM = new RelaySettingSelectVM();
   @State uiScale: number = 1;
-  @State zoneCode: string = '00';
+  @State zoneCode: string = '01';
   @State warningText: string = '';
 
   private readonly midFontSize: number = 18;
@@ -52,14 +52,14 @@ export struct RelaySetting_SetSelect {
     }
 
     if (!/^\d{1,2}$/.test(trimmed)) {
-      this.warningText = '区号仅支持 00-19';
+      this.warningText = '区号仅支持 01-20';
       return undefined;
     }
 
     let normalized = trimmed.padStart(2, '0');
     let zoneIndex = Number(normalized);
-    if (isNaN(zoneIndex) || zoneIndex < 0 || zoneIndex > 19) {
-      this.warningText = '区号仅支持 00-19';
+    if (isNaN(zoneIndex) || zoneIndex < 1 || zoneIndex > 20) {
+      this.warningText = '区号仅支持 01-20';
       return undefined;
     }
 
