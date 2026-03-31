@@ -18,6 +18,7 @@ std::deque<RemoteSignal_Change_Struct> YX_Change_Queue;
 std::deque<SOE_Node_Struct> SOE_Node_Queue;
 
 RelaySetting_Struct RelaySetting[20];
+bool RelaySettingReady[20] = { false };
 uint32_t RelaySetting_DataLength = sizeof(RelaySetting_Struct);
 uint32_t RelaySetting_CRCLength = sizeof(RelaySetting_Struct)/4-1;
 
@@ -80,6 +81,7 @@ bool BaseFreqDisplayReady = false;
 YC_Energy_Struct Energy_Dsip;
 YC_HarmonicU_Struct HarmonicU_Dsip;
 YC_HarmonicI_Struct HarmonicI_Dsip;
+bool HarmonicCurrentDisplayReady = false;
 
 DigitalInputData_Struct DigitalInputData;
 

@@ -1,5 +1,6 @@
 import router from '@ohos.router';
 import display from '@ohos.display';
+import * as harmonicTelemetryNativeModule from 'libentry.so';
 
 interface HarmonicMetricData {
   frequency: string;
@@ -19,6 +20,26 @@ interface HarmonicSectionData {
   title: string;
   rows: HarmonicPhaseRowData[];
 }
+
+interface HarmonicCurrentDisplayValue {
+  ready: boolean;
+  Ia: number[];
+  Ib: number[];
+  Ic: number[];
+}
+
+interface HarmonicCurrentNativeModule {
+  getHarmonicCurrentDisplayData?: () => HarmonicCurrentDisplayValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): HarmonicCurrentNativeModule | undefined;
+
+const HARMONIC_DEGREE_SYMBOL: string = String.fromCharCode(176);
+const HARMONIC_COMPONENT_COUNT: number = 10;
 
 function createMetricData(unit: string, ratio: string): HarmonicMetricData {
   return {
@@ -62,6 +83,102 @@ const BROADBAND_HARMONIC_SECTIONS: HarmonicSectionData[] = [
   createSectionData('谐波分量9:', '0.00%')
 ];
 
+function cloneHarmonicMetricData(metric: HarmonicMetricData): HarmonicMetricData {
+  const nextMetric: HarmonicMetricData = {
+    frequency: metric.frequency,
+    amplitude: metric.amplitude,
+    phase: metric.phase,
+    ratio: metric.ratio
+  };
+  return nextMetric;
+}
+
+function cloneBroadbandHarmonicSections(): HarmonicSectionData[] {
+  return BROADBAND_HARMONIC_SECTIONS.map((section: HarmonicSectionData) => {
+    const nextRows: HarmonicPhaseRowData[] = section.rows.map((row: HarmonicPhaseRowData) => {
+      const nextRow: HarmonicPhaseRowData = {
+        phaseLabel: row.phaseLabel,
+        voltage: cloneHarmonicMetricData(row.voltage),
+        current: cloneHarmonicMetricData(row.current),
+        darkBackground: row.darkBackground
+      };
+      return nextRow;
+    });
+    const nextSection: HarmonicSectionData = {
+      title: section.title,
+      rows: nextRows
+    };
+    return nextSection;
+  });
+}
+
+function formatHarmonicFrequency(value: number): string {
+  return `${value.toFixed(2)}Hz`;
+}
+
+function formatHarmonicAmplitude(value: number): string {
+  return `${value.toFixed(2)}A`;
+}
+
+function formatHarmonicPhase(value: number): string {
+  return `${value.toFixed(2)}${HARMONIC_DEGREE_SYMBOL}`;
+}
+
+function formatHarmonicRatio(amplitude: number, fundamentalAmplitude: number): string {
+  if (!isFinite(fundamentalAmplitude) || Math.abs(fundamentalAmplitude) < 0.000001) {
+    return '0.00%';
+  }
+  return `${((amplitude / fundamentalAmplitude) * 100).toFixed(2)}%`;
+}
+
+function createCurrentMetricFromValues(values: number[], componentIndex: number): HarmonicMetricData {
+  const baseIndex = componentIndex * 3;
+  const fundamentalAmplitude = values[1];
+  const amplitude = values[baseIndex + 1];
+  const nextMetric: HarmonicMetricData = {
+    frequency: formatHarmonicFrequency(values[baseIndex]),
+    amplitude: formatHarmonicAmplitude(amplitude),
+    phase: formatHarmonicPhase(values[baseIndex + 2]),
+    ratio: formatHarmonicRatio(amplitude, fundamentalAmplitude)
+  };
+  return nextMetric;
+}
+
+function isUsableHarmonicCurrentDisplayValue(value: HarmonicCurrentDisplayValue | undefined): boolean {
+  if (!value || !value.ready) {
+    return false;
+  }
+
+  const phases = [value.Ia, value.Ib, value.Ic];
+  return phases.every((phaseValues: number[]) => {
+    return Array.isArray(phaseValues) &&
+      phaseValues.length >= HARMONIC_COMPONENT_COUNT * 3 &&
+      phaseValues.every((item: number) => typeof item === 'number' && isFinite(item));
+  });
+}
+
+function createSectionsFromHarmonicCurrentDisplay(value: HarmonicCurrentDisplayValue): HarmonicSectionData[] {
+  const sections = cloneBroadbandHarmonicSections();
+  const phaseValues = [value.Ia, value.Ib, value.Ic];
+
+  return sections.map((section: HarmonicSectionData, sectionIndex: number) => {
+    const nextRows: HarmonicPhaseRowData[] = section.rows.map((row: HarmonicPhaseRowData, rowIndex: number) => {
+      const nextRow: HarmonicPhaseRowData = {
+        phaseLabel: row.phaseLabel,
+        voltage: cloneHarmonicMetricData(row.voltage),
+        current: createCurrentMetricFromValues(phaseValues[rowIndex], sectionIndex),
+        darkBackground: row.darkBackground
+      };
+      return nextRow;
+    });
+    const nextSection: HarmonicSectionData = {
+      title: section.title,
+      rows: nextRows
+    };
+    return nextSection;
+  });
+}
+
 class BroadbandHarmonicFontSize {
   notice: number = 18;
   title: number = 20;
@@ -83,9 +200,9 @@ class BroadbandHarmonicFontSize {
 export struct Broadband_Harmonic {
   @State uiScale: number = 1;
   @State timeText: string = '2024/12/30\n12:12:30';
+  @State sections: HarmonicSectionData[] = cloneBroadbandHarmonicSections();
 
   private readonly fontSize: BroadbandHarmonicFontSize = new BroadbandHarmonicFontSize();
-  private readonly sections: HarmonicSectionData[] = BROADBAND_HARMONIC_SECTIONS;
   private readonly pageMaxWidth: number = 1024;
   private readonly designWidth: number = 1024;
   private readonly designHeight: number = 600;
@@ -109,6 +226,7 @@ export struct Broadband_Harmonic {
   private readonly buttonColor: string = '#BEBEBE';
   private readonly pageBackgroundColor: string = '#FFFFFF';
   private readonly dividerColor: string = '#A7A7A7';
+  private cachedHarmonicCurrentNativeModule?: HarmonicCurrentNativeModule;
 
   private s(value: number): number {
     return Math.round(value * this.uiScale);
@@ -123,6 +241,60 @@ export struct Broadband_Harmonic {
       this.uiScale = scale > 0 ? scale : 1;
     } catch (error) {
       this.uiScale = 1;
+    }
+
+    this.loadNativeHarmonicCurrentData();
+  }
+
+  private isValidHarmonicCurrentNativeModule(module: HarmonicCurrentNativeModule | undefined): boolean {
+    return !!module && typeof module.getHarmonicCurrentDisplayData === 'function';
+  }
+
+  private loadHarmonicCurrentNativeModule(): HarmonicCurrentNativeModule | undefined {
+    if (this.isValidHarmonicCurrentNativeModule(this.cachedHarmonicCurrentNativeModule)) {
+      return this.cachedHarmonicCurrentNativeModule;
+    }
+    if (this.isValidHarmonicCurrentNativeModule(harmonicTelemetryNativeModule)) {
+      this.cachedHarmonicCurrentNativeModule = harmonicTelemetryNativeModule;
+      return this.cachedHarmonicCurrentNativeModule;
+    }
+
+    const napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidHarmonicCurrentNativeModule(napiModuleWithPath)) {
+      this.cachedHarmonicCurrentNativeModule = napiModuleWithPath;
+      return this.cachedHarmonicCurrentNativeModule;
+    }
+
+    const napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidHarmonicCurrentNativeModule(napiModuleWithApp)) {
+      this.cachedHarmonicCurrentNativeModule = napiModuleWithApp;
+      return this.cachedHarmonicCurrentNativeModule;
+    }
+
+    const napiModule = requireNapi('entry');
+    if (this.isValidHarmonicCurrentNativeModule(napiModule)) {
+      this.cachedHarmonicCurrentNativeModule = napiModule;
+      return this.cachedHarmonicCurrentNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private loadNativeHarmonicCurrentData(): void {
+    try {
+      const nativeModule = this.loadHarmonicCurrentNativeModule();
+      if (!nativeModule || typeof nativeModule.getHarmonicCurrentDisplayData !== 'function') {
+        return;
+      }
+
+      const value = nativeModule.getHarmonicCurrentDisplayData();
+      if (!isUsableHarmonicCurrentDisplayValue(value)) {
+        return;
+      }
+
+      this.sections = createSectionsFromHarmonicCurrentDisplay(value as HarmonicCurrentDisplayValue);
+    } catch (error) {
+      console.error(`load harmonic current display failed: ${JSON.stringify(error)}`);
     }
   }
 

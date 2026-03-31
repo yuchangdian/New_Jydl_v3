@@ -220,6 +220,7 @@ typedef struct
     float Ic[30];
 }__attribute__ ((packed,aligned(1))) YC_HarmonicI_Struct;	//璋愭尝鐢垫祦閬ユ祴鏁版嵁缁撴瀯
 extern YC_HarmonicI_Struct HarmonicI_Dsip;
+extern bool HarmonicCurrentDisplayReady;
 #define HarmonicI_DataLenth  367
 
 typedef struct

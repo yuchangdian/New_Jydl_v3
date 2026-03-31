@@ -18,6 +18,16 @@ napi_value CreateDouble(napi_env env, double value)
     return result;
 }
 
+napi_value CreateFloatArray(napi_env env, const float values[30])
+{
+    napi_value result = nullptr;
+    napi_create_array_with_length(env, 30, &result);
+    for (std::uint32_t index = 0; index < 30; index++) {
+        napi_set_element(env, result, index, CreateDouble(env, values[index]));
+    }
+    return result;
+}
+
 napi_value CreateBaseFreqDisplayObject(napi_env env, const YC_BaseFreq_Struct &value, bool ready)
 {
     napi_value result = nullptr;
@@ -52,6 +62,19 @@ napi_value CreateBaseFreqDisplayObject(napi_env env, const YC_BaseFreq_Struct &v
     return result;
 }
 
+napi_value CreateHarmonicCurrentDisplayObject(napi_env env, const YC_HarmonicI_Struct &value, bool ready)
+{
+    napi_value result = nullptr;
+    napi_create_object(env, &result);
+
+    napi_set_named_property(env, result, "ready", CreateBoolean(env, ready));
+    napi_set_named_property(env, result, "Ia", CreateFloatArray(env, value.Ia));
+    napi_set_named_property(env, result, "Ib", CreateFloatArray(env, value.Ib));
+    napi_set_named_property(env, result, "Ic", CreateFloatArray(env, value.Ic));
+
+    return result;
+}
+
 } // namespace
 
 napi_value GetBaseFreqDisplayData(napi_env env, napi_callback_info info)
@@ -61,4 +84,13 @@ napi_value GetBaseFreqDisplayData(napi_env env, napi_callback_info info)
     const YC_BaseFreq_Struct snapshot = BaseFreq_Dsip;
     const bool ready = BaseFreqDisplayReady;
     return CreateBaseFreqDisplayObject(env, snapshot, ready);
+}
+
+napi_value GetHarmonicCurrentDisplayData(napi_env env, napi_callback_info info)
+{
+    (void)info;
+
+    const YC_HarmonicI_Struct snapshot = HarmonicI_Dsip;
+    const bool ready = HarmonicCurrentDisplayReady;
+    return CreateHarmonicCurrentDisplayObject(env, snapshot, ready);
 }

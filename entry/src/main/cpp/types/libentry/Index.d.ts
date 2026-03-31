@@ -51,6 +51,13 @@ export interface BaseFreqDisplayValue {
   Ic_Phase: number;
 }
 
+export interface HarmonicCurrentDisplayValue {
+  ready: boolean;
+  Ia: number[];
+  Ib: number[];
+  Ic: number[];
+}
+
 export interface CommonSettingAnalogQuantityParameterStructValue {
   Ua: number;
   Ub: number;
@@ -211,10 +218,22 @@ export interface CommonSettingStatisticsStructValue {
   CRC: number;
 }
 
+export interface RelaySettingFieldEntryValue {
+  id: string;
+  value: string;
+}
+
+export interface RelaySettingZoneValue {
+  ready: boolean;
+  zoneCode: number;
+  fields: RelaySettingFieldEntryValue[];
+}
+
 export const startTcpClient: (host: string, port: number) => boolean;
 export const stopTcpClient: () => void;
 export const isTcpClientRunning: () => boolean;
 export const getBaseFreqDisplayData: () => BaseFreqDisplayValue;
+export const getHarmonicCurrentDisplayData: () => HarmonicCurrentDisplayValue;
 export const getPrimarySystemSetting: () => CommonSettingPrimarySystemStructValue;
 export const getAnalogQuantitySetting: () => CommonSettingAnalogQuantityStructValue;
 export const getTeleMeasuringSetting: () => CommonSettingTeleMeasuringStructValue;
@@ -222,4 +241,5 @@ export const getTeleSignalingSetting: () => CommonSettingTeleSignalingStructValu
 export const getTeleControllingSetting: () => CommonSettingTeleControllingStructValue;
 export const getExceedingLimitSetting: () => CommonSettingExceedingLimitStructValue;
 export const getStatisticsSetting: () => CommonSettingStatisticsStructValue;
+export const getRelaySettingByZone: (zoneCode: number) => RelaySettingZoneValue;
 export const add: (a: number, b: number) => number;

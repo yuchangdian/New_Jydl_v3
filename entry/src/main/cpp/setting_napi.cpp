@@ -1,6 +1,10 @@
 #include "setting_napi.h"
 
+#include <cmath>
 #include <cstdint>
+#include <iomanip>
+#include <sstream>
+#include <string>
 
 #include "setting.h"
 
@@ -105,6 +109,614 @@ napi_value CreateAnalogQuantityParameterObject(
     napi_set_named_property(env, result, "Iby3", CreateDouble(env, parameter.Iby3));
 
     return result;
+}
+
+napi_value CreateObject(napi_env env)
+{
+    napi_value result = nullptr;
+    napi_create_object(env, &result);
+    return result;
+}
+
+void SetNamedProperty(napi_env env, napi_value object, const char *name, napi_value value)
+{
+    napi_set_named_property(env, object, name, value);
+}
+
+std::string FormatRelayNumber(double value)
+{
+    if (!std::isfinite(value)) {
+        return "";
+    }
+
+    std::ostringstream builder;
+    builder << std::fixed << std::setprecision(2) << value;
+    return builder.str();
+}
+
+std::string FormatRelayInteger(std::uint32_t value)
+{
+    return FormatRelayNumber(static_cast<double>(value));
+}
+
+std::string FormatRelayTime(std::uint32_t value)
+{
+    // RelaySetting time values are stored as 0.5 ms ticks in native structs.
+    return FormatRelayNumber(static_cast<double>(value) / 2000.0);
+}
+
+std::string FormatRelayIdCode(std::uint32_t value)
+{
+    return std::to_string(value);
+}
+
+std::string FormatRelayMacAddress(const std::uint32_t value[6])
+{
+    std::ostringstream builder;
+    builder << std::uppercase << std::hex << std::setfill('0');
+    for (int index = 0; index < 6; index++) {
+        if (index > 0) {
+            builder << ':';
+        }
+        builder << std::setw(2) << static_cast<unsigned int>(value[index] & 0xFFU);
+    }
+    return builder.str();
+}
+
+void SetRelayTextField(napi_env env, napi_value fields, const char *fieldId, const std::string &value)
+{
+    if (fieldId == nullptr || value.empty()) {
+        return;
+    }
+
+    std::uint32_t fieldCount = 0;
+    napi_get_array_length(env, fields, &fieldCount);
+
+    napi_value entry = CreateObject(env);
+    SetNamedProperty(env, entry, "id", CreateString(env, fieldId));
+    SetNamedProperty(env, entry, "value", CreateString(env, value.c_str()));
+    napi_set_element(env, fields, fieldCount, entry);
+}
+
+void SetRelayEnumField(napi_env env, napi_value fields, const char *fieldId, const char *label)
+{
+    if (label == nullptr || label[0] == '\0') {
+        return;
+    }
+    SetRelayTextField(env, fields, fieldId, label);
+}
+
+void SetRelayNumberField(napi_env env, napi_value fields, const char *fieldId, double value)
+{
+    SetRelayTextField(env, fields, fieldId, FormatRelayNumber(value));
+}
+
+void SetRelayUintField(napi_env env, napi_value fields, const char *fieldId, std::uint32_t value)
+{
+    SetRelayTextField(env, fields, fieldId, FormatRelayTime(value));
+}
+
+void SetRelayIdField(napi_env env, napi_value fields, const char *fieldId, std::uint32_t value)
+{
+    SetRelayTextField(env, fields, fieldId, FormatRelayIdCode(value));
+}
+
+void SetRelayMacField(napi_env env, napi_value fields, const char *fieldId, const std::uint32_t value[6])
+{
+    SetRelayTextField(env, fields, fieldId, FormatRelayMacAddress(value));
+}
+
+const char *GetRelayEnableText(std::uint32_t value)
+{
+    switch (value) {
+        case 1:
+            return "投入";
+        case 0:
+            return "退出";
+        default:
+            return "";
+    }
+}
+
+const char *GetRelayProtectionModeText(std::uint32_t value)
+{
+    switch (value) {
+        case 1:
+            return "跳闸";
+        case 0:
+            return "告警";
+        default:
+            return "";
+    }
+}
+
+const char *GetRelayConvertText(std::uint32_t value)
+{
+    switch (value) {
+        case 1:
+            return "折算";
+        case 0:
+            return "不折算";
+        default:
+            return "";
+    }
+}
+
+const char *GetRelayInverseCharacterText(std::uint32_t value)
+{
+    switch (value) {
+        case 1:
+            return "一般反时限";
+        case 2:
+            return "非常反时限";
+        case 3:
+            return "极端反时限";
+        default:
+            return "";
+    }
+}
+
+const char *GetRelayReclosureModeText(std::uint32_t value)
+{
+    switch (value) {
+        case ReclosureMode_DisableReclosure:
+            return "闭锁";
+        case ReclosureMode_General:
+            return "普通";
+        case ReclosureMode_Synchronism:
+            return "检同期";
+        case ReclosureMode_LineNV_and_BusEV:
+            return "检线路无压且母有压";
+        case ReclosureMode_LineEV_and_BusNV:
+            return "检线路有压且母无压";
+        case ReclosureMode_LineNV_and_BusNV:
+            return "检线路无压且母无压";
+        case ReclosureMode_LineNV_or_BusNV:
+            return "检线路无压或母无压";
+        default:
+            return "";
+    }
+}
+
+const char *GetRelayMisTripText(std::uint32_t value)
+{
+    switch (value) {
+        case 1:
+            return "重合";
+        case 0:
+            return "不重合";
+        default:
+            return "";
+    }
+}
+
+const char *GetRelayTripModeText(std::uint32_t value)
+{
+    switch (value) {
+        case 1:
+            return "解列";
+        case 0:
+            return "减载";
+        default:
+            return "";
+    }
+}
+
+void AppendRelayCommonFields(napi_env env, napi_value fields, const RelaySetting_Common_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-01-row-01-item-02-cell-01",
+        GetRelayEnableText(setting.Enable_FaultIndicatorLightReset));
+    SetRelayUintField(env, fields, "section-01-row-01-item-05-cell-01", setting.Time_FaultIndicatorLightReset);
+    SetRelayUintField(env, fields, "section-01-row-01-item-09-cell-01", setting.Time_FaultTeleSignalingHolding);
+    SetRelayNumberField(env, fields, "section-01-row-02-item-02-cell-01", setting.Value_NoVoltage);
+    SetRelayNumberField(env, fields, "section-01-row-02-item-06-cell-01", setting.Value_NoCurrent);
+    SetRelayNumberField(env, fields, "section-01-row-02-item-10-cell-01", setting.Value_ThereVoltage);
+    SetRelayNumberField(env, fields, "section-01-row-03-item-02-cell-01", setting.Kre_OverRelay);
+    SetRelayNumberField(env, fields, "section-01-row-03-item-05-cell-01", setting.Kre_UnderRelay);
+    SetRelayEnumField(env, fields, "section-01-row-04-item-02-cell-01",
+        GetRelayConvertText(setting.Enable_IoNeedConvert));
+}
+
+void AppendRelayCommunicationFields(napi_env env, napi_value fields, const RelaySetting_Communication_Struct &setting)
+{
+    SetRelayMacField(env, fields, "section-02-row-01-item-01-cell-02", setting.ChannelA_MAC_ETU);
+    SetRelayMacField(env, fields, "section-02-row-01-item-03-cell-02", setting.ChannelB_MAC_ETU);
+    SetRelayMacField(env, fields, "section-02-row-02-item-01-cell-02", setting.ChannelA_MAC_Onside);
+    SetRelayMacField(env, fields, "section-02-row-02-item-03-cell-02", setting.ChannelB_MAC_Onside);
+    SetRelayMacField(env, fields, "section-02-row-03-item-01-cell-02", setting.ChannelA_MAC_Offside);
+    SetRelayMacField(env, fields, "section-02-row-03-item-03-cell-02", setting.ChannelB_MAC_Offside);
+    SetRelayIdField(env, fields, "section-02-row-04-item-02-cell-01", setting.IDcode_ETU);
+    SetRelayIdField(env, fields, "section-02-row-05-item-02-cell-01", setting.IDcode_Onside);
+    SetRelayIdField(env, fields, "section-02-row-05-item-05-cell-01", setting.IDcode_Offside);
+}
+
+void AppendRelayPilotFields(napi_env env, napi_value fields, const RelaySetting_PilotRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-03-row-01-item-01-cell-02",
+        GetRelayEnableText(setting.Common.Enable_CTBreakBlock));
+    SetRelayEnumField(env, fields, "section-03-row-01-item-03-cell-02",
+        GetRelayEnableText(setting.Common.Enable_CTSaturationBlock));
+    SetRelayEnumField(env, fields, "section-03-row-02-item-01-cell-02",
+        GetRelayEnableText(setting.Common.Enable_StartBlockEachOther));
+    SetRelayEnumField(env, fields, "section-03-row-02-item-03-cell-02",
+        GetRelayEnableText(setting.Common.Enable_RemoteTripWithStart));
+
+    SetRelayEnumField(env, fields, "section-04-row-01-item-01-cell-02",
+        GetRelayEnableText(setting.StartElement.Enable_I_MutationStart));
+    SetRelayNumberField(env, fields, "section-04-row-01-item-03-cell-03", setting.StartElement.Value_I_Mutation);
+    SetRelayEnumField(env, fields, "section-04-row-02-item-01-cell-02",
+        GetRelayEnableText(setting.StartElement.Enable_I_RmsStart));
+    SetRelayNumberField(env, fields, "section-04-row-02-item-03-cell-03", setting.StartElement.Value_I_Rms);
+    SetRelayEnumField(env, fields, "section-04-row-03-item-01-cell-02",
+        GetRelayEnableText(setting.StartElement.Enable_Io_MutationStart));
+    SetRelayNumberField(env, fields, "section-04-row-03-item-03-cell-03", setting.StartElement.Value_Io_Mutation);
+    SetRelayEnumField(env, fields, "section-04-row-04-item-01-cell-02",
+        GetRelayEnableText(setting.StartElement.Enable_Io_RmsStart));
+    SetRelayNumberField(env, fields, "section-04-row-04-item-03-cell-03", setting.StartElement.Value_Io_Rms);
+
+    SetRelayEnumField(env, fields, "section-05-row-01-item-01-cell-02",
+        GetRelayEnableText(setting.Current.Enable));
+    SetRelayEnumField(env, fields, "section-05-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Current.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-05-row-01-item-05-cell-02", setting.Current.Value_Current);
+    SetRelayNumberField(env, fields, "section-05-row-01-item-07-cell-02", setting.Current.Value_HighCurrent);
+
+    SetRelayEnumField(env, fields, "section-06-row-01-item-01-cell-02",
+        GetRelayEnableText(setting.Io.Enable));
+    SetRelayEnumField(env, fields, "section-06-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Io.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-06-row-01-item-05-cell-02", setting.Io.Value_Current);
+    SetRelayNumberField(env, fields, "section-06-row-01-item-07-cell-02", setting.Io.Value_HighCurrent);
+    SetRelayNumberField(env, fields, "section-06-row-02-item-01-cell-02", setting.Io.Value_RatioCoeff);
+}
+
+void AppendRelayOverCurrentZoneFields(
+    napi_env env,
+    napi_value fields,
+    const char *enableFieldId,
+    const char *modeFieldId,
+    const char *voltageBlockFieldId,
+    const char *directionFieldId,
+    const char *inrushFieldId,
+    const char *currentFieldId,
+    const char *delayFieldId,
+    const RelaySetting_OverCurrentRelay_Zone_Struct &setting)
+{
+    SetRelayEnumField(env, fields, enableFieldId, GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, modeFieldId, GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayEnumField(env, fields, voltageBlockFieldId, GetRelayEnableText(setting.Enable_WithVoltageBlock));
+    SetRelayEnumField(env, fields, directionFieldId, GetRelayEnableText(setting.Enable_WithDirection));
+    SetRelayEnumField(env, fields, inrushFieldId, GetRelayEnableText(setting.Enable_WithInrushCurrentRestrain));
+    SetRelayNumberField(env, fields, currentFieldId, setting.Value_Current);
+    SetRelayUintField(env, fields, delayFieldId, setting.Time_Delay);
+}
+
+void AppendRelayOverCurrentFields(napi_env env, napi_value fields, const RelaySetting_OverCurrentRelay_Struct &setting)
+{
+    SetRelayNumberField(env, fields, "section-07-row-01-item-01-cell-03", setting.VoltageBlock.Value_LineVoltage);
+    SetRelayNumberField(env, fields, "section-07-row-01-item-03-cell-03", setting.VoltageBlock.Value_NegativeVoltage);
+    SetRelayNumberField(env, fields, "section-07-row-02-item-01-cell-03", setting.InrushCurrent.Value_Ratio);
+
+    AppendRelayOverCurrentZoneFields(env, fields,
+        "section-08-row-01-item-01-cell-02",
+        "section-08-row-01-item-03-cell-02",
+        "section-08-row-01-item-05-cell-02",
+        "section-08-row-01-item-07-cell-02",
+        "section-08-row-01-item-09-cell-02",
+        "section-08-row-02-item-01-cell-02",
+        "section-08-row-02-item-03-cell-02",
+        setting.Z1);
+    AppendRelayOverCurrentZoneFields(env, fields,
+        "section-09-row-01-item-01-cell-02",
+        "section-09-row-01-item-03-cell-02",
+        "section-09-row-01-item-05-cell-02",
+        "section-09-row-01-item-07-cell-02",
+        "section-09-row-01-item-09-cell-02",
+        "section-09-row-02-item-01-cell-02",
+        "section-09-row-02-item-03-cell-02",
+        setting.Z2);
+    AppendRelayOverCurrentZoneFields(env, fields,
+        "section-10-row-01-item-01-cell-02",
+        "section-10-row-01-item-03-cell-02",
+        "section-10-row-01-item-05-cell-02",
+        "section-10-row-01-item-07-cell-02",
+        "section-10-row-01-item-09-cell-02",
+        "section-10-row-02-item-01-cell-02",
+        "section-10-row-02-item-03-cell-02",
+        setting.Z3);
+
+    SetRelayEnumField(env, fields, "section-11-row-01-item-01-cell-02", GetRelayEnableText(setting.Inv.Enable));
+    SetRelayEnumField(env, fields, "section-11-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Inv.Enable_ProtectionMode));
+    SetRelayEnumField(env, fields, "section-11-row-01-item-05-cell-02",
+        GetRelayEnableText(setting.Inv.Enable_WithVoltageBlock));
+    SetRelayEnumField(env, fields, "section-11-row-01-item-07-cell-02",
+        GetRelayEnableText(setting.Inv.Enable_WithDirection));
+    SetRelayEnumField(env, fields, "section-11-row-01-item-09-cell-02",
+        GetRelayEnableText(setting.Inv.Enable_WithInrushCurrentRestrain));
+    SetRelayEnumField(env, fields, "section-11-row-02-item-01-cell-02",
+        GetRelayInverseCharacterText(setting.Inv.Index));
+    SetRelayNumberField(env, fields, "section-11-row-02-item-03-cell-02", setting.Inv.Value_Current);
+    SetRelayUintField(env, fields, "section-11-row-02-item-05-cell-02", setting.Inv.Time_Delay);
+
+    SetRelayEnumField(env, fields, "section-12-row-01-item-01-cell-02", GetRelayEnableText(setting.PTBreak.Enable));
+    SetRelayEnumField(env, fields, "section-12-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.PTBreak.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-12-row-01-item-05-cell-02", setting.PTBreak.Value_Current);
+    SetRelayUintField(env, fields, "section-12-row-01-item-07-cell-02", setting.PTBreak.Time_Delay);
+
+    SetRelayEnumField(env, fields, "section-13-row-01-item-01-cell-02",
+        GetRelayEnableText(setting.Acc.Enable_ManualCloseAcc));
+    SetRelayUintField(env, fields, "section-13-row-01-item-03-cell-03", setting.Acc.Time_ManualCloseAccEnble);
+    SetRelayEnumField(env, fields, "section-13-row-02-item-01-cell-02",
+        GetRelayEnableText(setting.Acc.Enable_ReclosureAcc));
+    SetRelayUintField(env, fields, "section-13-row-02-item-03-cell-03", setting.Acc.Time_ReclosureAccEnble);
+    SetRelayEnumField(env, fields, "section-13-row-03-item-01-cell-02",
+        GetRelayEnableText(setting.Acc.Enable_WithVoltageBlock));
+    SetRelayNumberField(env, fields, "section-13-row-03-item-03-cell-02", setting.Acc.Value_Current);
+    SetRelayUintField(env, fields, "section-13-row-03-item-05-cell-02", setting.Acc.Time_Delay);
+}
+
+void AppendRelayIoZoneFields(
+    napi_env env,
+    napi_value fields,
+    const char *enableFieldId,
+    const char *modeFieldId,
+    const char *directionFieldId,
+    const char *currentFieldId,
+    const char *delayFieldId,
+    const RelaySetting_IoRelay_Zone_Struct &setting)
+{
+    SetRelayEnumField(env, fields, enableFieldId, GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, modeFieldId, GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayEnumField(env, fields, directionFieldId, GetRelayEnableText(setting.Enable_WithDirection));
+    SetRelayNumberField(env, fields, currentFieldId, setting.Value_Current);
+    SetRelayUintField(env, fields, delayFieldId, setting.Time_Delay);
+}
+
+void AppendRelayIoFields(napi_env env, napi_value fields, const RelaySetting_IoRelay_Struct &setting)
+{
+    AppendRelayIoZoneFields(env, fields,
+        "section-14-row-01-item-01-cell-02",
+        "section-14-row-01-item-03-cell-02",
+        "section-14-row-01-item-05-cell-02",
+        "section-14-row-02-item-01-cell-02",
+        "section-14-row-02-item-03-cell-02",
+        setting.Z1);
+    AppendRelayIoZoneFields(env, fields,
+        "section-15-row-01-item-01-cell-02",
+        "section-15-row-01-item-03-cell-02",
+        "section-15-row-01-item-05-cell-02",
+        "section-15-row-02-item-01-cell-02",
+        "section-15-row-02-item-03-cell-02",
+        setting.Z2);
+    AppendRelayIoZoneFields(env, fields,
+        "section-16-row-01-item-01-cell-02",
+        "section-16-row-01-item-03-cell-02",
+        "section-16-row-01-item-05-cell-02",
+        "section-16-row-02-item-01-cell-02",
+        "section-16-row-02-item-03-cell-02",
+        setting.Z3);
+
+    SetRelayEnumField(env, fields, "section-17-row-01-item-01-cell-02", GetRelayEnableText(setting.Inv.Enable));
+    SetRelayEnumField(env, fields, "section-17-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Inv.Enable_ProtectionMode));
+    SetRelayEnumField(env, fields, "section-17-row-01-item-05-cell-02",
+        GetRelayEnableText(setting.Inv.Enable_WithDirection));
+    SetRelayEnumField(env, fields, "section-17-row-02-item-01-cell-02",
+        GetRelayInverseCharacterText(setting.Inv.Index));
+    SetRelayNumberField(env, fields, "section-17-row-02-item-03-cell-02", setting.Inv.Value_Current);
+    SetRelayUintField(env, fields, "section-17-row-02-item-05-cell-02", setting.Inv.Time_Delay);
+
+    SetRelayEnumField(env, fields, "section-18-row-01-item-01-cell-02",
+        GetRelayEnableText(setting.Acc.Enable_ManualCloseAcc));
+    SetRelayUintField(env, fields, "section-18-row-01-item-03-cell-03", setting.Acc.Time_ManualCloseAccEnble);
+    SetRelayEnumField(env, fields, "section-18-row-02-item-01-cell-02",
+        GetRelayEnableText(setting.Acc.Enable_ReclosureAcc));
+    SetRelayUintField(env, fields, "section-18-row-02-item-03-cell-03", setting.Acc.Time_ReclosureAccEnble);
+    SetRelayNumberField(env, fields, "section-18-row-03-item-01-cell-02", setting.Acc.Value_Current);
+    SetRelayUintField(env, fields, "section-18-row-03-item-03-cell-02", setting.Acc.Time_Delay);
+}
+
+void AppendRelayAdaptIoFields(napi_env env, napi_value fields, const RelaySetting_adaptIoRelay_Struct &setting)
+{
+    SetRelayNumberField(env, fields, "section-19-row-01-item-01-cell-02", setting.Value_MinCurrent);
+    SetRelayNumberField(env, fields, "section-19-row-01-item-03-cell-02", setting.Value_Ko_Re);
+    SetRelayNumberField(env, fields, "section-19-row-01-item-03-cell-04", setting.Value_Ko_Im);
+    SetRelayNumberField(env, fields, "section-19-row-01-item-05-cell-02", setting.Value_Zs_Re);
+    SetRelayNumberField(env, fields, "section-19-row-01-item-05-cell-04", setting.Value_Zs_Im);
+    SetRelayEnumField(env, fields, "section-19-row-02-item-01-cell-02", GetRelayEnableText(setting.Enable_Z1));
+    SetRelayEnumField(env, fields, "section-19-row-02-item-03-cell-02", GetRelayEnableText(setting.Enable_Z2));
+    SetRelayEnumField(env, fields, "section-19-row-02-item-05-cell-02", GetRelayEnableText(setting.Enable_Z3));
+    SetRelayEnumField(env, fields, "section-19-row-02-item-07-cell-02", GetRelayEnableText(setting.Enable_Inv));
+    SetRelayEnumField(env, fields, "section-19-row-03-item-01-cell-02",
+        GetRelayEnableText(setting.Enable_ManualCloseAcc));
+    SetRelayEnumField(env, fields, "section-19-row-03-item-03-cell-02",
+        GetRelayEnableText(setting.Enable_ReclosureAcc));
+}
+
+void AppendRelayReclosureFields(napi_env env, napi_value fields, const RelaySetting_ReclosureRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-20-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-20-row-01-item-03-cell-02",
+        GetRelayReclosureModeText(setting.Enable_Mode));
+    SetRelayUintField(env, fields, "section-20-row-01-item-05-cell-02", setting.Time_Charge);
+    SetRelayEnumField(env, fields, "section-20-row-02-item-01-cell-02",
+        GetRelayMisTripText(setting.Enable_MisTripStartReclosure));
+    SetRelayEnumField(env, fields, "section-20-row-02-item-03-cell-02",
+        GetRelayEnableText(setting.Enable_BigCurrentBlock));
+    SetRelayNumberField(env, fields, "section-20-row-02-item-05-cell-02", setting.Value_BigCurrent);
+    SetRelayNumberField(env, fields, "section-20-row-03-item-01-cell-02", setting.Value_Angle);
+    SetRelayUintField(env, fields, "section-20-row-03-item-03-cell-02", setting.Time_OpenCheckSynchronism);
+    SetRelayUintField(env, fields, "section-20-row-03-item-05-cell-02", setting.Time_OpenCheckNoVoltage);
+    SetRelayUintField(env, fields, "section-20-row-04-item-01-cell-02", setting.Time_Delay);
+}
+
+void AppendRelayOverloadFields(napi_env env, napi_value fields, const RelaySetting_OverLoadRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-21-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-21-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-21-row-01-item-05-cell-02", setting.Value_Current);
+    SetRelayUintField(env, fields, "section-21-row-02-item-01-cell-02", setting.Time_TripDelay);
+    SetRelayUintField(env, fields, "section-21-row-02-item-03-cell-02", setting.Time_AlarmDelay);
+}
+
+void AppendRelayLowVoltageFields(napi_env env, napi_value fields, const RelaySetting_LowVoltageRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-22-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-22-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-22-row-01-item-05-cell-02", setting.Value_Voltage);
+    SetRelayUintField(env, fields, "section-22-row-01-item-07-cell-02", setting.Time_Delay);
+    SetRelayNumberField(env, fields, "section-22-row-02-item-01-cell-02", setting.Value_LowVoltageBlock);
+    SetRelayEnumField(env, fields, "section-22-row-02-item-03-cell-02",
+        GetRelayEnableText(setting.Enable_WithSlipBlock));
+    SetRelayNumberField(env, fields, "section-22-row-02-item-05-cell-02", setting.Value_SlipBlock);
+    SetRelayNumberField(env, fields, "section-22-row-03-item-01-cell-02", setting.Value_SlipClearBlock);
+    SetRelayEnumField(env, fields, "section-22-row-03-item-03-cell-02",
+        GetRelayEnableText(setting.Enable_WithNoCurrentBlock));
+    SetRelayNumberField(env, fields, "section-22-row-03-item-05-cell-02", setting.Value_NoCurrent);
+}
+
+void AppendRelayOverVoltageFields(napi_env env, napi_value fields, const RelaySetting_OverVoltageRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-23-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-23-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-23-row-01-item-05-cell-02", setting.Value_Voltage);
+    SetRelayUintField(env, fields, "section-23-row-01-item-07-cell-02", setting.Time_Delay);
+}
+
+void AppendRelayLowFrequencyFields(napi_env env, napi_value fields, const RelaySetting_LowFrequencyRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-24-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-24-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-24-row-01-item-05-cell-02", setting.Value_Frequency);
+    SetRelayUintField(env, fields, "section-24-row-01-item-07-cell-02", setting.Time_Delay);
+    SetRelayEnumField(env, fields, "section-24-row-02-item-01-cell-02",
+        GetRelayTripModeText(setting.Enable_TripMode));
+    SetRelayEnumField(env, fields, "section-24-row-02-item-03-cell-02",
+        GetRelayEnableText(setting.Enable_WithSlipBlock));
+    SetRelayNumberField(env, fields, "section-24-row-02-item-05-cell-02", setting.Value_SlipBlock);
+    SetRelayEnumField(env, fields, "section-24-row-03-item-01-cell-02",
+        GetRelayEnableText(setting.Enable_WithNoCurrentBlock));
+    SetRelayNumberField(env, fields, "section-24-row-03-item-03-cell-02", setting.Value_NoCurrentBlock);
+    SetRelayNumberField(env, fields, "section-24-row-03-item-05-cell-02", setting.Value_LowVoltageBlock);
+}
+
+void AppendRelayHighFrequencyFields(napi_env env, napi_value fields, const RelaySetting_HighFrequencyRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-25-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-25-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-25-row-01-item-05-cell-02", setting.Value_Frequency);
+    SetRelayUintField(env, fields, "section-25-row-01-item-07-cell-02", setting.Time_Delay);
+}
+
+void AppendRelayInversePowerFields(napi_env env, napi_value fields, const RelaySetting_InversePowerRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-26-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-26-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-26-row-01-item-05-cell-02", setting.Value_Power);
+    SetRelayUintField(env, fields, "section-26-row-01-item-07-cell-02", setting.Time_Delay);
+}
+
+void AppendRelayHarmonicCurrentFields(napi_env env, napi_value fields, const RelaySetting_HarmonicCurrentRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-27-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-27-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-27-row-01-item-05-cell-02", setting.Value_THDi);
+    SetRelayUintField(env, fields, "section-27-row-01-item-07-cell-02", setting.Time_Delay);
+}
+
+void AppendRelayHarmonicVoltageFields(napi_env env, napi_value fields, const RelaySetting_HarmonicVoltageRelay_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "section-28-row-01-item-01-cell-02", GetRelayEnableText(setting.Enable));
+    SetRelayEnumField(env, fields, "section-28-row-01-item-03-cell-02",
+        GetRelayProtectionModeText(setting.Enable_ProtectionMode));
+    SetRelayNumberField(env, fields, "section-28-row-01-item-05-cell-02", setting.Value_THDu);
+    SetRelayUintField(env, fields, "section-28-row-01-item-07-cell-02", setting.Time_Delay);
+}
+
+void AppendRelayAbnormalMonitoringFields(
+    napi_env env,
+    napi_value fields,
+    const RelaySetting_AbnormalMonitoring_Struct &setting)
+{
+    SetRelayEnumField(env, fields, "bus-pt-enable", GetRelayEnableText(setting.BusPTBreak.Enable));
+    SetRelayEnumField(env, fields, "bus-pt-block", GetRelayEnableText(setting.BusPTBreak.Enable_BlockProtection));
+    SetRelayUintField(env, fields, "bus-pt-delay", setting.BusPTBreak.Time_Delay);
+
+    SetRelayEnumField(env, fields, "line-pt-enable", GetRelayEnableText(setting.LinePTBreak.Enable));
+    SetRelayEnumField(env, fields, "line-pt-block", GetRelayEnableText(setting.LinePTBreak.Enable_BlockProtection));
+    SetRelayUintField(env, fields, "line-pt-delay", setting.LinePTBreak.Time_Delay);
+
+    SetRelayEnumField(env, fields, "ct-enable", GetRelayEnableText(setting.CTBreak.Enable));
+    SetRelayUintField(env, fields, "ct-delay", setting.CTBreak.Time_Delay);
+
+    SetRelayEnumField(env, fields, "cb-enable", GetRelayEnableText(setting.CtrlCircuitBreak.Enable));
+    SetRelayUintField(env, fields, "cb-delay", setting.CtrlCircuitBreak.Time_Delay);
+
+    SetRelayEnumField(env, fields, "spring-enable", GetRelayEnableText(setting.SpringLessEnergy.Enable));
+    SetRelayUintField(env, fields, "spring-delay", setting.SpringLessEnergy.Time_Delay);
+
+    SetRelayEnumField(env, fields, "twj-enable", GetRelayEnableText(setting.TWJ.Enable));
+    SetRelayUintField(env, fields, "twj-delay", setting.TWJ.Time_Delay);
+
+    SetRelayEnumField(env, fields, "freq-enable", GetRelayEnableText(setting.Frequency.Enable));
+    SetRelayUintField(env, fields, "freq-delay", setting.Frequency.Time_Delay);
+
+    SetRelayEnumField(env, fields, "ground-enable", GetRelayEnableText(setting.Grounding.Enable));
+    SetRelayUintField(env, fields, "ground-delay", setting.Grounding.Time_Delay);
+}
+
+napi_value CreateRelaySettingFieldsObject(napi_env env, const RelaySetting_Struct &setting)
+{
+    napi_value fields = nullptr;
+    napi_create_array(env, &fields);
+
+    AppendRelayCommonFields(env, fields, setting.Common);
+    AppendRelayCommunicationFields(env, fields, setting.Communication);
+    AppendRelayPilotFields(env, fields, setting.Pilot);
+    AppendRelayOverCurrentFields(env, fields, setting.OverCurrent);
+    AppendRelayIoFields(env, fields, setting.Io);
+    AppendRelayAdaptIoFields(env, fields, setting.adaptIo);
+    AppendRelayReclosureFields(env, fields, setting.Reclosure);
+    AppendRelayOverloadFields(env, fields, setting.OverLoad);
+    AppendRelayLowVoltageFields(env, fields, setting.LowVoltage);
+    AppendRelayOverVoltageFields(env, fields, setting.OverVoltage);
+    AppendRelayLowFrequencyFields(env, fields, setting.LowFrequency);
+    AppendRelayHighFrequencyFields(env, fields, setting.HighFrequency);
+    AppendRelayInversePowerFields(env, fields, setting.InversePower);
+    AppendRelayHarmonicCurrentFields(env, fields, setting.HarmonicCurrent);
+    AppendRelayHarmonicVoltageFields(env, fields, setting.HarmonicVoltage);
+    AppendRelayAbnormalMonitoringFields(env, fields, setting.AbnormalMonitoring);
+
+    return fields;
+}
+
+std::uint32_t GetRelayZoneCodeFromInfo(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = { nullptr };
+    std::uint32_t zoneCode = SettingCode_Now;
+
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    if (argc >= 1 && args[0] != nullptr) {
+        std::uint32_t parsedZoneCode = 0;
+        if (napi_get_value_uint32(env, args[0], &parsedZoneCode) == napi_ok) {
+            zoneCode = parsedZoneCode;
+        }
+    }
+
+    if (zoneCode < 1 || zoneCode > 20) {
+        return 1;
+    }
+    return zoneCode;
 }
 
 } // namespace
@@ -407,6 +1019,23 @@ napi_value GetStatisticsSetting(napi_env env, napi_callback_info info)
         CreateUint32(env, StatisticsSetting.PeriodLength_ReverseReactivePowerOnTimeValue));
 
     napi_set_named_property(env, result, "CRC", CreateUint32(env, StatisticsSetting.CRC));
+
+    return result;
+}
+
+napi_value GetRelaySettingByZone(napi_env env, napi_callback_info info)
+{
+    std::uint32_t zoneCode = GetRelayZoneCodeFromInfo(env, info);
+    std::uint32_t zoneIndex = zoneCode - 1;
+
+    napi_value result = CreateObject(env);
+    SetNamedProperty(env, result, "ready", CreateBoolean(env, RelaySettingReady[zoneIndex]));
+    SetNamedProperty(env, result, "zoneCode", CreateUint32(env, zoneCode));
+
+    napi_value fields = RelaySettingReady[zoneIndex]
+        ? CreateRelaySettingFieldsObject(env, RelaySetting[zoneIndex])
+        : CreateObject(env);
+    SetNamedProperty(env, result, "fields", fields);
 
     return result;
 }

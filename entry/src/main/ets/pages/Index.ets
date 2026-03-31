@@ -1,5 +1,6 @@
 import { TopMenu } from '../components/TopMenu'
 import * as telemetryNativeModule from 'libentry.so';
+import { LengthMetrics } from '@kit.ArkUI'
 
 interface PlateItem {
   name: string;
@@ -516,50 +517,137 @@ struct Index {
     Scroll() {
       Column() {
         Row() {
-          Text('电')
-            .fontSize(20)
+          Text('电      压:')
+            .fontSize(22)
             .fontWeight(FontWeight.Bold)
+            .width(120)
 
-          Text('压')
+          Text(`Uₐ ${this.ua}`)
             .fontSize(20)
-            .fontWeight(FontWeight.Bold)
-            .margin({ left: 42 })
+            .fontWeight(FontWeight.Regular)
+            .width(200)
 
-          Text(`：Uₐ ${this.ua}  Uᵦ ${this.ub}  U꜀ ${this.uc}`)
+          Text() {
+            Span('U')
+              .fontSize(20)
+            Span('b')
+              .fontSize(9)
+              .baselineOffset(LengthMetrics.vp(-4))
+            Span(` ${this.ub}`)
+          }.fontSize(20)
+          .width(200)
+          .fontWeight(FontWeight.Regular)
+
+
+          Text(`U꜀ ${this.uc}`)
             .fontSize(20)
-            .fontWeight(FontWeight.Bold)
+            .fontWeight(FontWeight.Regular)
+            .width(200)
         }
         .width('100%')
 
-        Text(`U₀ ${this.u0}  Uₓ ${this.ux}`)
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .width('100%')
-          .margin({ left: 205 })
+        Row(){
+          Text(`U₀ ${this.u0} `)
+            .fontSize(20)
+            .fontWeight(FontWeight.Regular)
+            .width(200)
+            .margin({top:5})
 
-        Text(`保护电流：Iₐ ${this.ia}  Iᵦ ${this.ib}  I꜀ ${this.ic}`)
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .width('100%')
-          .margin({ top: 15 })
+          Text(`Uₓ ${this.ux}`)
+            .fontSize(20)
+            .fontWeight(FontWeight.Regular)
+            .width(200)
+            .margin({top:5})
+        }
+        .width('100%')
+        .padding({ left: 120 })
 
-        Text(`3I₀ ${this.i0}`)
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .width('100%')
-          .margin({ left: 195 })
+        Row() {
+          Text('保护电流：')
+            .fontSize(22)
+            .fontWeight(FontWeight.Bold)
+            .margin({ top: 10 })
+            .width(120)
 
-        Text(`测量电流：İₐ ${this.iia}  İᵦ ${this.iib}  İ꜀ ${this.iic}`)
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .width('100%')
-          .margin({ top: 15 })
+          Text(`Iₐ ${this.ia}`)
+            .fontSize(20)
+            .fontWeight(FontWeight.Regular)
+            .width('100%')
+            .margin({ top: 10 })
+            .width(200)
+
+          Text() {
+            Span('I')
+              .fontSize(20)
+            Span('b')
+              .fontSize(9)
+              .baselineOffset(LengthMetrics.vp(-4))
+            Span(` ${this.ib} `)
+          }.fontSize(20)
+          .width(200)
+          .fontWeight(FontWeight.Regular)
+          .margin({ top: 10 })
+
+          Text(`I꜀ ${this.ic}`)
+            .fontSize(20)
+            .fontWeight(FontWeight.Regular)
+            .width('100%')
+            .margin({ top: 10 })
+            .width(200)
+        }
+        .width('100%')
+        Row(){
+          Text(`3I₀ ${this.i0}`)
+            .fontSize(18)
+            .fontWeight(FontWeight.Regular)
+            .width(200)
+
+        }
+        .width('100%')
+        .margin({top:5})
+
+          .padding({ left: 120 })
+
+        Row() {
+          Text(`测量电流：`)
+            .fontSize(22)
+            .fontWeight(FontWeight.Bold)
+            .margin({ top: 10 })
+            .width(120)
+
+          Text(`Iₐ ${this.iia}`)
+            .fontSize(20)
+            .fontWeight(FontWeight.Regular)
+            .width(200)
+            .margin({ top: 10 })
+
+          Text() {
+            Span('I')
+              .fontSize(20)
+            Span('b')
+              .fontSize(9)
+              .baselineOffset(LengthMetrics.vp(-4))
+            Span(` ${this.iib} `)
+          }.fontSize(20)
+          .width(200)
+          .fontWeight(FontWeight.Regular)
+          .margin({ top: 10 })
+
+
+          Text(`I꜀ ${this.iic}`)
+            .fontSize(20)
+            .fontWeight(FontWeight.Regular)
+            .width(200)
+            .margin({ top: 10 })
+        }
+        .width('100%')
+
 
         this.HardPlateSection()
         this.SoftPlateSection()
       }
       .width('100%')
-      .padding(10)
+      .padding({ left: 8, right: 5, top: 0, bottom: 5 })
     }
     .layoutWeight(1)
   }

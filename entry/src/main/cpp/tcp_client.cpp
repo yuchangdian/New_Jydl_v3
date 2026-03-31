@@ -608,6 +608,7 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
         case RemoteMetry_HarmonicI:
             if (payloadLength == HarmonicI_DataLenth) {
                 std::memcpy(&HarmonicI_Dsip, decodeBuffer_.data() + payloadOffset, sizeof(YC_HarmonicI_Struct));
+                HarmonicCurrentDisplayReady = true;
                 TCP_LOGI("HarmonicI_Dsip updated");
             } else {
                 TCP_LOGW("HarmonicI_Dsip length mismatch. expected=%{public}d actual=%{public}d",
@@ -926,6 +927,7 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
                 const std::uint32_t tempCRC = CRC32(reinterpret_cast<std::uint32_t *>(&relaySettingBuf), RelaySetting_CRCLength);
                 if ((tempCRC == relaySettingBuf.CRC) && (tempCode >= 1) && (tempCode <= 20)) {
                     std::memcpy(&RelaySetting[tempCode - 1], &relaySettingBuf, sizeof(relaySettingBuf));
+                    RelaySettingReady[tempCode - 1] = true;
                     TCP_LOGI("RelaySetting updated. code=%{public}u", tempCode);
                 } else {
                     TCP_LOGW("RelaySetting CRC/code error. calc=%{public}u packet=%{public}u code=%{public}u",

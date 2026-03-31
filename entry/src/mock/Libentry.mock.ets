@@ -39,6 +39,19 @@ export const getBaseFreqDisplayData = () => {
   };
 };
 
+const defaultHarmonicCurrentValues = () => {
+  return new Array<number>(30).fill(0);
+};
+
+export const getHarmonicCurrentDisplayData = () => {
+  return {
+    ready: false,
+    Ia: defaultHarmonicCurrentValues(),
+    Ib: defaultHarmonicCurrentValues(),
+    Ic: defaultHarmonicCurrentValues()
+  };
+};
+
 const defaultAnalogParameter = () => {
   return {
     Ua: 100.00,
@@ -210,6 +223,14 @@ export const getStatisticsSetting = () => {
     PeriodType_ReverseReactivePowerOnTimeValue: 0,
     PeriodLength_ReverseReactivePowerOnTimeValue: 0,
     CRC: 0
+  };
+};
+
+export const getRelaySettingByZone = (_zoneCode: number) => {
+  return {
+    ready: false,
+    zoneCode: 1,
+    fields: []
   };
 };
 

@@ -978,6 +978,7 @@ typedef struct
 extern uint32_t RelaySetting_CRCLength;
 extern uint32_t RelaySetting_DataLength;
 extern RelaySetting_Struct RelaySetting[20];
+extern bool RelaySettingReady[20];
 extern RelaySetting_Struct Setting_Buf;
 
 extern uint32_t SettingCode_Now;

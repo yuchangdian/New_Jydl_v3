@@ -11,5 +11,6 @@ napi_value GetTeleSignalingSetting(napi_env env, napi_callback_info info);
 napi_value GetTeleControllingSetting(napi_env env, napi_callback_info info);
 napi_value GetExceedingLimitSetting(napi_env env, napi_callback_info info);
 napi_value GetStatisticsSetting(napi_env env, napi_callback_info info);
+napi_value GetRelaySettingByZone(napi_env env, napi_callback_info info);
 
 #endif

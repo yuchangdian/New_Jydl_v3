@@ -1,6 +1,7 @@
 ﻿import router from '@ohos.router';
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
+import * as relaySettingNativeModule from 'libentry.so';
 import {
   RELAY_SETTING_PROFILES_STORE_KEY,
   RelayFieldBinding,
@@ -89,12 +90,41 @@ interface AbilityFileContext {
   filesDir: string;
 }
 
+interface RelaySettingFieldEntry {
+  id: string;
+  value: string;
+}
+
+interface RelaySettingZoneValue {
+  ready: boolean;
+  zoneCode: number;
+  fields: RelaySettingFieldEntry[];
+}
+
+interface RelaySettingNativeModule {
+  getRelaySettingByZone?: (zoneCode: number) => RelaySettingZoneValue | undefined;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): RelaySettingNativeModule | undefined;
+
 let RELAY_MAIN_SECTIONS: RelaySectionSpec[] = [];
 let RELAY_MONITOR_SECTIONS: RelayMonitorSectionSpec[] = [];
 let RELAY_FIELD_BINDINGS: RelayFieldBinding[] = [];
 let RELAY_BOUND_MAIN_CELLS: RelayCellSpec[] = [];
 let RELAY_BOUND_MONITOR_FIELDS: RelayMonitorFieldSpec[] = [];
 let RELAY_SCHEMA_READY: boolean = false;
+
+function isUsableRelaySettingZoneValue(value: RelaySettingZoneValue | undefined): boolean {
+  return !!value &&
+    value.ready === true &&
+    typeof value.zoneCode === 'number' &&
+    Array.isArray(value.fields) &&
+    value.fields.length > 0;
+}
 
 function relayLabelCellMinWidth(text: string): number {
   if (text.length >= 18) {
@@ -516,6 +546,7 @@ struct RelaySettingSet {
   private readonly progressiveRenderBatchDelayMs: number = 48;
   private readonly zoneStoreDirectoryName: string = 'relay_setting';
   private readonly zoneMigrationFlagFileName: string = 'migration_01_20.done';
+  private cachedRelaySettingNativeModule?: RelaySettingNativeModule;
 
   private s(v: number): number {
     return Math.round(v * this.uiScale);
@@ -757,6 +788,91 @@ struct RelaySettingSet {
     }
 
     return this.createDefaultCurrentZoneProfile(normalizedZoneCode);
+  }
+
+  private isValidRelaySettingNativeModule(module: RelaySettingNativeModule | undefined): boolean {
+    return !!module && typeof module.getRelaySettingByZone === 'function';
+  }
+
+  private loadRelaySettingNativeModule(): RelaySettingNativeModule | undefined {
+    if (this.isValidRelaySettingNativeModule(this.cachedRelaySettingNativeModule)) {
+      return this.cachedRelaySettingNativeModule;
+    }
+    if (this.isValidRelaySettingNativeModule(relaySettingNativeModule)) {
+      this.cachedRelaySettingNativeModule = relaySettingNativeModule;
+      return this.cachedRelaySettingNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidRelaySettingNativeModule(napiModuleWithPath)) {
+      this.cachedRelaySettingNativeModule = napiModuleWithPath;
+      return this.cachedRelaySettingNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidRelaySettingNativeModule(napiModuleWithApp)) {
+      this.cachedRelaySettingNativeModule = napiModuleWithApp;
+      return this.cachedRelaySettingNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidRelaySettingNativeModule(napiModule)) {
+      this.cachedRelaySettingNativeModule = napiModule;
+      return this.cachedRelaySettingNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private createProfileWithNativeRelayFields(
+    zoneCode: string,
+    baseProfile: RelaySettingProfile,
+    fields: RelaySettingFieldEntry[]
+  ): RelaySettingProfile {
+    let nextProfile = this.normalizeProfileFromSource(baseProfile, zoneCode);
+    for (let fieldIndex = 0; fieldIndex < fields.length; fieldIndex++) {
+      let fieldEntry = fields[fieldIndex];
+      if (!fieldEntry || typeof fieldEntry.id !== 'string' || typeof fieldEntry.value !== 'string') {
+        continue;
+      }
+
+      let binding = this.bindingForFieldId(fieldEntry.id);
+      if (!binding || fieldEntry.value.length === 0) {
+        continue;
+      }
+
+      let previousField = relayReadProfileField(nextProfile, binding);
+      let nextField = relayParseStoredField(
+        fieldEntry.value,
+        binding,
+        previousField ? previousField : relayDefaultStoredField(binding)
+      );
+      relayWriteProfileField(nextProfile, binding, nextField);
+    }
+    return nextProfile;
+  }
+
+  private loadNativeRelayZoneProfile(
+    zoneCode: string,
+    baseProfile: RelaySettingProfile
+  ): RelaySettingProfile | undefined {
+    try {
+      let nativeModule = this.loadRelaySettingNativeModule();
+      if (!nativeModule || typeof nativeModule.getRelaySettingByZone !== 'function') {
+        return undefined;
+      }
+
+      let zoneValue = nativeModule.getRelaySettingByZone(Number(relayNormalizeSetZoneCode(zoneCode)));
+      if (!isUsableRelaySettingZoneValue(zoneValue)) {
+        return undefined;
+      }
+
+      let usableZoneValue = zoneValue as RelaySettingZoneValue;
+      return this.createProfileWithNativeRelayFields(zoneCode, baseProfile, usableZoneValue.fields);
+    } catch (error) {
+      console.error(`load native relay setting failed: ${JSON.stringify(error)}`);
+      return undefined;
+    }
   }
 
   private buildLegacyMirrorStore(): RelaySettingProfilesStore {
@@ -1353,8 +1469,10 @@ struct RelaySettingSet {
         return;
       }
       let profileFromFile = this.loadRelayZoneProfileFromFile(this.currentZoneCode);
-      this.currentProfileData = profileFromFile ? profileFromFile : this.loadRelayZoneProfile(this.currentZoneCode);
-      if (!profileFromFile) {
+      let baseProfile = profileFromFile ? profileFromFile : this.loadRelayZoneProfile(this.currentZoneCode);
+      let nativeProfile = this.loadNativeRelayZoneProfile(this.currentZoneCode, baseProfile);
+      this.currentProfileData = nativeProfile ? nativeProfile : baseProfile;
+      if (!profileFromFile || nativeProfile) {
         this.saveRelayZoneProfile(this.currentZoneCode, this.currentProfileData);
       }
       this.rebuildCurrentZoneCache();
