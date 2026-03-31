@@ -5,6 +5,8 @@
 #include "napi/native_api.h"
 
 napi_value GetBaseFreqDisplayData(napi_env env, napi_callback_info info);
+napi_value RequestHarmonicDisplayData(napi_env env, napi_callback_info info);
+napi_value GetHarmonicVoltageDisplayData(napi_env env, napi_callback_info info);
 napi_value GetHarmonicCurrentDisplayData(napi_env env, napi_callback_info info);
 
 #endif

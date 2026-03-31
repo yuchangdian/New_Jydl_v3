@@ -39,8 +39,21 @@ export const getBaseFreqDisplayData = () => {
   };
 };
 
+export const requestHarmonicDisplayData = (): boolean => {
+  return true;
+};
+
 const defaultHarmonicCurrentValues = () => {
   return new Array<number>(30).fill(0);
+};
+
+export const getHarmonicVoltageDisplayData = () => {
+  return {
+    ready: false,
+    Ua: defaultHarmonicCurrentValues(),
+    Ub: defaultHarmonicCurrentValues(),
+    Uc: defaultHarmonicCurrentValues()
+  };
 };
 
 export const getHarmonicCurrentDisplayData = () => {

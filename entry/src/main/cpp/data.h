@@ -205,6 +205,7 @@ typedef struct
     float Uc[30];
 }__attribute__ ((packed,aligned(1))) YC_HarmonicU_Struct;	//璋愭尝鐢靛帇閬ユ祴鏁版嵁缁撴瀯
 extern YC_HarmonicU_Struct HarmonicU_Dsip;
+extern bool HarmonicVoltageDisplayReady;
 #define HarmonicU_DataLenth  367
 
 typedef struct

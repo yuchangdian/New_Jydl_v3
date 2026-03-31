@@ -235,6 +235,84 @@ void LogExceedingLimitSetting(const CommonSetting_ExceedingLimit_Struct &setting
         setting.CRC);
 }
 
+void LogHarmonicVoltageDisplay(const YC_HarmonicU_Struct &value)
+{
+    TCP_LOGI(
+        "HarmonicU_Dsip time=20%{public}02u-%{public}02u-%{public}02u %{public}02u:%{public}02u ms=%{public}03u",
+        static_cast<unsigned int>(value.Time_year),
+        static_cast<unsigned int>(value.Time_month),
+        static_cast<unsigned int>(value.Time_day),
+        static_cast<unsigned int>(value.Time_hour),
+        static_cast<unsigned int>(value.Time_min),
+        static_cast<unsigned int>(value.Time_ms));
+
+    TCP_LOGI(
+        "HarmonicU_Dsip Ua fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
+        static_cast<double>(value.Ua[0]),
+        static_cast<double>(value.Ua[1]),
+        static_cast<double>(value.Ua[2]),
+        static_cast<double>(value.Ua[3]),
+        static_cast<double>(value.Ua[4]),
+        static_cast<double>(value.Ua[5]));
+
+    TCP_LOGI(
+        "HarmonicU_Dsip Ub fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
+        static_cast<double>(value.Ub[0]),
+        static_cast<double>(value.Ub[1]),
+        static_cast<double>(value.Ub[2]),
+        static_cast<double>(value.Ub[3]),
+        static_cast<double>(value.Ub[4]),
+        static_cast<double>(value.Ub[5]));
+
+    TCP_LOGI(
+        "HarmonicU_Dsip Uc fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
+        static_cast<double>(value.Uc[0]),
+        static_cast<double>(value.Uc[1]),
+        static_cast<double>(value.Uc[2]),
+        static_cast<double>(value.Uc[3]),
+        static_cast<double>(value.Uc[4]),
+        static_cast<double>(value.Uc[5]));
+}
+
+void LogHarmonicCurrentDisplay(const YC_HarmonicI_Struct &value)
+{
+    TCP_LOGI(
+        "HarmonicI_Dsip time=20%{public}02u-%{public}02u-%{public}02u %{public}02u:%{public}02u ms=%{public}03u",
+        static_cast<unsigned int>(value.Time_year),
+        static_cast<unsigned int>(value.Time_month),
+        static_cast<unsigned int>(value.Time_day),
+        static_cast<unsigned int>(value.Time_hour),
+        static_cast<unsigned int>(value.Time_min),
+        static_cast<unsigned int>(value.Time_ms));
+
+    TCP_LOGI(
+        "HarmonicI_Dsip Ia fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
+        static_cast<double>(value.Ia[0]),
+        static_cast<double>(value.Ia[1]),
+        static_cast<double>(value.Ia[2]),
+        static_cast<double>(value.Ia[3]),
+        static_cast<double>(value.Ia[4]),
+        static_cast<double>(value.Ia[5]));
+
+    TCP_LOGI(
+        "HarmonicI_Dsip Ib fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
+        static_cast<double>(value.Ib[0]),
+        static_cast<double>(value.Ib[1]),
+        static_cast<double>(value.Ib[2]),
+        static_cast<double>(value.Ib[3]),
+        static_cast<double>(value.Ib[4]),
+        static_cast<double>(value.Ib[5]));
+
+    TCP_LOGI(
+        "HarmonicI_Dsip Ic fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
+        static_cast<double>(value.Ic[0]),
+        static_cast<double>(value.Ic[1]),
+        static_cast<double>(value.Ic[2]),
+        static_cast<double>(value.Ic[3]),
+        static_cast<double>(value.Ic[4]),
+        static_cast<double>(value.Ic[5]));
+}
+
 bool IsAllBytesValue(const std::uint8_t *data, std::size_t length, std::uint8_t expected)
 {
     if (data == nullptr || length == 0) {
@@ -484,62 +562,98 @@ void TcpClient::HandleReceivedBytes(const std::uint8_t *data, std::size_t length
         return;
     }
 
-    if (length >= decodeBuffer_.size()) {
+    if (length > decodeBuffer_.size()) {
         TCP_LOGW("received packet is too large to decode. length=%{public}d", static_cast<int>(length));
+        bufferedSize_ = 0;
         return;
     }
 
-    std::memcpy(decodeBuffer_.data(), data, length);
-    bufferedSize_ = length;
+    if (bufferedSize_ + length > decodeBuffer_.size()) {
+        TCP_LOGW(
+            "decode buffer overflow. buffered=%{public}d incoming=%{public}d",
+            static_cast<int>(bufferedSize_),
+            static_cast<int>(length));
+        bufferedSize_ = 0;
+    }
+
+    std::memcpy(decodeBuffer_.data() + bufferedSize_, data, length);
+    bufferedSize_ += length;
     DispatchDecodedFrames();
 }
 
 void TcpClient::DispatchDecodedFrames()
 {
-    std::uint16_t commonAddr = 0;
-    std::uint16_t objectAddr = 0;
-    std::size_t decodeOffset = 0;
-    bool finishFlag = false;
+    constexpr std::size_t frameHeaderLength = sizeof(std::uint16_t) * 3;
+    std::size_t frameOffset = 0;
 
-    while (!finishFlag) {
-        if (!TryReadUint16(decodeOffset, &commonAddr)) {
-            TCP_LOGW("decode stopped: missing common address. offset=%{public}d", static_cast<int>(decodeOffset));
-            break;
-        }
-        decodeOffset += sizeof(std::uint16_t);
-
-        if (!TryReadUint16(decodeOffset, &objectAddr)) {
-            TCP_LOGW("decode stopped: missing object address. offset=%{public}d", static_cast<int>(decodeOffset));
+    while (true) {
+        if (bufferedSize_ - frameOffset < frameHeaderLength) {
             break;
         }
 
+        std::uint16_t commonAddr = 0;
+        std::uint16_t objectAddr = 0;
+        std::uint16_t dataLength = 0;
+        if (!TryReadUint16(frameOffset, &commonAddr) ||
+            !TryReadUint16(frameOffset + sizeof(std::uint16_t), &objectAddr) ||
+            !TryReadUint16(frameOffset + sizeof(std::uint16_t) * 2, &dataLength)) {
+            break;
+        }
+
+        const std::size_t frameLength = frameHeaderLength + static_cast<std::size_t>(dataLength);
+        if (frameOffset + frameLength > bufferedSize_) {
+            break;
+        }
+
+        std::size_t decodeOffset = frameOffset;
         switch (commonAddr) {
             case Common_Addr_RemoteMetry:
-                decodeOffset += sizeof(std::uint16_t);
+                decodeOffset += sizeof(std::uint16_t) * 2;
                 DecodeRemoteMetryPacket(objectAddr, &decodeOffset);
                 break;
             case Common_Addr_RemoteSignal:
-                decodeOffset += sizeof(std::uint16_t);
+                decodeOffset += sizeof(std::uint16_t) * 2;
                 DecodeRemoteSignalPacket(objectAddr, &decodeOffset);
                 break;
             case Common_Addr_RemoteAdjust:
-                decodeOffset += sizeof(std::uint16_t);
+                decodeOffset += sizeof(std::uint16_t) * 2;
                 TCP_LOGI("objectAddr = %{public}u", objectAddr);
                 DecodeRemoteAdjustPacket(objectAddr, &decodeOffset);
                 break;
             case Common_Addr_SOE:
+                decodeOffset += sizeof(std::uint16_t);
                 DecodeSoePackage(objectAddr, &decodeOffset);
                 break;
             default:
-                TCP_LOGW("decode stopped: unsupported common address=%{public}u", commonAddr);
-                finishFlag = true;
+                TCP_LOGW("decode skipped: unsupported common address=%{public}u", commonAddr);
+                decodeOffset = frameOffset + frameLength;
                 break;
         }
 
-        if (decodeOffset >= bufferedSize_) {
-            finishFlag = true;
+        if (decodeOffset <= frameOffset || decodeOffset > bufferedSize_) {
+            TCP_LOGW(
+                "decode stopped: invalid frame advance. common=%{public}u object=%{public}u offset=%{public}d next=%{public}d",
+                commonAddr,
+                objectAddr,
+                static_cast<int>(frameOffset),
+                static_cast<int>(decodeOffset));
+            break;
         }
+
+        frameOffset = decodeOffset;
     }
+
+    if (frameOffset == 0) {
+        return;
+    }
+
+    if (frameOffset < bufferedSize_) {
+        std::memmove(
+            decodeBuffer_.data(),
+            decodeBuffer_.data() + frameOffset,
+            bufferedSize_ - frameOffset);
+    }
+    bufferedSize_ -= frameOffset;
 }
 
 bool TcpClient::TryReadUint16(std::size_t offset, std::uint16_t *value) const
@@ -576,6 +690,8 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
         return;
     }
 
+    TCP_LOGI("RemoteMetry frame object=%{public}u length=%{public}d", objectAddr, dataLength);
+
     switch (objectAddr) {
         case RemoteMetry_BaseFreq:
             if (payloadLength == BaseFreq_DataLenth) {
@@ -599,7 +715,9 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
         case RemoteMetry_HarmonicU:
             if (payloadLength == HarmonicU_DataLenth) {
                 std::memcpy(&HarmonicU_Dsip, decodeBuffer_.data() + payloadOffset, sizeof(YC_HarmonicU_Struct));
+                HarmonicVoltageDisplayReady = true;
                 TCP_LOGI("HarmonicU_Dsip updated");
+                LogHarmonicVoltageDisplay(HarmonicU_Dsip);
             } else {
                 TCP_LOGW("HarmonicU_Dsip length mismatch. expected=%{public}d actual=%{public}d",
                     static_cast<int>(HarmonicU_DataLenth), dataLength);
@@ -610,6 +728,7 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
                 std::memcpy(&HarmonicI_Dsip, decodeBuffer_.data() + payloadOffset, sizeof(YC_HarmonicI_Struct));
                 HarmonicCurrentDisplayReady = true;
                 TCP_LOGI("HarmonicI_Dsip updated");
+                LogHarmonicCurrentDisplay(HarmonicI_Dsip);
             } else {
                 TCP_LOGW("HarmonicI_Dsip length mismatch. expected=%{public}d actual=%{public}d",
                     static_cast<int>(HarmonicI_DataLenth), dataLength);

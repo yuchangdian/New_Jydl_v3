@@ -156,6 +156,8 @@ static napi_value Init(napi_env env, napi_value exports)
         {"stopTcpClient", nullptr, StopTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isTcpClientRunning", nullptr, IsTcpClientRunning, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getBaseFreqDisplayData", nullptr, GetBaseFreqDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"requestHarmonicDisplayData", nullptr, RequestHarmonicDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getHarmonicVoltageDisplayData", nullptr, GetHarmonicVoltageDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getHarmonicCurrentDisplayData", nullptr, GetHarmonicCurrentDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getPrimarySystemSetting", nullptr, GetPrimarySystemSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getAnalogQuantitySetting", nullptr, GetAnalogQuantitySetting, nullptr, nullptr, nullptr, napi_default, nullptr},

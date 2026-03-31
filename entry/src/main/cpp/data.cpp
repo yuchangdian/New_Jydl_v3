@@ -80,6 +80,7 @@ YC_BaseFreq_Struct BaseFreq_Dsip;
 bool BaseFreqDisplayReady = false;
 YC_Energy_Struct Energy_Dsip;
 YC_HarmonicU_Struct HarmonicU_Dsip;
+bool HarmonicVoltageDisplayReady = false;
 YC_HarmonicI_Struct HarmonicI_Dsip;
 bool HarmonicCurrentDisplayReady = false;
 

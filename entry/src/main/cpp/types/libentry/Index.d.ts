@@ -58,6 +58,13 @@ export interface HarmonicCurrentDisplayValue {
   Ic: number[];
 }
 
+export interface HarmonicVoltageDisplayValue {
+  ready: boolean;
+  Ua: number[];
+  Ub: number[];
+  Uc: number[];
+}
+
 export interface CommonSettingAnalogQuantityParameterStructValue {
   Ua: number;
   Ub: number;
@@ -233,6 +240,8 @@ export const startTcpClient: (host: string, port: number) => boolean;
 export const stopTcpClient: () => void;
 export const isTcpClientRunning: () => boolean;
 export const getBaseFreqDisplayData: () => BaseFreqDisplayValue;
+export const requestHarmonicDisplayData: () => boolean;
+export const getHarmonicVoltageDisplayData: () => HarmonicVoltageDisplayValue;
 export const getHarmonicCurrentDisplayData: () => HarmonicCurrentDisplayValue;
 export const getPrimarySystemSetting: () => CommonSettingPrimarySystemStructValue;
 export const getAnalogQuantitySetting: () => CommonSettingAnalogQuantityStructValue;
