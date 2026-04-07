@@ -93,7 +93,7 @@ typedef struct
 
     uint32_t CRC;
 }PowerQualitySetting_struct;
-extern PowerQualitySetting_struct PowerQualitySetting;
-extern PowerQualitySetting_struct PowerQualitySetting_Buf;
+extern PowerQualitySetting_struct LegacyPowerQualitySetting;
+extern PowerQualitySetting_struct LegacyPowerQualitySetting_Buf;
 
 #endif // QUALITY_H

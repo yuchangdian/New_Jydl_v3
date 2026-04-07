@@ -33,8 +33,26 @@ interface CommonSettingTeleControllingStructValue {
   CRC: number;
 }
 
+interface CommonSettingTeleControllingWriteValue {
+  HoldingTime_YK1_XZ: number;
+  HoldingTime_YK1_TZ: number;
+  HoldingTime_YK1_HZ: number;
+  HoldingTime_YK2_XZ: number;
+  HoldingTime_YK2_TZ: number;
+  HoldingTime_YK2_HZ: number;
+  Sync_NoVoltage: number;
+  Sync_ThereVoltage: number;
+  Sync_Volue_VoltageDifferenceBlock: number;
+  Sync_Volue_AngleDifferenceBlock: number;
+  Sync_Volue_FrequencyDifferenceBlock: number;
+  Sync_DelayTime: number;
+  Sync_BreakerCloseTime: number;
+  Sync_Enable_CloseMode_YK: number;
+}
+
 interface TeleControllingNativeModule {
   getTeleControllingSetting?: () => CommonSettingTeleControllingStructValue | undefined;
+  updateTeleControllingSetting?: (value: CommonSettingTeleControllingWriteValue) => boolean;
 }
 
 declare function requireNapi(
@@ -54,6 +72,9 @@ const STR_FEEDBACK_OK: string = '确定';
 const STR_CANCEL: string = '取消';
 const STR_SUBMIT_SUCCESS: string = '提交成功';
 const STR_SUBMIT_FAILURE: string = '提交失败';
+const STR_SUBMIT_WRITE_FAILURE: string = '提交失败，请检查遥控参数结构体写入。';
+const STR_WAITING_TITLE: string = '等待回应';
+const STR_WAITING_BODY: string = '界面参数已写入遥控参数结构体，等待装置回应...';
 const STR_REMOTE_SECTION: string = '【遥控参数】';
 const STR_SYNC_SECTION: string = '【同期合闸参数】';
 const STR_YK1_SELECT: string = '遥控1选择保持时间:';
@@ -196,6 +217,8 @@ export struct CommonSetting_TeleControlling_Set {
   @State selectOverlayOptions: string[] = [];
   @State feedbackDialogVisible: boolean = false;
   @State feedbackMessage: string = '';
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
 
   private readonly fontSize: CommonSettingTeleControllingFontSize = new CommonSettingTeleControllingFontSize();
   private readonly closeModeOptions: string[] = COMMON_SETTING_TELE_CONTROLLING_CLOSE_MODE_OPTIONS;
@@ -338,10 +361,156 @@ export struct CommonSetting_TeleControlling_Set {
     this.formData = createDefaultCommonSettingTeleControllingData();
   }
 
+  private showFeedback(message: string): void {
+    this.feedbackMessage = message;
+    this.feedbackDialogVisible = true;
+  }
+
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private parseTeleControllingFieldNumber(value: string, fallbackValue: number): number {
+    let parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return fallbackValue;
+    }
+    return parsed;
+  }
+
+  private parseTeleControllingFieldUint(value: string, fallbackValue: number): number {
+    return Math.max(0, Math.round(this.parseTeleControllingFieldNumber(value, fallbackValue)));
+  }
+
+  private getRemoteCloseModeCode(value: string, fallbackValue: number): number {
+    switch (value) {
+      case '闭锁':
+        return 0;
+      case '普通':
+        return 1;
+      case '检同期':
+        return 2;
+      case '检线无压且母有压':
+        return 3;
+      case '检线有压且母无压':
+        return 4;
+      case '检线无压且母无压':
+        return 5;
+      case '检线无压或母无压':
+        return 6;
+      default:
+        if (fallbackValue >= 0 && fallbackValue <= 6) {
+          return fallbackValue;
+        }
+        return 2;
+    }
+  }
+
+  private createTeleControllingWriteValue(
+    fallbackSource?: CommonSettingTeleControllingStructValue
+  ): CommonSettingTeleControllingWriteValue {
+    return {
+      HoldingTime_YK1_XZ: this.parseTeleControllingFieldUint(
+        this.formData.yk1SelectHoldingTime,
+        fallbackSource?.HoldingTime_YK1_XZ ?? 0
+      ),
+      HoldingTime_YK1_TZ: this.parseTeleControllingFieldUint(
+        this.formData.yk1TripHoldingTime,
+        fallbackSource?.HoldingTime_YK1_TZ ?? 0
+      ),
+      HoldingTime_YK1_HZ: this.parseTeleControllingFieldUint(
+        this.formData.yk1CloseHoldingTime,
+        fallbackSource?.HoldingTime_YK1_HZ ?? 0
+      ),
+      HoldingTime_YK2_XZ: this.parseTeleControllingFieldUint(
+        this.formData.yk2SelectHoldingTime,
+        fallbackSource?.HoldingTime_YK2_XZ ?? 0
+      ),
+      HoldingTime_YK2_TZ: this.parseTeleControllingFieldUint(
+        this.formData.yk2TripHoldingTime,
+        fallbackSource?.HoldingTime_YK2_TZ ?? 0
+      ),
+      HoldingTime_YK2_HZ: this.parseTeleControllingFieldUint(
+        this.formData.yk2CloseHoldingTime,
+        fallbackSource?.HoldingTime_YK2_HZ ?? 0
+      ),
+      Sync_NoVoltage: this.parseTeleControllingFieldNumber(
+        this.formData.syncNoVoltage,
+        fallbackSource?.Sync_NoVoltage ?? 0
+      ),
+      Sync_ThereVoltage: this.parseTeleControllingFieldNumber(
+        this.formData.syncThereVoltage,
+        fallbackSource?.Sync_ThereVoltage ?? 0
+      ),
+      Sync_Volue_VoltageDifferenceBlock: this.parseTeleControllingFieldNumber(
+        this.formData.syncVoltageDifferenceBlock,
+        fallbackSource?.Sync_Volue_VoltageDifferenceBlock ?? 0
+      ),
+      Sync_Volue_AngleDifferenceBlock: this.parseTeleControllingFieldNumber(
+        this.formData.syncAngleDifferenceBlock,
+        fallbackSource?.Sync_Volue_AngleDifferenceBlock ?? 0
+      ),
+      Sync_Volue_FrequencyDifferenceBlock: this.parseTeleControllingFieldNumber(
+        this.formData.syncFrequencyDifferenceBlock,
+        fallbackSource?.Sync_Volue_FrequencyDifferenceBlock ?? 0
+      ),
+      Sync_DelayTime: this.parseTeleControllingFieldUint(
+        this.formData.syncDelayTime,
+        fallbackSource?.Sync_DelayTime ?? 0
+      ),
+      Sync_BreakerCloseTime: this.parseTeleControllingFieldUint(
+        this.formData.syncBreakerCloseTime,
+        fallbackSource?.Sync_BreakerCloseTime ?? 0
+      ),
+      Sync_Enable_CloseMode_YK: this.getRemoteCloseModeCode(
+        this.formData.remoteCloseMode,
+        fallbackSource?.Sync_Enable_CloseMode_YK ?? 2
+      )
+    };
+  }
+
+  private writeNativeTeleControllingData(): boolean {
+    try {
+      let nativeModule = this.loadTeleControllingNativeModule();
+      if (!nativeModule || typeof nativeModule.updateTeleControllingSetting !== 'function') {
+        return false;
+      }
+
+      let currentStructValue: CommonSettingTeleControllingStructValue | undefined = undefined;
+      if (typeof nativeModule.getTeleControllingSetting === 'function') {
+        currentStructValue = nativeModule.getTeleControllingSetting();
+      }
+
+      let writeValue = this.createTeleControllingWriteValue(currentStructValue);
+      let writeSuccess = nativeModule.updateTeleControllingSetting(writeValue);
+      if (writeSuccess) {
+        this.loadNativeTeleControllingData();
+      }
+      return writeSuccess;
+    } catch (error) {
+      console.error(`write native tele controlling data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
   private submitCurrentData(): void {
     let saveSuccess = this.savePersistedData();
-    this.feedbackMessage = saveSuccess ? STR_SUBMIT_SUCCESS : STR_SUBMIT_FAILURE;
-    this.feedbackDialogVisible = true;
+    if (!saveSuccess) {
+      this.showFeedback(STR_SUBMIT_FAILURE);
+      return;
+    }
+    let writeSuccess = this.writeNativeTeleControllingData();
+    if (!writeSuccess) {
+      this.showFeedback(STR_SUBMIT_WRITE_FAILURE);
+      return;
+    }
+    this.showSubmitWaiting(STR_WAITING_BODY);
   }
 
   private closeFeedback(): void {
@@ -423,6 +592,10 @@ export struct CommonSetting_TeleControlling_Set {
 
       if (this.selectOverlayVisible) {
         this.SelectOverlay();
+      }
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
       }
 
       if (this.feedbackDialogVisible) {
@@ -885,6 +1058,59 @@ export struct CommonSetting_TeleControlling_Set {
     .width('100%')
     .height('100%');
   }
+  @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeSubmitWaiting();
+      });
+
+      Column() {
+        Text(STR_WAITING_TITLE)
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogTitle))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button(STR_CLOSE)
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
+          });
+      }
+      .width(this.s(280))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(this.overlayCardRadius));
+    }
+    .width('100%')
+    .height('100%');
+  }
+
   @Builder
   FeedbackOverlay() {
     Stack() {

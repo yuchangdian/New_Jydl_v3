@@ -5,10 +5,12 @@ import * as primarySystemNativeModule from 'libentry.so';
 import {
   CommonSettingPrimarySystemData,
   CommonSettingPrimarySystemStructValue,
+  CommonSettingPrimarySystemWriteValue,
   COMMON_SETTING_PRIMARY_SYSTEM_CT_CONNECTION_OPTIONS,
   COMMON_SETTING_PRIMARY_SYSTEM_LINE_PHASE_OPTIONS,
   COMMON_SETTING_PRIMARY_SYSTEM_ZERO_CURRENT_OPTIONS,
   createCommonSettingPrimarySystemDataFromStruct,
+  createCommonSettingPrimarySystemWriteValue,
   createDefaultCommonSettingPrimarySystemData,
   deserializeCommonSettingPrimarySystemData,
   isUsableCommonSettingPrimarySystemStructValue,
@@ -21,6 +23,7 @@ interface AbilityFileContext {
 
 interface PrimarySystemNativeModule {
   getPrimarySystemSetting?: () => CommonSettingPrimarySystemStructValue | undefined;
+  updatePrimarySystemSetting?: (value: CommonSettingPrimarySystemWriteValue) => boolean;
 }
 
 declare function requireNapi(
@@ -75,6 +78,8 @@ export struct CommonSetting_PrimarySystem_Set {
   @State selectOverlayOptions: string[] = [];
   @State feedbackDialogVisible: boolean = false;
   @State feedbackMessage: string = '';
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
 
   private readonly fontSize: CommonSettingPrimarySystemFontSize = new CommonSettingPrimarySystemFontSize();
   private readonly rowHeight: number = 54;
@@ -221,6 +226,43 @@ export struct CommonSetting_PrimarySystem_Set {
   private closeFeedback(): void {
     this.feedbackDialogVisible = false;
     this.feedbackMessage = '';
+  }
+
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private writeNativePrimarySystemData(): boolean {
+    try {
+      let nativeModule = this.loadPrimarySystemNativeModule();
+      if (!nativeModule || typeof nativeModule.updatePrimarySystemSetting !== 'function') {
+        console.info('一次系统提交失败：native 模块未加载或 updatePrimarySystemSetting 不可用');
+        return false;
+      }
+
+      let currentStructValue: CommonSettingPrimarySystemStructValue | undefined = undefined;
+      if (typeof nativeModule.getPrimarySystemSetting === 'function') {
+        currentStructValue = nativeModule.getPrimarySystemSetting();
+      }
+
+      let writeValue = createCommonSettingPrimarySystemWriteValue(this.formData, currentStructValue);
+      console.info(`一次系统提交写入参数=${JSON.stringify(writeValue)}`);
+      let writeSuccess = nativeModule.updatePrimarySystemSetting(writeValue);
+      console.info(`一次系统提交写入结果 writeSuccess=${writeSuccess}`);
+      if (writeSuccess) {
+        this.loadNativePrimarySystemData();
+      }
+      return writeSuccess;
+    } catch (error) {
+      console.error(`write native primary system data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
   }
 
   private getInputValue(fieldKey: string): string {
@@ -394,7 +436,33 @@ export struct CommonSetting_PrimarySystem_Set {
   }
 
   private submitCurrentData(): void {
+    console.info(`一次系统提交按钮点击，界面参数=${serializeCommonSettingPrimarySystemData(this.formData)}`);
     let saveSuccess = this.savePersistedData();
+    console.info(`一次系统本地保存结果 saveSuccess=${saveSuccess}`);
+    let writeSuccess = this.writeNativePrimarySystemData();
+    console.info(`一次系统提交完成 saveSuccess=${saveSuccess} writeSuccess=${writeSuccess}`);
+    if (!writeSuccess) {
+      this.showFeedback(saveSuccess ? '提交失败' : '提交失败，请检查本地保存和结构体写入。');
+      return;
+    }
+    if (!saveSuccess) {
+      console.warn('save primary system data failed, but native struct update succeeded.');
+    }
+    this.showSubmitWaiting('界面参数已写入一次系统结构体，等待装置回应...');
+    return;
+    if (!writeSuccess) {
+      this.showFeedback(saveSuccess ? '提交失败' : '提交失败，请检查本地保存和结构体写入。');
+      return;
+    }
+    if (writeSuccess) {
+      if (!saveSuccess) {
+        console.warn('save primary system data failed, but native struct update succeeded.');
+      }
+      this.showSubmitWaiting('界面参数已写入一次系统结构体，等待装置回应...');
+      return;
+      this.showSubmitWaiting('界面参数已写入一次系统结构体，等待装置回应...');
+      return;
+    }
     this.showFeedback(saveSuccess ? '提交成功' : '提交失败');
   }
 
@@ -443,6 +511,10 @@ export struct CommonSetting_PrimarySystem_Set {
 
       if (this.selectOverlayVisible) {
         this.SelectOverlay();
+      }
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
       }
 
       if (this.feedbackDialogVisible) {
@@ -778,6 +850,59 @@ export struct CommonSetting_PrimarySystem_Set {
       }
       .width(this.s(this.overlayCardWidth))
       .padding({ left: this.s(14), right: this.s(14), top: this.s(14), bottom: this.s(14) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(this.overlayCardRadius));
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeSubmitWaiting();
+      });
+
+      Column() {
+        Text('等待回应')
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogTitle))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button('关闭')
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
+          });
+      }
+      .width(this.s(320))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
       .backgroundColor('#F7F7F7')
       .border({ width: 1, color: '#D2D2D2' })
       .borderRadius(this.s(this.overlayCardRadius));

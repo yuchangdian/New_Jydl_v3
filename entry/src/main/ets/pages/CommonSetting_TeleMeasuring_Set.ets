@@ -16,8 +16,20 @@ interface CommonSettingTeleMeasuringStructValue {
   CRC: number;
 }
 
+interface CommonSettingTeleMeasuringWriteValue {
+  Cycle_Detection: number;
+  DeadBand_Frequency: number;
+  DeadBand_ACvoltage: number;
+  DeadBand_DCvoltage: number;
+  DeadBand_ACcurrent: number;
+  DeadBand_Power: number;
+  DeadBand_PowerFactor: number;
+  Enable_PrimaryEnergy: number;
+}
+
 interface TeleMeasuringNativeModule {
   getTeleMeasuringSetting?: () => CommonSettingTeleMeasuringStructValue | undefined;
+  updateTeleMeasuringSetting?: (value: CommonSettingTeleMeasuringWriteValue) => boolean;
 }
 
 declare function requireNapi(
@@ -140,6 +152,8 @@ export struct CommonSetting_TeleMeasuring_Set {
   @State selectOverlayOptions: string[] = [];
   @State feedbackDialogVisible: boolean = false;
   @State feedbackMessage: string = '';
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
 
   private readonly fontSize: CommonSettingTeleMeasuringFontSize = new CommonSettingTeleMeasuringFontSize();
   private readonly primaryEnergyOptions: string[] = ['一次值', '二次值'];
@@ -240,9 +254,116 @@ export struct CommonSetting_TeleMeasuring_Set {
     this.formData = createDefaultCommonSettingTeleMeasuringData();
   }
 
-  private submitCurrentData(): void {
-    this.feedbackMessage = '提交成功';
+  private showFeedback(message: string): void {
+    this.feedbackMessage = message;
     this.feedbackDialogVisible = true;
+  }
+
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private parseTeleMeasuringFieldNumber(value: string, fallbackValue: number): number {
+    let parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return fallbackValue;
+    }
+    return parsed;
+  }
+
+  private parseTeleMeasuringFieldUint(value: string, fallbackValue: number): number {
+    return Math.max(0, Math.round(this.parseTeleMeasuringFieldNumber(value, fallbackValue)));
+  }
+
+  private getPrimaryEnergyModeCode(value: string, fallbackValue: number): number {
+    if (value === '一次值') {
+      return 1;
+    }
+    if (value === '二次值') {
+      return 0;
+    }
+    if (fallbackValue === 0 || fallbackValue === 1) {
+      return fallbackValue;
+    }
+    return 1;
+  }
+
+  private createTeleMeasuringWriteValue(
+    fallbackSource?: CommonSettingTeleMeasuringStructValue
+  ): CommonSettingTeleMeasuringWriteValue {
+    return {
+      Cycle_Detection: this.parseTeleMeasuringFieldNumber(
+        this.formData.cycleDetection,
+        fallbackSource?.Cycle_Detection ?? 0
+      ),
+      DeadBand_Frequency: this.parseTeleMeasuringFieldNumber(
+        this.formData.frequencyDeadBand,
+        fallbackSource?.DeadBand_Frequency ?? 0
+      ),
+      DeadBand_ACvoltage: this.parseTeleMeasuringFieldNumber(
+        this.formData.acVoltageDeadBand,
+        fallbackSource?.DeadBand_ACvoltage ?? 0
+      ),
+      DeadBand_DCvoltage: this.parseTeleMeasuringFieldNumber(
+        this.formData.dcVoltageDeadBand,
+        fallbackSource?.DeadBand_DCvoltage ?? 0
+      ),
+      DeadBand_ACcurrent: this.parseTeleMeasuringFieldNumber(
+        this.formData.acCurrentDeadBand,
+        fallbackSource?.DeadBand_ACcurrent ?? 0
+      ),
+      DeadBand_Power: this.parseTeleMeasuringFieldNumber(
+        this.formData.powerDeadBand,
+        fallbackSource?.DeadBand_Power ?? 0
+      ),
+      DeadBand_PowerFactor: this.parseTeleMeasuringFieldNumber(
+        this.formData.powerFactorDeadBand,
+        fallbackSource?.DeadBand_PowerFactor ?? 0
+      ),
+      Enable_PrimaryEnergy: this.getPrimaryEnergyModeCode(
+        this.formData.primaryEnergyMode,
+        fallbackSource?.Enable_PrimaryEnergy ?? 1
+      )
+    };
+  }
+
+  private writeNativeTeleMeasuringData(): boolean {
+    try {
+      let nativeModule = this.loadTeleMeasuringNativeModule();
+      if (!nativeModule || typeof nativeModule.updateTeleMeasuringSetting !== 'function') {
+        return false;
+      }
+
+      let currentStructValue: CommonSettingTeleMeasuringStructValue | undefined = undefined;
+      if (typeof nativeModule.getTeleMeasuringSetting === 'function') {
+        currentStructValue = nativeModule.getTeleMeasuringSetting();
+      }
+
+      let writeValue = this.createTeleMeasuringWriteValue(currentStructValue);
+      let writeSuccess = nativeModule.updateTeleMeasuringSetting(writeValue);
+      if (writeSuccess) {
+        this.loadNativeTeleMeasuringData();
+      }
+      return writeSuccess;
+    } catch (error) {
+      console.error(`write native tele measuring data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
+  private submitCurrentData(): void {
+    let writeSuccess = this.writeNativeTeleMeasuringData();
+    if (!writeSuccess) {
+      this.showFeedback('提交失败，请检查遥测参数结构体写入。');
+      return;
+    }
+    this.showSubmitWaiting('界面参数已写入遥测参数结构体，等待装置回应...');
   }
 
   private closeFeedback(): void {
@@ -324,6 +445,10 @@ export struct CommonSetting_TeleMeasuring_Set {
 
       if (this.selectOverlayVisible) {
         this.SelectOverlay();
+      }
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
       }
 
       if (this.feedbackDialogVisible) {
@@ -677,6 +802,59 @@ export struct CommonSetting_TeleMeasuring_Set {
     .width('100%')
     .height('100%');
   }
+  @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeSubmitWaiting();
+      });
+
+      Column() {
+        Text('等待回应')
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogTitle))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button('关闭')
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
+          });
+      }
+      .width(this.s(280))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(this.overlayCardRadius));
+    }
+    .width('100%')
+    .height('100%');
+  }
+
   @Builder
   FeedbackOverlay() {
     Stack() {

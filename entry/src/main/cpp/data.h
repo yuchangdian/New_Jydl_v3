@@ -200,13 +200,13 @@ typedef struct
     uint8_t Time_day;	//1~31
     uint8_t Time_month;	//1~12
     uint8_t Time_year;	//0~99
-    float Ua[30];   //Ua[0]工频频率，Ua[1]工频幅值，Ua[2]工频相位，Ua[3]谐波1频率，Ua[4]谐波1幅值，Ua[5]谐波1相位...
-    float Ub[30];
-    float Uc[30];
+    float Ua_Frequency[10], Ua_RMS[10], Ua_Angle[10];
+    float Ub_Frequency[10], Ub_RMS[10], Ub_Angle[10];
+    float Uc_Frequency[10], Uc_RMS[10], Uc_Angle[10];
 }__attribute__ ((packed,aligned(1))) YC_HarmonicU_Struct;	//璋愭尝鐢靛帇閬ユ祴鏁版嵁缁撴瀯
 extern YC_HarmonicU_Struct HarmonicU_Dsip;
 extern bool HarmonicVoltageDisplayReady;
-#define HarmonicU_DataLenth  367
+#define HarmonicU_DataLenth  sizeof(YC_HarmonicU_Struct)
 
 typedef struct
 {
@@ -216,13 +216,13 @@ typedef struct
     uint8_t Time_day;	//1~31
     uint8_t Time_month;	//1~12
     uint8_t Time_year;	//0~99
-    float Ia[30];   //Ia[0]工频频率，Ia[1]工频幅值，Ia[2]工频相位，Ia[3]谐波1频率，Ia[4]谐波1幅值，Ia[5]谐波1相位...
-    float Ib[30];
-    float Ic[30];
+    float Ia_Frequency[10], Ia_RMS[10], Ia_Angle[10];
+    float Ib_Frequency[10], Ib_RMS[10], Ib_Angle[10];
+    float Ic_Frequency[10], Ic_RMS[10], Ic_Angle[10];
 }__attribute__ ((packed,aligned(1))) YC_HarmonicI_Struct;	//璋愭尝鐢垫祦閬ユ祴鏁版嵁缁撴瀯
 extern YC_HarmonicI_Struct HarmonicI_Dsip;
 extern bool HarmonicCurrentDisplayReady;
-#define HarmonicI_DataLenth  367
+#define HarmonicI_DataLenth  sizeof(YC_HarmonicI_Struct)
 
 typedef struct
 {

@@ -1,6 +1,7 @@
 import router from '@ohos.router';
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
+import * as powerQualityNativeModule from 'libentry.so';
 import {
   CommonSettingPowerQualityData,
   COMMON_SETTING_POWER_QUALITY_ENABLE_OPTIONS,
@@ -12,6 +13,69 @@ import {
 interface AbilityFileContext {
   filesDir: string;
 }
+
+interface CommonSettingPowerQualityStructValue {
+  ready: boolean;
+  Enable_FrequencyDeviation: number;
+  Value_FrequencyDeviation: number;
+  Enable_VoltageDeviation: number;
+  Value_VoltageDeviation: number;
+  Enable_VoltageUnbalance: number;
+  Value_VoltageUnbalance: number;
+  Enable_VoltageFluct: number;
+  Value_VoltageFluct: number;
+  Enable_VoltageFlicke: number;
+  Value_VoltageFlicke: number;
+  Enable_VoltageSeg: number;
+  Value_VoltageSeg: number;
+  Enable_VoltageTHD: number;
+  Value_VoltageTHD: number;
+  Enable_VoltageHAR: number;
+  Value_VoltageHAR: number;
+  Enable_CurrentUnbalance: number;
+  Value_CurrentUnbalance: number;
+  Enable_CurrentTHD: number;
+  Value_CurrentTHD: number;
+  Enable_CurrentHAR: number;
+  Value_CurrentHAR: number;
+  CRC: number;
+}
+
+interface CommonSettingPowerQualityWriteValue {
+  Enable_FrequencyDeviation: number;
+  Value_FrequencyDeviation: number;
+  Enable_VoltageDeviation: number;
+  Value_VoltageDeviation: number;
+  Enable_VoltageUnbalance: number;
+  Value_VoltageUnbalance: number;
+  Enable_VoltageFluct: number;
+  Value_VoltageFluct: number;
+  Enable_VoltageFlicke: number;
+  Value_VoltageFlicke: number;
+  Enable_VoltageSeg: number;
+  Value_VoltageSeg: number;
+  Enable_VoltageTHD: number;
+  Value_VoltageTHD: number;
+  Enable_VoltageHAR: number;
+  Value_VoltageHAR: number;
+  Enable_CurrentUnbalance: number;
+  Value_CurrentUnbalance: number;
+  Enable_CurrentTHD: number;
+  Value_CurrentTHD: number;
+  Enable_CurrentHAR: number;
+  Value_CurrentHAR: number;
+}
+
+interface PowerQualityNativeModule {
+  getPowerQualitySetting?: () => CommonSettingPowerQualityStructValue | undefined;
+  updatePowerQualitySetting?: (value: CommonSettingPowerQualityWriteValue) => boolean;
+}
+
+declare function requireNapi(
+  moduleName: string,
+  isAppModule?: boolean,
+  modulePath?: string
+): PowerQualityNativeModule | undefined;
 
 type PowerQualityEnabledFieldKey =
   | 'frequencyDeviationEnabled'
@@ -159,9 +223,12 @@ export struct CommonSetting_PowerQuality_Set {
   @State selectOverlayValue: string = '';
   @State feedbackDialogVisible: boolean = false;
   @State feedbackMessage: string = '';
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
 
   private readonly fontSize: CommonSettingPowerQualityFontSize = new CommonSettingPowerQualityFontSize();
   private readonly enableOptions: string[] = COMMON_SETTING_POWER_QUALITY_ENABLE_OPTIONS;
+  private cachedPowerQualityNativeModule?: PowerQualityNativeModule;
   private readonly pageBaseWidth: number = 1024;
   private readonly pageBaseHeight: number = 600;
   private readonly pageMaxWidth: number = 1024;
@@ -201,7 +268,9 @@ export struct CommonSetting_PowerQuality_Set {
     } catch (error) {
       this.uiScale = 1;
     }
-    this.loadPersistedData();
+    if (!this.loadNativePowerQualityData()) {
+      this.loadPersistedData();
+    }
   }
 
   private getDataFilePath(): string {
@@ -237,6 +306,158 @@ export struct CommonSetting_PowerQuality_Set {
       return true;
     } catch (error) {
       console.error(`save power quality data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
+  private isValidPowerQualityNativeModule(module: PowerQualityNativeModule | undefined): boolean {
+    return !!module &&
+      (typeof module.getPowerQualitySetting === 'function' ||
+        typeof module.updatePowerQualitySetting === 'function');
+  }
+
+  private loadPowerQualityNativeModule(): PowerQualityNativeModule | undefined {
+    if (this.isValidPowerQualityNativeModule(this.cachedPowerQualityNativeModule)) {
+      return this.cachedPowerQualityNativeModule;
+    }
+    if (this.isValidPowerQualityNativeModule(powerQualityNativeModule)) {
+      this.cachedPowerQualityNativeModule = powerQualityNativeModule;
+      return this.cachedPowerQualityNativeModule;
+    }
+
+    let napiModuleWithPath = requireNapi('entry', true, 'com.example.new_jydl_v3/entry');
+    if (this.isValidPowerQualityNativeModule(napiModuleWithPath)) {
+      this.cachedPowerQualityNativeModule = napiModuleWithPath;
+      return this.cachedPowerQualityNativeModule;
+    }
+
+    let napiModuleWithApp = requireNapi('entry', true);
+    if (this.isValidPowerQualityNativeModule(napiModuleWithApp)) {
+      this.cachedPowerQualityNativeModule = napiModuleWithApp;
+      return this.cachedPowerQualityNativeModule;
+    }
+
+    let napiModule = requireNapi('entry');
+    if (this.isValidPowerQualityNativeModule(napiModule)) {
+      this.cachedPowerQualityNativeModule = napiModule;
+      return this.cachedPowerQualityNativeModule;
+    }
+
+    return undefined;
+  }
+
+  private isPowerQualityEnabledCode(value: number): boolean {
+    return value === 0 || value === 1;
+  }
+
+  private isUsablePowerQualityStructValue(value: CommonSettingPowerQualityStructValue | undefined): boolean {
+    if (!value || !value.ready) {
+      return false;
+    }
+
+    return this.isPowerQualityEnabledCode(value.Enable_FrequencyDeviation) &&
+      Number.isFinite(value.Value_FrequencyDeviation) &&
+      this.isPowerQualityEnabledCode(value.Enable_VoltageDeviation) &&
+      Number.isFinite(value.Value_VoltageDeviation) &&
+      this.isPowerQualityEnabledCode(value.Enable_VoltageUnbalance) &&
+      Number.isFinite(value.Value_VoltageUnbalance) &&
+      this.isPowerQualityEnabledCode(value.Enable_VoltageFluct) &&
+      Number.isFinite(value.Value_VoltageFluct) &&
+      this.isPowerQualityEnabledCode(value.Enable_VoltageFlicke) &&
+      Number.isFinite(value.Value_VoltageFlicke) &&
+      this.isPowerQualityEnabledCode(value.Enable_VoltageSeg) &&
+      Number.isFinite(value.Value_VoltageSeg) &&
+      this.isPowerQualityEnabledCode(value.Enable_VoltageTHD) &&
+      Number.isFinite(value.Value_VoltageTHD) &&
+      this.isPowerQualityEnabledCode(value.Enable_VoltageHAR) &&
+      Number.isFinite(value.Value_VoltageHAR) &&
+      this.isPowerQualityEnabledCode(value.Enable_CurrentUnbalance) &&
+      Number.isFinite(value.Value_CurrentUnbalance) &&
+      this.isPowerQualityEnabledCode(value.Enable_CurrentTHD) &&
+      Number.isFinite(value.Value_CurrentTHD) &&
+      this.isPowerQualityEnabledCode(value.Enable_CurrentHAR) &&
+      Number.isFinite(value.Value_CurrentHAR);
+  }
+
+  private getPowerQualityEnableText(value: number): string {
+    if (value === 1) {
+      return this.enableOptions[0] ?? '投入';
+    }
+    if (value === 0) {
+      return this.enableOptions[1] ?? '退出';
+    }
+    return '';
+  }
+
+  private getPowerQualityEnableCode(value: string, fallbackValue: number): number {
+    const enabledText = this.enableOptions[0] ?? '投入';
+    const disabledText = this.enableOptions[1] ?? '退出';
+    if (value === enabledText || value === '投入') {
+      return 1;
+    }
+    if (value === disabledText || value === '退出') {
+      return 0;
+    }
+    if (fallbackValue === 0 || fallbackValue === 1) {
+      return fallbackValue;
+    }
+    return 1;
+  }
+
+  private formatPowerQualityValue(value: number): string {
+    if (!Number.isFinite(value)) {
+      return '';
+    }
+    return value.toFixed(2);
+  }
+
+  private createPowerQualityDataFromStruct(
+    source: CommonSettingPowerQualityStructValue
+  ): CommonSettingPowerQualityData {
+    let data = createDefaultCommonSettingPowerQualityData();
+    data.frequencyDeviationEnabled = this.getPowerQualityEnableText(source.Enable_FrequencyDeviation);
+    data.frequencyDeviationValue = this.formatPowerQualityValue(source.Value_FrequencyDeviation);
+    data.voltageDeviationEnabled = this.getPowerQualityEnableText(source.Enable_VoltageDeviation);
+    data.voltageDeviationValue = this.formatPowerQualityValue(source.Value_VoltageDeviation);
+    data.voltageUnbalanceEnabled = this.getPowerQualityEnableText(source.Enable_VoltageUnbalance);
+    data.voltageUnbalanceValue = this.formatPowerQualityValue(source.Value_VoltageUnbalance);
+    data.voltageFluctuationEnabled = this.getPowerQualityEnableText(source.Enable_VoltageFluct);
+    data.voltageFluctuationValue = this.formatPowerQualityValue(source.Value_VoltageFluct);
+    data.voltageFlickerEnabled = this.getPowerQualityEnableText(source.Enable_VoltageFlicke);
+    data.voltageFlickerValue = this.formatPowerQualityValue(source.Value_VoltageFlicke);
+    data.voltageSagEnabled = this.getPowerQualityEnableText(source.Enable_VoltageSeg);
+    data.voltageSagValue = this.formatPowerQualityValue(source.Value_VoltageSeg);
+    data.voltageThdEnabled = this.getPowerQualityEnableText(source.Enable_VoltageTHD);
+    data.voltageThdValue = this.formatPowerQualityValue(source.Value_VoltageTHD);
+    data.voltageHarEnabled = this.getPowerQualityEnableText(source.Enable_VoltageHAR);
+    data.voltageHarValue = this.formatPowerQualityValue(source.Value_VoltageHAR);
+    data.currentUnbalanceEnabled = this.getPowerQualityEnableText(source.Enable_CurrentUnbalance);
+    data.currentUnbalanceValue = this.formatPowerQualityValue(source.Value_CurrentUnbalance);
+    data.currentThdEnabled = this.getPowerQualityEnableText(source.Enable_CurrentTHD);
+    data.currentThdValue = this.formatPowerQualityValue(source.Value_CurrentTHD);
+    data.currentHarEnabled = this.getPowerQualityEnableText(source.Enable_CurrentHAR);
+    data.currentHarValue = this.formatPowerQualityValue(source.Value_CurrentHAR);
+    return data;
+  }
+
+  private loadNativePowerQualityData(): boolean {
+    try {
+      let nativeModule = this.loadPowerQualityNativeModule();
+      if (!nativeModule || typeof nativeModule.getPowerQualitySetting !== 'function') {
+        return false;
+      }
+
+      let structValue = nativeModule.getPowerQualitySetting();
+      if (!this.isUsablePowerQualityStructValue(structValue)) {
+        return false;
+      }
+
+      this.formData = this.createPowerQualityDataFromStruct(
+        structValue as CommonSettingPowerQualityStructValue
+      );
+      return true;
+    } catch (error) {
+      console.error(`load native power quality data failed: ${JSON.stringify(error)}`);
       return false;
     }
   }
@@ -409,10 +630,162 @@ export struct CommonSetting_PowerQuality_Set {
     this.formData = createDefaultCommonSettingPowerQualityData();
   }
 
+  private showFeedback(message: string): void {
+    this.feedbackMessage = message;
+    this.feedbackDialogVisible = true;
+  }
+
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private parsePowerQualityFieldNumber(value: string, fallbackValue: number): number {
+    let parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return fallbackValue;
+    }
+    return parsed;
+  }
+
+  private createPowerQualityWriteValue(
+    fallbackSource?: CommonSettingPowerQualityStructValue
+  ): CommonSettingPowerQualityWriteValue {
+    return {
+      Enable_FrequencyDeviation: this.getPowerQualityEnableCode(
+        this.formData.frequencyDeviationEnabled,
+        fallbackSource?.Enable_FrequencyDeviation ?? 1
+      ),
+      Value_FrequencyDeviation: this.parsePowerQualityFieldNumber(
+        this.formData.frequencyDeviationValue,
+        fallbackSource?.Value_FrequencyDeviation ?? 0
+      ),
+      Enable_VoltageDeviation: this.getPowerQualityEnableCode(
+        this.formData.voltageDeviationEnabled,
+        fallbackSource?.Enable_VoltageDeviation ?? 1
+      ),
+      Value_VoltageDeviation: this.parsePowerQualityFieldNumber(
+        this.formData.voltageDeviationValue,
+        fallbackSource?.Value_VoltageDeviation ?? 0
+      ),
+      Enable_VoltageUnbalance: this.getPowerQualityEnableCode(
+        this.formData.voltageUnbalanceEnabled,
+        fallbackSource?.Enable_VoltageUnbalance ?? 1
+      ),
+      Value_VoltageUnbalance: this.parsePowerQualityFieldNumber(
+        this.formData.voltageUnbalanceValue,
+        fallbackSource?.Value_VoltageUnbalance ?? 0
+      ),
+      Enable_VoltageFluct: this.getPowerQualityEnableCode(
+        this.formData.voltageFluctuationEnabled,
+        fallbackSource?.Enable_VoltageFluct ?? 1
+      ),
+      Value_VoltageFluct: this.parsePowerQualityFieldNumber(
+        this.formData.voltageFluctuationValue,
+        fallbackSource?.Value_VoltageFluct ?? 0
+      ),
+      Enable_VoltageFlicke: this.getPowerQualityEnableCode(
+        this.formData.voltageFlickerEnabled,
+        fallbackSource?.Enable_VoltageFlicke ?? 1
+      ),
+      Value_VoltageFlicke: this.parsePowerQualityFieldNumber(
+        this.formData.voltageFlickerValue,
+        fallbackSource?.Value_VoltageFlicke ?? 0
+      ),
+      Enable_VoltageSeg: this.getPowerQualityEnableCode(
+        this.formData.voltageSagEnabled,
+        fallbackSource?.Enable_VoltageSeg ?? 1
+      ),
+      Value_VoltageSeg: this.parsePowerQualityFieldNumber(
+        this.formData.voltageSagValue,
+        fallbackSource?.Value_VoltageSeg ?? 0
+      ),
+      Enable_VoltageTHD: this.getPowerQualityEnableCode(
+        this.formData.voltageThdEnabled,
+        fallbackSource?.Enable_VoltageTHD ?? 1
+      ),
+      Value_VoltageTHD: this.parsePowerQualityFieldNumber(
+        this.formData.voltageThdValue,
+        fallbackSource?.Value_VoltageTHD ?? 0
+      ),
+      Enable_VoltageHAR: this.getPowerQualityEnableCode(
+        this.formData.voltageHarEnabled,
+        fallbackSource?.Enable_VoltageHAR ?? 1
+      ),
+      Value_VoltageHAR: this.parsePowerQualityFieldNumber(
+        this.formData.voltageHarValue,
+        fallbackSource?.Value_VoltageHAR ?? 0
+      ),
+      Enable_CurrentUnbalance: this.getPowerQualityEnableCode(
+        this.formData.currentUnbalanceEnabled,
+        fallbackSource?.Enable_CurrentUnbalance ?? 1
+      ),
+      Value_CurrentUnbalance: this.parsePowerQualityFieldNumber(
+        this.formData.currentUnbalanceValue,
+        fallbackSource?.Value_CurrentUnbalance ?? 0
+      ),
+      Enable_CurrentTHD: this.getPowerQualityEnableCode(
+        this.formData.currentThdEnabled,
+        fallbackSource?.Enable_CurrentTHD ?? 1
+      ),
+      Value_CurrentTHD: this.parsePowerQualityFieldNumber(
+        this.formData.currentThdValue,
+        fallbackSource?.Value_CurrentTHD ?? 0
+      ),
+      Enable_CurrentHAR: this.getPowerQualityEnableCode(
+        this.formData.currentHarEnabled,
+        fallbackSource?.Enable_CurrentHAR ?? 1
+      ),
+      Value_CurrentHAR: this.parsePowerQualityFieldNumber(
+        this.formData.currentHarValue,
+        fallbackSource?.Value_CurrentHAR ?? 0
+      )
+    };
+  }
+
+  private writeNativePowerQualityData(): boolean {
+    try {
+      let nativeModule = this.loadPowerQualityNativeModule();
+      if (!nativeModule || typeof nativeModule.updatePowerQualitySetting !== 'function') {
+        return false;
+      }
+
+      let currentStructValue: CommonSettingPowerQualityStructValue | undefined = undefined;
+      if (typeof nativeModule.getPowerQualitySetting === 'function') {
+        currentStructValue = nativeModule.getPowerQualitySetting();
+      }
+
+      let writeValue = this.createPowerQualityWriteValue(currentStructValue);
+      let writeSuccess = nativeModule.updatePowerQualitySetting(writeValue);
+      if (writeSuccess) {
+        this.loadNativePowerQualityData();
+      }
+      return writeSuccess;
+    } catch (error) {
+      console.error(`write native power quality data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
   private submitCurrentData(): void {
     let saveSuccess = this.savePersistedData();
-    this.feedbackMessage = saveSuccess ? '提交成功' : '提交失败';
-    this.feedbackDialogVisible = true;
+    if (!saveSuccess) {
+      this.showFeedback('提交失败');
+      return;
+    }
+
+    let writeSuccess = this.writeNativePowerQualityData();
+    if (!writeSuccess) {
+      this.showFeedback('提交失败，请检查电能质量参数结构体写入。');
+      return;
+    }
+
+    this.showSubmitWaiting('界面参数已写入电能质量参数结构体，等待装置回应...');
   }
 
   private closeFeedback(): void {
@@ -440,6 +813,10 @@ export struct CommonSetting_PowerQuality_Set {
 
       if (this.selectOverlayVisible) {
         this.SelectOverlay();
+      }
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
       }
 
       if (this.feedbackDialogVisible) {
@@ -765,6 +1142,59 @@ export struct CommonSetting_PowerQuality_Set {
           .borderRadius(this.s(8))
           .onClick(() => {
             this.closeFeedback();
+          });
+      }
+      .width(this.s(280))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(this.overlayCardRadius));
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeSubmitWaiting();
+      });
+
+      Column() {
+        Text('等待回应')
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogTitle))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button('关闭')
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
           });
       }
       .width(this.s(280))

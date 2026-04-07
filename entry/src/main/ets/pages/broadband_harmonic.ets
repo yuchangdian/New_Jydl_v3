@@ -1,32 +1,49 @@
 import router from '@ohos.router';
 import display from '@ohos.display';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import * as harmonicTelemetryNativeModule from 'libentry.so';
 
-interface HarmonicMetricData {
-  frequency: string;
-  amplitude: string;
-  phase: string;
-  ratio: string;
+@Observed
+class HarmonicMetricData {
+  frequency: string = '';
+  amplitude: string = '';
+  phase: string = '';
+  ratio: string = '';
+
+  constructor(frequency: string, amplitude: string, phase: string, ratio: string) {
+    this.frequency = frequency;
+    this.amplitude = amplitude;
+    this.phase = phase;
+    this.ratio = ratio;
+  }
 }
 
-interface HarmonicPhaseRowData {
-  phaseLabel: string;
-  voltage: HarmonicMetricData;
-  current: HarmonicMetricData;
-  darkBackground: boolean;
+@Observed
+class HarmonicPhaseRowData {
+  phaseLabel: string = '';
+  voltage: HarmonicMetricData = new HarmonicMetricData('', '', '', '');
+  current: HarmonicMetricData = new HarmonicMetricData('', '', '', '');
+  darkBackground: boolean = false;
+
+  constructor(phaseLabel: string, voltage: HarmonicMetricData, current: HarmonicMetricData, darkBackground: boolean) {
+    this.phaseLabel = phaseLabel;
+    this.voltage = voltage;
+    this.current = current;
+    this.darkBackground = darkBackground;
+  }
 }
 
-interface HarmonicSectionData {
-  title: string;
-  rows: HarmonicPhaseRowData[];
+@Observed
+class HarmonicSectionData {
+  title: string = '';
+  rows: HarmonicPhaseRowData[] = [];
+
+  constructor(title: string, rows: HarmonicPhaseRowData[]) {
+    this.title = title;
+    this.rows = rows;
+  }
 }
 
-interface HarmonicMetricTextArrays {
-  frequencyTexts: string[];
-  amplitudeTexts: string[];
-  phaseTexts: string[];
-  ratioTexts: string[];
-}
 
 interface HarmonicCurrentDisplayValue {
   ready: boolean;
@@ -56,34 +73,35 @@ declare function requireNapi(
 
 const HARMONIC_DEGREE_SYMBOL: string = String.fromCharCode(176);
 const HARMONIC_COMPONENT_COUNT: number = 10;
+const HARMONIC_PHASE_COUNT: number = 3;
+const HARMONIC_GROUP_VALUE_COUNT: number = 3;
+const HARMONIC_ARRAY_VALUE_COUNT: number = HARMONIC_COMPONENT_COUNT * HARMONIC_GROUP_VALUE_COUNT;
+const HARMONIC_LOG_CHUNK_SIZE: number = 6;
+const HARMONIC_FREQUENCY_OFFSET: number = 0;
+const HARMONIC_AMPLITUDE_OFFSET: number = 1;
+const HARMONIC_PHASE_OFFSET: number = 2;
+const DOMAIN: number = 0x0000;
+const TCP_ARK_TAG: string = 'JY_TCP_ARK';
 
 function createMetricData(unit: string, ratio: string): HarmonicMetricData {
-  return {
-    frequency: '00.02Hz',
-    amplitude: `00.02${unit}`,
-    phase: '00.00°',
-    ratio: ratio
-  };
+  return new HarmonicMetricData('00.02Hz', `00.02${unit}`, '00.00°', ratio);
 }
 
 function createPhaseRowData(phaseLabel: string, ratio: string, darkBackground: boolean): HarmonicPhaseRowData {
-  return {
-    phaseLabel: phaseLabel,
-    voltage: createMetricData('V', ratio),
-    current: createMetricData('A', ratio),
-    darkBackground: darkBackground
-  };
+  return new HarmonicPhaseRowData(
+    phaseLabel,
+    createMetricData('V', ratio),
+    createMetricData('A', ratio),
+    darkBackground
+  );
 }
 
 function createSectionData(title: string, ratio: string): HarmonicSectionData {
-  return {
-    title: title,
-    rows: [
-      createPhaseRowData('A相:', ratio, false),
-      createPhaseRowData('B相:', ratio, true),
-      createPhaseRowData('C相:', ratio, false)
-    ]
-  };
+  return new HarmonicSectionData(title, [
+    createPhaseRowData('A相:', ratio, false),
+    createPhaseRowData('B相:', ratio, true),
+    createPhaseRowData('C相:', ratio, false)
+  ]);
 }
 
 const BROADBAND_HARMONIC_SECTIONS: HarmonicSectionData[] = [
@@ -99,64 +117,22 @@ const BROADBAND_HARMONIC_SECTIONS: HarmonicSectionData[] = [
   createSectionData('谐波分量9:', '0.00%')
 ];
 
-function flattenHarmonicMetricTexts(
-  sections: HarmonicSectionData[],
-  selector: (row: HarmonicPhaseRowData) => HarmonicMetricData
-): HarmonicMetricTextArrays {
-  const frequencyTexts: string[] = [];
-  const amplitudeTexts: string[] = [];
-  const phaseTexts: string[] = [];
-  const ratioTexts: string[] = [];
-
-  sections.forEach((section: HarmonicSectionData) => {
-    section.rows.forEach((row: HarmonicPhaseRowData) => {
-      const metric = selector(row);
-      frequencyTexts.push(metric.frequency);
-      amplitudeTexts.push(metric.amplitude);
-      phaseTexts.push(metric.phase);
-      ratioTexts.push(metric.ratio);
-    });
-  });
-
-  return {
-    frequencyTexts,
-    amplitudeTexts,
-    phaseTexts,
-    ratioTexts
-  };
-}
-
-const INITIAL_VOLTAGE_METRIC_TEXTS: HarmonicMetricTextArrays =
-  flattenHarmonicMetricTexts(BROADBAND_HARMONIC_SECTIONS, (row: HarmonicPhaseRowData) => row.voltage);
-const INITIAL_CURRENT_METRIC_TEXTS: HarmonicMetricTextArrays =
-  flattenHarmonicMetricTexts(BROADBAND_HARMONIC_SECTIONS, (row: HarmonicPhaseRowData) => row.current);
 
 function cloneHarmonicMetricData(metric: HarmonicMetricData): HarmonicMetricData {
-  const nextMetric: HarmonicMetricData = {
-    frequency: metric.frequency,
-    amplitude: metric.amplitude,
-    phase: metric.phase,
-    ratio: metric.ratio
-  };
-  return nextMetric;
+  return new HarmonicMetricData(metric.frequency, metric.amplitude, metric.phase, metric.ratio);
 }
 
 function cloneBroadbandHarmonicSections(): HarmonicSectionData[] {
   return BROADBAND_HARMONIC_SECTIONS.map((section: HarmonicSectionData) => {
     const nextRows: HarmonicPhaseRowData[] = section.rows.map((row: HarmonicPhaseRowData) => {
-      const nextRow: HarmonicPhaseRowData = {
-        phaseLabel: row.phaseLabel,
-        voltage: cloneHarmonicMetricData(row.voltage),
-        current: cloneHarmonicMetricData(row.current),
-        darkBackground: row.darkBackground
-      };
-      return nextRow;
+      return new HarmonicPhaseRowData(
+        row.phaseLabel,
+        cloneHarmonicMetricData(row.voltage),
+        cloneHarmonicMetricData(row.current),
+        row.darkBackground
+      );
     });
-    const nextSection: HarmonicSectionData = {
-      title: section.title,
-      rows: nextRows
-    };
-    return nextSection;
+    return new HarmonicSectionData(section.title, nextRows);
   });
 }
 
@@ -179,44 +155,84 @@ function formatHarmonicRatio(amplitude: number, fundamentalAmplitude: number): s
   return `${((amplitude / fundamentalAmplitude) * 100).toFixed(2)}%`;
 }
 
+function getHarmonicComponentBaseIndex(componentIndex: number): number {
+  // C 结构体里每个分量连续占 3 个槽位：
+  // [0,1,2] = 工频， [3,4,5] = 谐波1， [6,7,8] = 谐波2 ...
+  return componentIndex * HARMONIC_GROUP_VALUE_COUNT;
+}
+
+function getHarmonicAmplitudeIndex(componentIndex: number): number {
+  // 含有率只能使用幅值位计算：
+  // U[1], U[4], U[7], U[10] ... U[28]
+  return componentIndex * HARMONIC_GROUP_VALUE_COUNT + HARMONIC_AMPLITUDE_OFFSET;
+}
+
+function getHarmonicComponentAmplitude(values: number[], componentIndex: number): number {
+  return values[getHarmonicAmplitudeIndex(componentIndex)];
+}
+
+function calculateSignalRatioByHarmonicFormula(values: number[], componentIndex: number): string {
+  let amplitudeSquareSum: number = 0;
+  for (let index = 0; index < HARMONIC_COMPONENT_COUNT; index++) {
+    const amplitude = getHarmonicComponentAmplitude(values, index);
+    amplitudeSquareSum += amplitude * amplitude;
+  }
+  const totalAmplitudeRoot = Math.sqrt(amplitudeSquareSum);
+  const componentAmplitude = getHarmonicComponentAmplitude(values, componentIndex);
+  return formatHarmonicRatio(componentAmplitude, totalAmplitudeRoot);
+}
+
+function createMetricFromValues(values: number[], componentIndex: number, unit: string): HarmonicMetricData {
+  const baseIndex = getHarmonicComponentBaseIndex(componentIndex);
+  const amplitude = getHarmonicComponentAmplitude(values, componentIndex);
+  return new HarmonicMetricData(
+    formatHarmonicFrequency(values[baseIndex + HARMONIC_FREQUENCY_OFFSET]),
+    formatHarmonicAmplitude(amplitude, unit),
+    formatHarmonicPhase(values[baseIndex + HARMONIC_PHASE_OFFSET]),
+    ''
+  );
+}
+
 function createVoltageMetricFromValues(values: number[], componentIndex: number): HarmonicMetricData {
-  const baseIndex = componentIndex * 3;
-  const fundamentalAmplitude = values[1];
-  const amplitude = values[baseIndex + 1];
-  const nextMetric: HarmonicMetricData = {
-    frequency: formatHarmonicFrequency(values[baseIndex]),
-    amplitude: formatHarmonicAmplitude(amplitude, 'V'),
-    phase: formatHarmonicPhase(values[baseIndex + 2]),
-    ratio: formatHarmonicRatio(amplitude, fundamentalAmplitude)
-  };
-  return nextMetric;
+  return createMetricFromValues(values, componentIndex, 'V');
 }
 
 function createCurrentMetricFromValues(values: number[], componentIndex: number): HarmonicMetricData {
-  const baseIndex = componentIndex * 3;
-  const fundamentalAmplitude = values[1];
-  const amplitude = values[baseIndex + 1];
-  const nextMetric: HarmonicMetricData = {
-    frequency: formatHarmonicFrequency(values[baseIndex]),
-    amplitude: formatHarmonicAmplitude(amplitude, 'A'),
-    phase: formatHarmonicPhase(values[baseIndex + 2]),
-    ratio: formatHarmonicRatio(amplitude, fundamentalAmplitude)
-  };
-  return nextMetric;
+  return createMetricFromValues(values, componentIndex, 'A');
 }
 
-function buildHarmonicRowRenderKey(row: HarmonicPhaseRowData, rowIndex: number): string {
-  return `${rowIndex}-${row.phaseLabel}-` +
-    `${row.voltage.frequency}-${row.voltage.amplitude}-${row.voltage.phase}-${row.voltage.ratio}-` +
-    `${row.current.frequency}-${row.current.amplitude}-${row.current.phase}-${row.current.ratio}`;
+function logIndexedArrayLines(prefix: string, arrayName: string, values: string[]): void {
+  for (let startIndex = 0; startIndex < values.length; startIndex += HARMONIC_LOG_CHUNK_SIZE) {
+    const endIndex = Math.min(startIndex + HARMONIC_LOG_CHUNK_SIZE, values.length);
+    const items: string[] = [];
+    for (let index = startIndex; index < endIndex; index++) {
+      items.push(`${arrayName}[${index}]=${values[index]}`);
+    }
+    const logLine = `${prefix} ${items.join(', ')}`;
+    hilog.info(DOMAIN, TCP_ARK_TAG, '%{public}s', logLine);
+    console.info(logLine);
+  }
 }
 
-function buildHarmonicSectionRenderKey(section: HarmonicSectionData, sectionIndex: number): string {
-  const rowKeys = section.rows.map((row: HarmonicPhaseRowData, rowIndex: number) => {
-    return buildHarmonicRowRenderKey(row, rowIndex);
-  }).join('|');
-  return `${sectionIndex}-${section.title}-${rowKeys}`;
+function buildRawNumberArrayTexts(values: number[]): string[] {
+  return values.map((value: number) => value.toFixed(6));
 }
+
+function buildMetricDisplayValueArray(
+  sections: HarmonicSectionData[],
+  rowIndex: number,
+  selector: (row: HarmonicPhaseRowData) => HarmonicMetricData
+): string[] {
+  const values: string[] = [];
+  for (let sectionIndex = 0; sectionIndex < HARMONIC_COMPONENT_COUNT; sectionIndex++) {
+    const metric = selector(sections[sectionIndex].rows[rowIndex]);
+    values.push(metric.frequency);
+    values.push(metric.amplitude);
+    values.push(metric.phase);
+  }
+  return values;
+}
+
 
 function isUsableHarmonicVoltageDisplayValue(value: HarmonicVoltageDisplayValue | undefined): boolean {
   if (!value || !value.ready) {
@@ -226,8 +242,8 @@ function isUsableHarmonicVoltageDisplayValue(value: HarmonicVoltageDisplayValue 
   const phases = [value.Ua, value.Ub, value.Uc];
   return phases.every((phaseValues: number[]) => {
     return Array.isArray(phaseValues) &&
-      phaseValues.length >= HARMONIC_COMPONENT_COUNT * 3 &&
-      phaseValues.every((item: number) => typeof item === 'number' && isFinite(item));
+      phaseValues.length >= HARMONIC_ARRAY_VALUE_COUNT &&
+    phaseValues.every((item: number) => typeof item === 'number' && isFinite(item));
   });
 }
 
@@ -239,79 +255,11 @@ function isUsableHarmonicCurrentDisplayValue(value: HarmonicCurrentDisplayValue 
   const phases = [value.Ia, value.Ib, value.Ic];
   return phases.every((phaseValues: number[]) => {
     return Array.isArray(phaseValues) &&
-      phaseValues.length >= HARMONIC_COMPONENT_COUNT * 3 &&
-      phaseValues.every((item: number) => typeof item === 'number' && isFinite(item));
+      phaseValues.length >= HARMONIC_ARRAY_VALUE_COUNT &&
+    phaseValues.every((item: number) => typeof item === 'number' && isFinite(item));
   });
 }
 
-function createSectionsFromHarmonicVoltageDisplay(
-  value: HarmonicVoltageDisplayValue,
-  sourceSections?: HarmonicSectionData[]
-): HarmonicSectionData[] {
-  const sections = sourceSections ? cloneBroadbandHarmonicSectionsFromSource(sourceSections) : cloneBroadbandHarmonicSections();
-  const phaseValues = [value.Ua, value.Ub, value.Uc];
-
-  return sections.map((section: HarmonicSectionData, sectionIndex: number) => {
-    const nextRows: HarmonicPhaseRowData[] = section.rows.map((row: HarmonicPhaseRowData, rowIndex: number) => {
-      const nextRow: HarmonicPhaseRowData = {
-        phaseLabel: row.phaseLabel,
-        voltage: createVoltageMetricFromValues(phaseValues[rowIndex], sectionIndex),
-        current: cloneHarmonicMetricData(row.current),
-        darkBackground: row.darkBackground
-      };
-      return nextRow;
-    });
-    const nextSection: HarmonicSectionData = {
-      title: section.title,
-      rows: nextRows
-    };
-    return nextSection;
-  });
-}
-
-function cloneBroadbandHarmonicSectionsFromSource(sourceSections: HarmonicSectionData[]): HarmonicSectionData[] {
-  return sourceSections.map((section: HarmonicSectionData) => {
-    const nextRows: HarmonicPhaseRowData[] = section.rows.map((row: HarmonicPhaseRowData) => {
-      const nextRow: HarmonicPhaseRowData = {
-        phaseLabel: row.phaseLabel,
-        voltage: cloneHarmonicMetricData(row.voltage),
-        current: cloneHarmonicMetricData(row.current),
-        darkBackground: row.darkBackground
-      };
-      return nextRow;
-    });
-    const nextSection: HarmonicSectionData = {
-      title: section.title,
-      rows: nextRows
-    };
-    return nextSection;
-  });
-}
-
-function createSectionsFromHarmonicCurrentDisplay(
-  value: HarmonicCurrentDisplayValue,
-  sourceSections?: HarmonicSectionData[]
-): HarmonicSectionData[] {
-  const sections = sourceSections ? cloneBroadbandHarmonicSectionsFromSource(sourceSections) : cloneBroadbandHarmonicSections();
-  const phaseValues = [value.Ia, value.Ib, value.Ic];
-
-  return sections.map((section: HarmonicSectionData, sectionIndex: number) => {
-    const nextRows: HarmonicPhaseRowData[] = section.rows.map((row: HarmonicPhaseRowData, rowIndex: number) => {
-      const nextRow: HarmonicPhaseRowData = {
-        phaseLabel: row.phaseLabel,
-        voltage: cloneHarmonicMetricData(row.voltage),
-        current: createCurrentMetricFromValues(phaseValues[rowIndex], sectionIndex),
-        darkBackground: row.darkBackground
-      };
-      return nextRow;
-    });
-    const nextSection: HarmonicSectionData = {
-      title: section.title,
-      rows: nextRows
-    };
-    return nextSection;
-  });
-}
 
 class BroadbandHarmonicFontSize {
   notice: number = 18;
@@ -327,16 +275,211 @@ class BroadbandHarmonicFontSize {
   titleMin: number = 14;
   noticeMin: number = 12;
   timeLineHeight: number = 22;
+  sectionTitleIconSize: number = 28;
+  sectionHeaderHeight: number = 46;
+  tableHeaderHeight: number = 46;
+  rowHeight: number = 54;
+  phaseLabelWeight: number = 12;
+  metricWeight: number = 11;
+  highlightedRowColor: string = '#888A85';
+}
+
+@Component
+struct MetricValuesBlock {
+  @ObjectLink metric: HarmonicMetricData;
+  @Prop uiScale: number = 1;
+  @Prop fontSize: BroadbandHarmonicFontSize = new BroadbandHarmonicFontSize();
+
+  private s(value: number): number {
+    return Math.round(value * this.uiScale);
+  }
+
+  build() {
+    Row() {
+      Text(this.metric.frequency)
+        .layoutWeight(this.fontSize.metricWeight)
+        .fontSize(this.s(this.fontSize.rowValue))
+        .fontColor('#000000')
+        .fontFamily('STKaiti')
+        .textAlign(TextAlign.Center);
+
+      Text(this.metric.amplitude)
+        .layoutWeight(this.fontSize.metricWeight)
+        .fontSize(this.s(this.fontSize.rowValue))
+        .fontColor('#000000')
+        .fontFamily('STKaiti')
+        .textAlign(TextAlign.Center);
+
+      Text(this.metric.phase)
+        .layoutWeight(this.fontSize.metricWeight)
+        .fontSize(this.s(this.fontSize.rowValue))
+        .fontColor('#000000')
+        .fontFamily('STKaiti')
+        .textAlign(TextAlign.Center);
+
+      Text(this.metric.ratio)
+        .layoutWeight(this.fontSize.metricWeight)
+        .fontSize(this.s(this.fontSize.rowValue))
+        .fontColor('#000000')
+        .fontFamily('STKaiti')
+        .textAlign(TextAlign.Center);
+    }
+    .layoutWeight(this.fontSize.metricWeight * 4)
+    .height('100%');
+  }
+}
+
+@Component
+struct PhaseDataRowBlock {
+  @ObjectLink row: HarmonicPhaseRowData;
+  @Prop uiScale: number = 1;
+  @Prop fontSize: BroadbandHarmonicFontSize = new BroadbandHarmonicFontSize();
+  @Prop pageBackgroundColor: string = '#FFFFFF';
+
+  private s(value: number): number {
+    return Math.round(value * this.uiScale);
+  }
+
+  build() {
+    Row() {
+      Text(this.row.phaseLabel)
+        .layoutWeight(this.fontSize.phaseLabelWeight)
+        .fontSize(this.s(this.fontSize.rowLabel))
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#000000')
+        .fontFamily('STKaiti')
+        .textAlign(TextAlign.Center);
+
+      MetricValuesBlock({
+        metric: this.row.voltage,
+        uiScale: this.uiScale,
+        fontSize: this.fontSize
+      });
+
+      Text(this.row.phaseLabel)
+        .layoutWeight(this.fontSize.phaseLabelWeight)
+        .fontSize(this.s(this.fontSize.rowLabel))
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#000000')
+        .fontFamily('STKaiti')
+        .textAlign(TextAlign.Center);
+
+      MetricValuesBlock({
+        metric: this.row.current,
+        uiScale: this.uiScale,
+        fontSize: this.fontSize
+      });
+    }
+    .width('100%')
+    .height(this.s(this.fontSize.rowHeight))
+    .backgroundColor(this.row.darkBackground ? this.fontSize.highlightedRowColor : this.pageBackgroundColor)
+    .alignItems(VerticalAlign.Center);
+  }
+}
+
+@Component
+struct SectionBlock {
+  @ObjectLink section: HarmonicSectionData;
+  @Prop uiScale: number = 1;
+  @Prop fontSize: BroadbandHarmonicFontSize = new BroadbandHarmonicFontSize();
+  @Prop pageBackgroundColor: string = '#FFFFFF';
+
+  private s(value: number): number {
+    return Math.round(value * this.uiScale);
+  }
+
+  build() {
+    Column() {
+      this.SectionTitleRow(this.section.title);
+      this.TableHeaderRow();
+
+      PhaseDataRowBlock({
+        row: this.section.rows[0],
+        uiScale: this.uiScale,
+        fontSize: this.fontSize,
+        pageBackgroundColor: this.pageBackgroundColor
+      });
+      PhaseDataRowBlock({
+        row: this.section.rows[1],
+        uiScale: this.uiScale,
+        fontSize: this.fontSize,
+        pageBackgroundColor: this.pageBackgroundColor
+      });
+      PhaseDataRowBlock({
+        row: this.section.rows[2],
+        uiScale: this.uiScale,
+        fontSize: this.fontSize,
+        pageBackgroundColor: this.pageBackgroundColor
+      });
+    }
+    .width('100%')
+    .padding({ top: this.s(4), bottom: this.s(4) })
+    .backgroundColor(this.pageBackgroundColor);
+  }
+
+  @Builder
+  SectionTitleRow(title: string) {
+    Row() {
+      Image($r('app.media.right_black'))
+        .width(this.s(this.fontSize.sectionTitleIconSize))
+        .height(this.s(24))
+        .margin({ right: this.s(2) });
+
+      Text(title)
+        .fontSize(this.s(this.fontSize.sectionTitle))
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#000000')
+        .fontFamily('STKaiti')
+        .textAlign(TextAlign.Start);
+    }
+    .width('100%')
+    .height(this.s(this.fontSize.sectionHeaderHeight))
+    .padding({ left: this.s(4) })
+    .alignItems(VerticalAlign.Center);
+  }
+
+  @Builder
+  TableHeaderRow() {
+    Row() {
+      this.HeaderCell('电压', this.fontSize.phaseLabelWeight, true);
+      this.HeaderCell('频率', this.fontSize.metricWeight, false);
+      this.HeaderCell('幅值', this.fontSize.metricWeight, false);
+      this.HeaderCell('相位', this.fontSize.metricWeight, false);
+      this.HeaderCell('含有率', this.fontSize.metricWeight, false);
+      this.HeaderCell('电流', this.fontSize.phaseLabelWeight, true);
+      this.HeaderCell('频率', this.fontSize.metricWeight, false);
+      this.HeaderCell('幅值', this.fontSize.metricWeight, false);
+      this.HeaderCell('相位', this.fontSize.metricWeight, false);
+      this.HeaderCell('含有率', this.fontSize.metricWeight, false);
+    }
+    .width('100%')
+    .height(this.s(this.fontSize.tableHeaderHeight))
+    .alignItems(VerticalAlign.Center);
+  }
+
+  @Builder
+  HeaderCell(text: string, weight: number, underline: boolean) {
+    Text(text)
+      .layoutWeight(weight)
+      .fontSize(this.s(underline ? this.fontSize.sectionHeader : this.fontSize.tableHeader))
+      .fontWeight(underline ? FontWeight.Bold : FontWeight.Normal)
+      .fontColor('#000000')
+      .fontFamily('STKaiti')
+      .textAlign(TextAlign.Center)
+      .decoration({ type: underline ? TextDecorationType.Underline : TextDecorationType.None });
+  }
 }
 
 @Entry
 @Component
 export struct Broadband_Harmonic {
   @State uiScale: number = 1;
+  @State sections: HarmonicSectionData[] = cloneBroadbandHarmonicSections();
   @State timeText: string = '2024/12/30\n12:12:30';
-  @State displaySections: HarmonicSectionData[] = cloneBroadbandHarmonicSections();
+
 
   private harmonicDisplayRefreshTimer: number = -1;
+  private harmonicDisplayRefreshGeneration: number = 0;
   private readonly fontSize: BroadbandHarmonicFontSize = new BroadbandHarmonicFontSize();
   private readonly pageMaxWidth: number = 1024;
   private readonly designWidth: number = 1024;
@@ -367,6 +510,7 @@ export struct Broadband_Harmonic {
     return Math.round(value * this.uiScale);
   }
 
+
   aboutToAppear(): void {
     try {
       const defaultDisplay = display.getDefaultDisplaySync();
@@ -378,8 +522,8 @@ export struct Broadband_Harmonic {
       this.uiScale = 1;
     }
 
-    this.loadNativeHarmonicDisplayData();
     this.requestNativeHarmonicDisplayData();
+    this.loadNativeHarmonicDisplayData();
     this.startHarmonicDisplayRefreshTimer();
   }
 
@@ -389,15 +533,22 @@ export struct Broadband_Harmonic {
 
   private startHarmonicDisplayRefreshTimer(): void {
     this.stopHarmonicDisplayRefreshTimer();
-    this.harmonicDisplayRefreshTimer = setInterval(() => {
-      this.loadNativeHarmonicDisplayData();
+    const refreshGeneration = this.harmonicDisplayRefreshGeneration;
+    this.harmonicDisplayRefreshTimer = setTimeout(() => {
+      this.harmonicDisplayRefreshTimer = -1;
+      if (refreshGeneration !== this.harmonicDisplayRefreshGeneration) {
+        return;
+      }
       this.requestNativeHarmonicDisplayData();
-    }, 500);
+      this.loadNativeHarmonicDisplayData();
+      this.startHarmonicDisplayRefreshTimer();
+    }, 3000);
   }
 
   private stopHarmonicDisplayRefreshTimer(): void {
+    this.harmonicDisplayRefreshGeneration++;
     if (this.harmonicDisplayRefreshTimer >= 0) {
-      clearInterval(this.harmonicDisplayRefreshTimer);
+      clearTimeout(this.harmonicDisplayRefreshTimer);
       this.harmonicDisplayRefreshTimer = -1;
     }
   }
@@ -405,7 +556,7 @@ export struct Broadband_Harmonic {
   private isValidHarmonicDisplayNativeModule(module: HarmonicDisplayNativeModule | undefined): boolean {
     return !!module &&
       (typeof module.getHarmonicVoltageDisplayData === 'function' ||
-      typeof module.getHarmonicCurrentDisplayData === 'function');
+        typeof module.getHarmonicCurrentDisplayData === 'function');
   }
 
   private loadHarmonicDisplayNativeModule(): HarmonicDisplayNativeModule | undefined {
@@ -446,8 +597,39 @@ export struct Broadband_Harmonic {
       }
       nativeModule.requestHarmonicDisplayData();
     } catch (error) {
+      hilog.error(DOMAIN, TCP_ARK_TAG, '宽频谐波 request failed: %{public}s', JSON.stringify(error));
       console.error(`request harmonic display failed: ${JSON.stringify(error)}`);
     }
+  }
+
+  private logHarmonicVoltageNativeArrays(value: HarmonicVoltageDisplayValue): void {
+    logIndexedArrayLines('界面拿到的原始电压值', 'Ua', buildRawNumberArrayTexts(value.Ua));
+    logIndexedArrayLines('界面拿到的原始电压值', 'Ub', buildRawNumberArrayTexts(value.Ub));
+    logIndexedArrayLines('界面拿到的原始电压值', 'Uc', buildRawNumberArrayTexts(value.Uc));
+  }
+
+  private logHarmonicCurrentNativeArrays(value: HarmonicCurrentDisplayValue): void {
+    logIndexedArrayLines('界面拿到的原始电流值', 'Ia', buildRawNumberArrayTexts(value.Ia));
+    logIndexedArrayLines('界面拿到的原始电流值', 'Ib', buildRawNumberArrayTexts(value.Ib));
+    logIndexedArrayLines('界面拿到的原始电流值', 'Ic', buildRawNumberArrayTexts(value.Ic));
+  }
+
+  private logHarmonicVoltageDisplayArrays(): void {
+    logIndexedArrayLines('界面显示电压值', 'Ua',
+      buildMetricDisplayValueArray(this.sections, 0, (row: HarmonicPhaseRowData) => row.voltage));
+    logIndexedArrayLines('界面显示电压值', 'Ub',
+      buildMetricDisplayValueArray(this.sections, 1, (row: HarmonicPhaseRowData) => row.voltage));
+    logIndexedArrayLines('界面显示电压值', 'Uc',
+      buildMetricDisplayValueArray(this.sections, 2, (row: HarmonicPhaseRowData) => row.voltage));
+  }
+
+  private logHarmonicCurrentDisplayArrays(): void {
+    logIndexedArrayLines('界面显示电流值', 'Ia',
+      buildMetricDisplayValueArray(this.sections, 0, (row: HarmonicPhaseRowData) => row.current));
+    logIndexedArrayLines('界面显示电流值', 'Ib',
+      buildMetricDisplayValueArray(this.sections, 1, (row: HarmonicPhaseRowData) => row.current));
+    logIndexedArrayLines('界面显示电流值', 'Ic',
+      buildMetricDisplayValueArray(this.sections, 2, (row: HarmonicPhaseRowData) => row.current));
   }
 
   private loadNativeHarmonicDisplayData(): void {
@@ -457,36 +639,55 @@ export struct Broadband_Harmonic {
         return;
       }
 
-      let nextSections: HarmonicSectionData[] = cloneBroadbandHarmonicSections();
       let hasLoadedNativeData: boolean = false;
 
       if (typeof nativeModule.getHarmonicVoltageDisplayData === 'function') {
         const voltageValue = nativeModule.getHarmonicVoltageDisplayData();
-        if (isUsableHarmonicVoltageDisplayValue(voltageValue)) {
-          nextSections = createSectionsFromHarmonicVoltageDisplay(
-            voltageValue as HarmonicVoltageDisplayValue,
-            nextSections
-          );
+        if (isUsableHarmonicVoltageDisplayValue(voltageValue) && voltageValue) {
+          const phaseValues = [voltageValue.Ua, voltageValue.Ub, voltageValue.Uc];
+          for (let sectionIndex = 0; sectionIndex < HARMONIC_COMPONENT_COUNT; sectionIndex++) {
+            for (let rowIndex = 0; rowIndex < HARMONIC_PHASE_COUNT; rowIndex++) {
+              const row = this.sections[sectionIndex].rows[rowIndex];
+              const voltageMetric = createVoltageMetricFromValues(phaseValues[rowIndex], sectionIndex);
+              const voltageRatio = calculateSignalRatioByHarmonicFormula(phaseValues[rowIndex], sectionIndex);
+              row.voltage.frequency = voltageMetric.frequency;
+              row.voltage.amplitude = voltageMetric.amplitude;
+              row.voltage.phase = voltageMetric.phase;
+              row.voltage.ratio = voltageRatio;
+            }
+          }
+          //this.logHarmonicVoltageNativeArrays(voltageValue);
+          //this.logHarmonicVoltageDisplayArrays();
           hasLoadedNativeData = true;
         }
       }
 
       if (typeof nativeModule.getHarmonicCurrentDisplayData === 'function') {
         const currentValue = nativeModule.getHarmonicCurrentDisplayData();
-        if (isUsableHarmonicCurrentDisplayValue(currentValue)) {
-          nextSections = createSectionsFromHarmonicCurrentDisplay(
-            currentValue as HarmonicCurrentDisplayValue,
-            nextSections
-          );
+        if (isUsableHarmonicCurrentDisplayValue(currentValue) && currentValue) {
+          const phaseValues = [currentValue.Ia, currentValue.Ib, currentValue.Ic];
+          for (let sectionIndex = 0; sectionIndex < HARMONIC_COMPONENT_COUNT; sectionIndex++) {
+            for (let rowIndex = 0; rowIndex < HARMONIC_PHASE_COUNT; rowIndex++) {
+              const row = this.sections[sectionIndex].rows[rowIndex];
+              const currentMetric = createCurrentMetricFromValues(phaseValues[rowIndex], sectionIndex);
+              const currentRatio = calculateSignalRatioByHarmonicFormula(phaseValues[rowIndex], sectionIndex);
+              row.current.frequency = currentMetric.frequency;
+              row.current.amplitude = currentMetric.amplitude;
+              row.current.phase = currentMetric.phase;
+              row.current.ratio = currentRatio;
+            }
+          }
+          //this.logHarmonicCurrentNativeArrays(currentValue);
+          //this.logHarmonicCurrentDisplayArrays();
           hasLoadedNativeData = true;
         }
       }
 
-      if (!hasLoadedNativeData) {
-        return;
+      if (hasLoadedNativeData) {
+        // this.timeText = this.formatNowText(new Date());
       }
-      this.displaySections = nextSections;
     } catch (error) {
+      hilog.error(DOMAIN, TCP_ARK_TAG, '宽频谐波 load failed: %{public}s', JSON.stringify(error));
       console.error(`load harmonic display failed: ${JSON.stringify(error)}`);
     }
   }
@@ -524,12 +725,75 @@ export struct Broadband_Harmonic {
 
   @Builder
   HarmonicSectionsContent() {
-    ForEach(this.displaySections, (section: HarmonicSectionData, index: number) => {
-      this.SectionBlock(section, index);
-      if (index < this.displaySections.length - 1) {
-        this.SectionDivider();
-      }
-    }, (section: HarmonicSectionData, index: number) => buildHarmonicSectionRenderKey(section, index));
+    SectionBlock({
+      section: this.sections[0],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[1],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[2],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[3],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[4],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[5],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[6],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[7],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[8],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
+    this.SectionDivider();
+    SectionBlock({
+      section: this.sections[9],
+      uiScale: this.uiScale,
+      fontSize: this.fontSize,
+      pageBackgroundColor: this.pageBackgroundColor
+    });
   }
 
   @Builder
@@ -608,9 +872,42 @@ export struct Broadband_Harmonic {
     Column() {
       this.SectionTitleRow(section.title);
       this.TableHeaderRow();
-      ForEach(section.rows, (row: HarmonicPhaseRowData, rowIndex: number) => {
-        this.DataRow(row, sectionIndex, rowIndex);
-      }, (_row: HarmonicPhaseRowData, rowIndex: number) => `${sectionIndex}-${rowIndex}`);
+      this.DataRow(
+        section.rows[0].phaseLabel,
+        section.rows[0].darkBackground,
+        section.rows[0].voltage.frequency,
+        section.rows[0].voltage.amplitude,
+        section.rows[0].voltage.phase,
+        section.rows[0].voltage.ratio,
+        section.rows[0].current.frequency,
+        section.rows[0].current.amplitude,
+        section.rows[0].current.phase,
+        section.rows[0].current.ratio
+      );
+      this.DataRow(
+        section.rows[1].phaseLabel,
+        section.rows[1].darkBackground,
+        section.rows[1].voltage.frequency,
+        section.rows[1].voltage.amplitude,
+        section.rows[1].voltage.phase,
+        section.rows[1].voltage.ratio,
+        section.rows[1].current.frequency,
+        section.rows[1].current.amplitude,
+        section.rows[1].current.phase,
+        section.rows[1].current.ratio
+      );
+      this.DataRow(
+        section.rows[2].phaseLabel,
+        section.rows[2].darkBackground,
+        section.rows[2].voltage.frequency,
+        section.rows[2].voltage.amplitude,
+        section.rows[2].voltage.phase,
+        section.rows[2].voltage.ratio,
+        section.rows[2].current.frequency,
+        section.rows[2].current.amplitude,
+        section.rows[2].current.phase,
+        section.rows[2].current.ratio
+      );
     }
     .width('100%')
     .padding({ top: this.s(4), bottom: this.s(4) })
@@ -670,24 +967,35 @@ export struct Broadband_Harmonic {
   }
 
   @Builder
-  DataRow(row: HarmonicPhaseRowData, sectionIndex: number, rowIndex: number) {
+  DataRow(
+    phaseLabel: string,
+    darkBackground: boolean,
+    voltageFrequency: string,
+    voltageAmplitude: string,
+    voltagePhase: string,
+    voltageRatio: string,
+    currentFrequency: string,
+    currentAmplitude: string,
+    currentPhase: string,
+    currentRatio: string
+  ) {
     Row() {
-      this.RowLabelCell(row.phaseLabel, this.phaseLabelWeight);
-      this.RowValueCell(row.voltage.frequency, this.metricWeight);
-      this.RowValueCell(row.voltage.amplitude, this.metricWeight);
-      this.RowValueCell(row.voltage.phase, this.metricWeight);
-      this.RowValueCell(row.voltage.ratio, this.metricWeight);
-      this.RowLabelCell(row.phaseLabel, this.phaseLabelWeight);
-      this.RowValueCell(row.current.frequency, this.metricWeight);
-      this.RowValueCell(row.current.amplitude, this.metricWeight);
-      this.RowValueCell(row.current.phase, this.metricWeight);
-      this.RowValueCell(row.current.ratio, this.metricWeight);
+      this.RowLabelCell(phaseLabel, this.phaseLabelWeight);
+      this.RowValueCell(voltageFrequency, this.metricWeight);
+      this.RowValueCell(voltageAmplitude, this.metricWeight);
+      this.RowValueCell(voltagePhase, this.metricWeight);
+      this.RowValueCell(voltageRatio, this.metricWeight);
+      this.RowLabelCell(phaseLabel, this.phaseLabelWeight);
+      this.RowValueCell(currentFrequency, this.metricWeight);
+      this.RowValueCell(currentAmplitude, this.metricWeight);
+      this.RowValueCell(currentPhase, this.metricWeight);
+      this.RowValueCell(currentRatio, this.metricWeight);
     }
     .width('100%')
     .height(this.s(this.rowHeight))
     .padding({ left: this.s(this.rowPaddingX), right: this.s(this.rowPaddingX) })
     .alignItems(VerticalAlign.Center)
-    .backgroundColor(row.darkBackground ? this.highlightedRowColor : this.pageBackgroundColor);
+    .backgroundColor(darkBackground ? this.highlightedRowColor : this.pageBackgroundColor);
   }
 
   @Builder

@@ -76,8 +76,68 @@ interface CommonSettingStatisticsStructValue {
   CRC: number;
 }
 
+interface CommonSettingStatisticsWriteValue {
+  Enable_Bus: number;
+  Enable_Line: number;
+  Enable_VoltageMaxValue: number;
+  PeriodType_VoltageMaxValue: number;
+  PeriodLength_VoltageMaxValue: number;
+  Enable_VoltageMinValue: number;
+  PeriodType_VoltageMinValue: number;
+  PeriodLength_VoltageMinValue: number;
+  Enable_VoltageOnTimeValue: number;
+  PeriodType_VoltageOnTimeValue: number;
+  PeriodLength_VoltageOnTimeValue: number;
+  Enable_VoltageImbalanceMaxValue: number;
+  PeriodType_VoltageImbalanceMaxValue: number;
+  PeriodLength_VoltageImbalanceMaxValue: number;
+  Enable_VoltageQualifiedRateOnTimeValue: number;
+  PeriodType_VoltageQualifiedRateOnTimeValue: number;
+  PeriodLength_VoltageQualifiedRateOnTimeValue: number;
+  Enable_CurrentMaxValue: number;
+  PeriodType_CurrentMaxValue: number;
+  PeriodLength_CurrentMaxValue: number;
+  Enable_CurrentMinValue: number;
+  PeriodType_CurrentMinValue: number;
+  PeriodLength_CurrentMinValue: number;
+  Enable_CurrentOnTimeValue: number;
+  PeriodType_CurrentOnTimeValue: number;
+  PeriodLength_CurrentOnTimeValue: number;
+  Enable_CurrentImbalanceMaxValue: number;
+  PeriodType_CurrentImbalanceMaxValue: number;
+  PeriodLength_CurrentImbalanceMaxValue: number;
+  Enable_PowerMaxValue: number;
+  PeriodType_PowerMaxValue: number;
+  PeriodLength_PowerMaxValue: number;
+  Enable_PowerOnTimeValue: number;
+  PeriodType_PowerOnTimeValue: number;
+  PeriodLength_PowerOnTimeValue: number;
+  Enable_PowerFactorMaxValue: number;
+  PeriodType_PowerFactorMaxValue: number;
+  PeriodLength_PowerFactorMaxValue: number;
+  Enable_PowerFactorOnTimeValue: number;
+  PeriodType_PowerFactorrOnTimeValue: number;
+  PeriodLength_PowerFactorOnTimeValue: number;
+  Enable_LoadRateOnTimeValue: number;
+  PeriodType_LoadRateOnTimeValue: number;
+  PeriodLength_LoadRateOnTimeValue: number;
+  Enable_PositiveActivePowerOnTimeValue: number;
+  PeriodType_PositiveActivePowerOnTimeValue: number;
+  PeriodLength_PositiveActivePowerOnTimeValue: number;
+  Enable_PositiveReactivePowerOnTimeValue: number;
+  PeriodType_PositiveReactivePowerOnTimeValue: number;
+  PeriodLength_PositiveReactivePowerOnTimeValue: number;
+  Enable_ReverseActivePowerOnTimeValue: number;
+  PeriodType_ReverseActivePowerOnTimeValue: number;
+  PeriodLength_ReverseActivePowerOnTimeValue: number;
+  Enable_ReverseReactivePowerOnTimeValue: number;
+  PeriodType_ReverseReactivePowerOnTimeValue: number;
+  PeriodLength_ReverseReactivePowerOnTimeValue: number;
+}
+
 interface StatisticsNativeModule {
   getStatisticsSetting?: () => CommonSettingStatisticsStructValue | undefined;
+  updateStatisticsSetting?: (value: CommonSettingStatisticsWriteValue) => boolean;
 }
 
 declare function requireNapi(
@@ -100,6 +160,19 @@ function getStatisticsEnableText(value: number): string {
   return '';
 }
 
+function getStatisticsEnableCode(value: string, fallbackValue: number): number {
+  if (value === '投入') {
+    return 1;
+  }
+  if (value === '退出') {
+    return 0;
+  }
+  if (fallbackValue === 0 || fallbackValue === 1) {
+    return fallbackValue;
+  }
+  return 1;
+}
+
 function getStatisticsPeriodTypeText(value: number): string {
   if (value === 1) {
     return '分钟级';
@@ -111,6 +184,22 @@ function getStatisticsPeriodTypeText(value: number): string {
     return '日级';
   }
   return '';
+}
+
+function getStatisticsPeriodTypeCode(value: string, fallbackValue: number): number {
+  if (value === '分钟级') {
+    return 1;
+  }
+  if (value === '小时级') {
+    return 2;
+  }
+  if (value === '日级') {
+    return 3;
+  }
+  if (fallbackValue === 1 || fallbackValue === 2 || fallbackValue === 3) {
+    return fallbackValue;
+  }
+  return 2;
 }
 
 function formatStatisticsPeriodLength(value: number): string {
@@ -485,6 +574,8 @@ export struct CommonSetting_Statistics_Set {
   @State selectOverlayOptions: string[] = [];
   @State feedbackDialogVisible: boolean = false;
   @State feedbackMessage: string = '';
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
 
   private readonly fontSize: CommonSettingStatisticsFontSize = new CommonSettingStatisticsFontSize();
   private readonly enableOptions: string[] = COMMON_SETTING_STATISTICS_ENABLE_OPTIONS;
@@ -654,10 +745,298 @@ export struct CommonSetting_Statistics_Set {
     this.formData = createDefaultCommonSettingStatisticsFields();
   }
 
+  private showFeedback(message: string): void {
+    this.feedbackMessage = message;
+    this.feedbackDialogVisible = true;
+  }
+
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private parseStatisticsFieldUint(value: string, fallbackValue: number): number {
+    let parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return fallbackValue;
+    }
+    return Math.max(0, Math.round(parsed));
+  }
+
+  private createStatisticsWriteValue(
+    fallbackSource?: CommonSettingStatisticsStructValue
+  ): CommonSettingStatisticsWriteValue {
+    return {
+      Enable_Bus: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_Bus'),
+        fallbackSource?.Enable_Bus ?? 1
+      ),
+      Enable_Line: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_Line'),
+        fallbackSource?.Enable_Line ?? 1
+      ),
+      Enable_VoltageMaxValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_VoltageMaxValue'),
+        fallbackSource?.Enable_VoltageMaxValue ?? 1
+      ),
+      PeriodType_VoltageMaxValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_VoltageMaxValue'),
+        fallbackSource?.PeriodType_VoltageMaxValue ?? 2
+      ),
+      PeriodLength_VoltageMaxValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_VoltageMaxValue'),
+        fallbackSource?.PeriodLength_VoltageMaxValue ?? 0
+      ),
+      Enable_VoltageMinValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_VoltageMinValue'),
+        fallbackSource?.Enable_VoltageMinValue ?? 1
+      ),
+      PeriodType_VoltageMinValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_VoltageMinValue'),
+        fallbackSource?.PeriodType_VoltageMinValue ?? 2
+      ),
+      PeriodLength_VoltageMinValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_VoltageMinValue'),
+        fallbackSource?.PeriodLength_VoltageMinValue ?? 0
+      ),
+      Enable_VoltageOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_VoltageOnTimeValue'),
+        fallbackSource?.Enable_VoltageOnTimeValue ?? 1
+      ),
+      PeriodType_VoltageOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_VoltageOnTimeValue'),
+        fallbackSource?.PeriodType_VoltageOnTimeValue ?? 2
+      ),
+      PeriodLength_VoltageOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_VoltageOnTimeValue'),
+        fallbackSource?.PeriodLength_VoltageOnTimeValue ?? 0
+      ),
+      Enable_VoltageImbalanceMaxValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_VoltageImbalanceMaxValue'),
+        fallbackSource?.Enable_VoltageImbalanceMaxValue ?? 1
+      ),
+      PeriodType_VoltageImbalanceMaxValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_VoltageImbalanceMaxValue'),
+        fallbackSource?.PeriodType_VoltageImbalanceMaxValue ?? 2
+      ),
+      PeriodLength_VoltageImbalanceMaxValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_VoltageImbalanceMaxValue'),
+        fallbackSource?.PeriodLength_VoltageImbalanceMaxValue ?? 0
+      ),
+      Enable_VoltageQualifiedRateOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_VoltageQualifiedRateOnTimeValue'),
+        fallbackSource?.Enable_VoltageQualifiedRateOnTimeValue ?? 1
+      ),
+      PeriodType_VoltageQualifiedRateOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_VoltageQualifiedRateOnTimeValue'),
+        fallbackSource?.PeriodType_VoltageQualifiedRateOnTimeValue ?? 2
+      ),
+      PeriodLength_VoltageQualifiedRateOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_VoltageQualifiedRateOnTimeValue'),
+        fallbackSource?.PeriodLength_VoltageQualifiedRateOnTimeValue ?? 0
+      ),
+      Enable_CurrentMaxValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_CurrentMaxValue'),
+        fallbackSource?.Enable_CurrentMaxValue ?? 1
+      ),
+      PeriodType_CurrentMaxValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_CurrentMaxValue'),
+        fallbackSource?.PeriodType_CurrentMaxValue ?? 2
+      ),
+      PeriodLength_CurrentMaxValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_CurrentMaxValue'),
+        fallbackSource?.PeriodLength_CurrentMaxValue ?? 0
+      ),
+      Enable_CurrentMinValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_CurrentMinValue'),
+        fallbackSource?.Enable_CurrentMinValue ?? 1
+      ),
+      PeriodType_CurrentMinValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_CurrentMinValue'),
+        fallbackSource?.PeriodType_CurrentMinValue ?? 2
+      ),
+      PeriodLength_CurrentMinValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_CurrentMinValue'),
+        fallbackSource?.PeriodLength_CurrentMinValue ?? 0
+      ),
+      Enable_CurrentOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_CurrentOnTimeValue'),
+        fallbackSource?.Enable_CurrentOnTimeValue ?? 1
+      ),
+      PeriodType_CurrentOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_CurrentOnTimeValue'),
+        fallbackSource?.PeriodType_CurrentOnTimeValue ?? 2
+      ),
+      PeriodLength_CurrentOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_CurrentOnTimeValue'),
+        fallbackSource?.PeriodLength_CurrentOnTimeValue ?? 0
+      ),
+      Enable_CurrentImbalanceMaxValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_CurrentImbalanceMaxValue'),
+        fallbackSource?.Enable_CurrentImbalanceMaxValue ?? 1
+      ),
+      PeriodType_CurrentImbalanceMaxValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_CurrentImbalanceMaxValue'),
+        fallbackSource?.PeriodType_CurrentImbalanceMaxValue ?? 2
+      ),
+      PeriodLength_CurrentImbalanceMaxValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_CurrentImbalanceMaxValue'),
+        fallbackSource?.PeriodLength_CurrentImbalanceMaxValue ?? 0
+      ),
+      Enable_PowerMaxValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_PowerMaxValue'),
+        fallbackSource?.Enable_PowerMaxValue ?? 1
+      ),
+      PeriodType_PowerMaxValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_PowerMaxValue'),
+        fallbackSource?.PeriodType_PowerMaxValue ?? 2
+      ),
+      PeriodLength_PowerMaxValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_PowerMaxValue'),
+        fallbackSource?.PeriodLength_PowerMaxValue ?? 0
+      ),
+      Enable_PowerOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_PowerOnTimeValue'),
+        fallbackSource?.Enable_PowerOnTimeValue ?? 1
+      ),
+      PeriodType_PowerOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_PowerOnTimeValue'),
+        fallbackSource?.PeriodType_PowerOnTimeValue ?? 2
+      ),
+      PeriodLength_PowerOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_PowerOnTimeValue'),
+        fallbackSource?.PeriodLength_PowerOnTimeValue ?? 0
+      ),
+      Enable_PowerFactorMaxValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_PowerFactorMaxValue'),
+        fallbackSource?.Enable_PowerFactorMaxValue ?? 1
+      ),
+      PeriodType_PowerFactorMaxValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_PowerFactorMaxValue'),
+        fallbackSource?.PeriodType_PowerFactorMaxValue ?? 2
+      ),
+      PeriodLength_PowerFactorMaxValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_PowerFactorMaxValue'),
+        fallbackSource?.PeriodLength_PowerFactorMaxValue ?? 0
+      ),
+      Enable_PowerFactorOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_PowerFactorOnTimeValue'),
+        fallbackSource?.Enable_PowerFactorOnTimeValue ?? 1
+      ),
+      PeriodType_PowerFactorrOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_PowerFactorOnTimeValue'),
+        fallbackSource?.PeriodType_PowerFactorrOnTimeValue ?? 2
+      ),
+      PeriodLength_PowerFactorOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_PowerFactorOnTimeValue'),
+        fallbackSource?.PeriodLength_PowerFactorOnTimeValue ?? 0
+      ),
+      Enable_LoadRateOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_LoadRateOnTimeValue'),
+        fallbackSource?.Enable_LoadRateOnTimeValue ?? 1
+      ),
+      PeriodType_LoadRateOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_LoadRateOnTimeValue'),
+        fallbackSource?.PeriodType_LoadRateOnTimeValue ?? 2
+      ),
+      PeriodLength_LoadRateOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_LoadRateOnTimeValue'),
+        fallbackSource?.PeriodLength_LoadRateOnTimeValue ?? 0
+      ),
+      Enable_PositiveActivePowerOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_PositiveActivePowerOnTimeValue'),
+        fallbackSource?.Enable_PositiveActivePowerOnTimeValue ?? 1
+      ),
+      PeriodType_PositiveActivePowerOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_PositiveActivePowerOnTimeValue'),
+        fallbackSource?.PeriodType_PositiveActivePowerOnTimeValue ?? 2
+      ),
+      PeriodLength_PositiveActivePowerOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_PositiveActivePowerOnTimeValue'),
+        fallbackSource?.PeriodLength_PositiveActivePowerOnTimeValue ?? 0
+      ),
+      Enable_PositiveReactivePowerOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_PositiveReactivePowerOnTimeValue'),
+        fallbackSource?.Enable_PositiveReactivePowerOnTimeValue ?? 1
+      ),
+      PeriodType_PositiveReactivePowerOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_PositiveReactivePowerOnTimeValue'),
+        fallbackSource?.PeriodType_PositiveReactivePowerOnTimeValue ?? 2
+      ),
+      PeriodLength_PositiveReactivePowerOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_PositiveReactivePowerOnTimeValue'),
+        fallbackSource?.PeriodLength_PositiveReactivePowerOnTimeValue ?? 0
+      ),
+      Enable_ReverseActivePowerOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_ReverseActivePowerOnTimeValue'),
+        fallbackSource?.Enable_ReverseActivePowerOnTimeValue ?? 1
+      ),
+      PeriodType_ReverseActivePowerOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_ReverseActivePowerOnTimeValue'),
+        fallbackSource?.PeriodType_ReverseActivePowerOnTimeValue ?? 2
+      ),
+      PeriodLength_ReverseActivePowerOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_ReverseActivePowerOnTimeValue'),
+        fallbackSource?.PeriodLength_ReverseActivePowerOnTimeValue ?? 0
+      ),
+      Enable_ReverseReactivePowerOnTimeValue: getStatisticsEnableCode(
+        this.getFieldValue('C_Box_Stats_En_ReverseReactivePowerOnTimeValue'),
+        fallbackSource?.Enable_ReverseReactivePowerOnTimeValue ?? 1
+      ),
+      PeriodType_ReverseReactivePowerOnTimeValue: getStatisticsPeriodTypeCode(
+        this.getFieldValue('C_Box_Stats_PDType_ReverseReactivePowerOnTimeValue'),
+        fallbackSource?.PeriodType_ReverseReactivePowerOnTimeValue ?? 2
+      ),
+      PeriodLength_ReverseReactivePowerOnTimeValue: this.parseStatisticsFieldUint(
+        this.getFieldValue('Edit_Stats_PDLen_ReverseReactivePowerOnTimeValue'),
+        fallbackSource?.PeriodLength_ReverseReactivePowerOnTimeValue ?? 0
+      )
+    };
+  }
+
+  private writeNativeStatisticsData(): boolean {
+    try {
+      let nativeModule = this.loadStatisticsNativeModule();
+      if (!nativeModule || typeof nativeModule.updateStatisticsSetting !== 'function') {
+        return false;
+      }
+
+      let currentStructValue: CommonSettingStatisticsStructValue | undefined = undefined;
+      if (typeof nativeModule.getStatisticsSetting === 'function') {
+        currentStructValue = nativeModule.getStatisticsSetting();
+      }
+
+      let writeValue = this.createStatisticsWriteValue(currentStructValue);
+      let writeSuccess = nativeModule.updateStatisticsSetting(writeValue);
+      if (writeSuccess) {
+        this.loadNativeStatisticsData();
+      }
+      return writeSuccess;
+    } catch (error) {
+      console.error(`write native statistics data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
   private submitCurrentData(): void {
     let saveSuccess = this.savePersistedData();
-    this.feedbackMessage = saveSuccess ? '提交成功' : '提交失败';
-    this.feedbackDialogVisible = true;
+    if (!saveSuccess) {
+      this.showFeedback('提交失败');
+      return;
+    }
+
+    let writeSuccess = this.writeNativeStatisticsData();
+    if (!writeSuccess) {
+      this.showFeedback('提交失败，请检查统计参数结构体写入。');
+      return;
+    }
+
+    this.showSubmitWaiting('界面参数已写入统计参数结构体，等待装置回应...');
   }
 
   private closeFeedback(): void {
@@ -729,6 +1108,10 @@ export struct CommonSetting_Statistics_Set {
 
       if (this.selectOverlayVisible) {
         this.SelectOverlay();
+      }
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
       }
 
       if (this.feedbackDialogVisible) {
@@ -1076,6 +1459,59 @@ export struct CommonSetting_Statistics_Set {
           .borderRadius(this.s(8))
           .onClick(() => {
             this.closeFeedback();
+          });
+      }
+      .width(this.s(280))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(this.overlayCardRadius));
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeSubmitWaiting();
+      });
+
+      Column() {
+        Text('等待回应')
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogTitle))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button('关闭')
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
           });
       }
       .width(this.s(280))

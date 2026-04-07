@@ -21,6 +21,61 @@ constexpr const char *TCP_LOG_TAG = "JY_TCP_NATIVE";
 #define TCP_LOGW(format, ...) OH_LOG_Print(LOG_APP, LOG_WARN, TCP_LOG_DOMAIN, TCP_LOG_TAG, format, ##__VA_ARGS__)
 #define TCP_LOGE(format, ...) OH_LOG_Print(LOG_APP, LOG_ERROR, TCP_LOG_DOMAIN, TCP_LOG_TAG, format, ##__VA_ARGS__)
 
+constexpr std::size_t HARMONIC_ARRAY_VALUE_COUNT = 30;
+constexpr std::size_t HARMONIC_COMPONENT_COUNT = 10;
+constexpr std::size_t HARMONIC_VALUE_GROUP_COUNT = 3;
+constexpr std::size_t HARMONIC_LOG_CHUNK_SIZE = 6;
+constexpr std::size_t TCP_SEND_LOG_CHUNK_SIZE = 16;
+
+void LogIndexedHarmonicValues(
+    const char *prefix,
+    const char *phaseName,
+    const float *frequency,
+    const float *rms,
+    const float *angle,
+    std::size_t componentCount)
+{
+    if (prefix == nullptr || phaseName == nullptr || frequency == nullptr || rms == nullptr || angle == nullptr ||
+        componentCount == 0) {
+        return;
+    }
+
+    const std::size_t totalValueCount = componentCount * HARMONIC_VALUE_GROUP_COUNT;
+    for (std::size_t start = 0; start < totalValueCount; start += HARMONIC_LOG_CHUNK_SIZE) {
+        const std::size_t end = (start + HARMONIC_LOG_CHUNK_SIZE < totalValueCount)
+            ? (start + HARMONIC_LOG_CHUNK_SIZE)
+            : totalValueCount;
+
+        std::string line = prefix;
+        line += " ";
+        for (std::size_t index = start; index < end; ++index) {
+            const std::size_t componentIndex = index / HARMONIC_VALUE_GROUP_COUNT;
+            const std::size_t valueTypeIndex = index % HARMONIC_VALUE_GROUP_COUNT;
+            double value = 0.0;
+            if (valueTypeIndex == 0) {
+                value = static_cast<double>(frequency[componentIndex]);
+            } else if (valueTypeIndex == 1) {
+                value = static_cast<double>(rms[componentIndex]);
+            } else {
+                value = static_cast<double>(angle[componentIndex]);
+            }
+            char item[96] = {0};
+            std::snprintf(
+                item,
+                sizeof(item),
+                "%s[%u]=%.6f",
+                phaseName,
+                static_cast<unsigned int>(index),
+                value);
+            if (index > start) {
+                line += ", ";
+            }
+            line += item;
+        }
+        TCP_LOGI("%{public}s", line.c_str());
+    }
+}
+
 void LogPrimarySystemSetting(const CommonSetting_PrimarySystem_Struct &setting)
 {
     TCP_LOGI(
@@ -79,6 +134,33 @@ void LogPrimarySystemPayloadHex(const std::uint8_t *data, std::size_t length)
         }
         TCP_LOGI("PrimarySystem raw[%{public}03d]: %{public}s",
             static_cast<int>(offset), line.c_str());
+    }
+}
+
+void LogTcpSendPayloadHex(const char *data, std::size_t length)
+{
+    if (data == nullptr || length == 0) {
+        TCP_LOGW("send raw payload is empty");
+        return;
+    }
+
+    const std::uint8_t *bytes = reinterpret_cast<const std::uint8_t *>(data);
+    TCP_LOGI("send raw payload length=%{public}d", static_cast<int>(length));
+
+    for (std::size_t offset = 0; offset < length; offset += TCP_SEND_LOG_CHUNK_SIZE) {
+        const std::size_t end = (offset + TCP_SEND_LOG_CHUNK_SIZE < length)
+            ? (offset + TCP_SEND_LOG_CHUNK_SIZE)
+            : length;
+        std::string line;
+        for (std::size_t index = offset; index < end; ++index) {
+            char item[8] = {0};
+            std::snprintf(item, sizeof(item), "%02X", bytes[index]);
+            if (index > offset) {
+                line += ' ';
+            }
+            line += item;
+        }
+        TCP_LOGI("send raw[%{public}03d]: %{public}s", static_cast<int>(offset), line.c_str());
     }
 }
 
@@ -248,30 +330,37 @@ void LogHarmonicVoltageDisplay(const YC_HarmonicU_Struct &value)
 
     TCP_LOGI(
         "HarmonicU_Dsip Ua fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
-        static_cast<double>(value.Ua[0]),
-        static_cast<double>(value.Ua[1]),
-        static_cast<double>(value.Ua[2]),
-        static_cast<double>(value.Ua[3]),
-        static_cast<double>(value.Ua[4]),
-        static_cast<double>(value.Ua[5]));
+        static_cast<double>(value.Ua_Frequency[0]),
+        static_cast<double>(value.Ua_RMS[0]),
+        static_cast<double>(value.Ua_Angle[0]),
+        static_cast<double>(value.Ua_Frequency[1]),
+        static_cast<double>(value.Ua_RMS[1]),
+        static_cast<double>(value.Ua_Angle[1]));
 
     TCP_LOGI(
         "HarmonicU_Dsip Ub fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
-        static_cast<double>(value.Ub[0]),
-        static_cast<double>(value.Ub[1]),
-        static_cast<double>(value.Ub[2]),
-        static_cast<double>(value.Ub[3]),
-        static_cast<double>(value.Ub[4]),
-        static_cast<double>(value.Ub[5]));
+        static_cast<double>(value.Ub_Frequency[0]),
+        static_cast<double>(value.Ub_RMS[0]),
+        static_cast<double>(value.Ub_Angle[0]),
+        static_cast<double>(value.Ub_Frequency[1]),
+        static_cast<double>(value.Ub_RMS[1]),
+        static_cast<double>(value.Ub_Angle[1]));
 
     TCP_LOGI(
         "HarmonicU_Dsip Uc fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
-        static_cast<double>(value.Uc[0]),
-        static_cast<double>(value.Uc[1]),
-        static_cast<double>(value.Uc[2]),
-        static_cast<double>(value.Uc[3]),
-        static_cast<double>(value.Uc[4]),
-        static_cast<double>(value.Uc[5]));
+        static_cast<double>(value.Uc_Frequency[0]),
+        static_cast<double>(value.Uc_RMS[0]),
+        static_cast<double>(value.Uc_Angle[0]),
+        static_cast<double>(value.Uc_Frequency[1]),
+        static_cast<double>(value.Uc_RMS[1]),
+        static_cast<double>(value.Uc_Angle[1]));
+
+    LogIndexedHarmonicValues("C侧电压原始值", "Ua", value.Ua_Frequency, value.Ua_RMS, value.Ua_Angle,
+        HARMONIC_COMPONENT_COUNT);
+    LogIndexedHarmonicValues("C侧电压原始值", "Ub", value.Ub_Frequency, value.Ub_RMS, value.Ub_Angle,
+        HARMONIC_COMPONENT_COUNT);
+    LogIndexedHarmonicValues("C侧电压原始值", "Uc", value.Uc_Frequency, value.Uc_RMS, value.Uc_Angle,
+        HARMONIC_COMPONENT_COUNT);
 }
 
 void LogHarmonicCurrentDisplay(const YC_HarmonicI_Struct &value)
@@ -287,30 +376,37 @@ void LogHarmonicCurrentDisplay(const YC_HarmonicI_Struct &value)
 
     TCP_LOGI(
         "HarmonicI_Dsip Ia fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
-        static_cast<double>(value.Ia[0]),
-        static_cast<double>(value.Ia[1]),
-        static_cast<double>(value.Ia[2]),
-        static_cast<double>(value.Ia[3]),
-        static_cast<double>(value.Ia[4]),
-        static_cast<double>(value.Ia[5]));
+        static_cast<double>(value.Ia_Frequency[0]),
+        static_cast<double>(value.Ia_RMS[0]),
+        static_cast<double>(value.Ia_Angle[0]),
+        static_cast<double>(value.Ia_Frequency[1]),
+        static_cast<double>(value.Ia_RMS[1]),
+        static_cast<double>(value.Ia_Angle[1]));
 
     TCP_LOGI(
         "HarmonicI_Dsip Ib fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
-        static_cast<double>(value.Ib[0]),
-        static_cast<double>(value.Ib[1]),
-        static_cast<double>(value.Ib[2]),
-        static_cast<double>(value.Ib[3]),
-        static_cast<double>(value.Ib[4]),
-        static_cast<double>(value.Ib[5]));
+        static_cast<double>(value.Ib_Frequency[0]),
+        static_cast<double>(value.Ib_RMS[0]),
+        static_cast<double>(value.Ib_Angle[0]),
+        static_cast<double>(value.Ib_Frequency[1]),
+        static_cast<double>(value.Ib_RMS[1]),
+        static_cast<double>(value.Ib_Angle[1]));
 
     TCP_LOGI(
         "HarmonicI_Dsip Ic fundamental=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f) h1=(f=%{public}.2f,a=%{public}.2f,p=%{public}.2f)",
-        static_cast<double>(value.Ic[0]),
-        static_cast<double>(value.Ic[1]),
-        static_cast<double>(value.Ic[2]),
-        static_cast<double>(value.Ic[3]),
-        static_cast<double>(value.Ic[4]),
-        static_cast<double>(value.Ic[5]));
+        static_cast<double>(value.Ic_Frequency[0]),
+        static_cast<double>(value.Ic_RMS[0]),
+        static_cast<double>(value.Ic_Angle[0]),
+        static_cast<double>(value.Ic_Frequency[1]),
+        static_cast<double>(value.Ic_RMS[1]),
+        static_cast<double>(value.Ic_Angle[1]));
+
+    LogIndexedHarmonicValues("C侧电流原始值", "Ia", value.Ia_Frequency, value.Ia_RMS, value.Ia_Angle,
+        HARMONIC_COMPONENT_COUNT);
+    LogIndexedHarmonicValues("C侧电流原始值", "Ib", value.Ib_Frequency, value.Ib_RMS, value.Ib_Angle,
+        HARMONIC_COMPONENT_COUNT);
+    LogIndexedHarmonicValues("C侧电流原始值", "Ic", value.Ic_Frequency, value.Ic_RMS, value.Ic_Angle,
+        HARMONIC_COMPONENT_COUNT);
 }
 
 bool IsAllBytesValue(const std::uint8_t *data, std::size_t length, std::uint8_t expected)
@@ -421,6 +517,7 @@ int TcpClient::Send(const char *data, int length)
     }
 
     TCP_LOGI("send success. length=%{public}d", length);
+    LogTcpSendPayloadHex(data, static_cast<std::size_t>(length));
     return 1;
 }
 
@@ -606,6 +703,7 @@ void TcpClient::DispatchDecodedFrames()
         }
 
         std::size_t decodeOffset = frameOffset;
+        TCP_LOGI("commonAddr = %{public}d  objectAddr=%{public}d", commonAddr, objectAddr);
         switch (commonAddr) {
             case Common_Addr_RemoteMetry:
                 decodeOffset += sizeof(std::uint16_t) * 2;
@@ -717,7 +815,7 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
                 std::memcpy(&HarmonicU_Dsip, decodeBuffer_.data() + payloadOffset, sizeof(YC_HarmonicU_Struct));
                 HarmonicVoltageDisplayReady = true;
                 TCP_LOGI("HarmonicU_Dsip updated");
-                LogHarmonicVoltageDisplay(HarmonicU_Dsip);
+                //LogHarmonicVoltageDisplay(HarmonicU_Dsip);
             } else {
                 TCP_LOGW("HarmonicU_Dsip length mismatch. expected=%{public}d actual=%{public}d",
                     static_cast<int>(HarmonicU_DataLenth), dataLength);
@@ -728,7 +826,7 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
                 std::memcpy(&HarmonicI_Dsip, decodeBuffer_.data() + payloadOffset, sizeof(YC_HarmonicI_Struct));
                 HarmonicCurrentDisplayReady = true;
                 TCP_LOGI("HarmonicI_Dsip updated");
-                LogHarmonicCurrentDisplay(HarmonicI_Dsip);
+                //LogHarmonicCurrentDisplay(HarmonicI_Dsip);
             } else {
                 TCP_LOGW("HarmonicI_Dsip length mismatch. expected=%{public}d actual=%{public}d",
                     static_cast<int>(HarmonicI_DataLenth), dataLength);
@@ -784,10 +882,11 @@ void TcpClient::DecodeRemoteSignalPacket(std::uint16_t objectAddr, std::size_t *
     if (YX_Change_Queue.size() < DATA_QUEUE_MAX_LENGTH) {
         YX_Change_Queue.push_back(yxChangeVal);
     }
-
+    
     const std::uint16_t tempState = yxChangeVal.State;
     const bool stateBool = (yxChangeVal.State == SW_Close);
-
+    
+    TCP_LOGI("objectAddr = %{public}u",objectAddr);
     if ((objectAddr & RemoteSignal_Type_Mask) == RemoteSignal_RAState_Mask) {
         switch (objectAddr) {
             case YX_ObjectAddr_CommonSetting_PrimarySystem:
@@ -1078,11 +1177,11 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
             }
             break;
         case YT_ObjectAddr_CommonSetting_TeleMeasuring:
-            if (payloadLength == CommonSetting_YC_Length_1Byte) {
+            if (payloadLength == CommonSetting_TeleMeasuring_Length_1Byte) {
                 CommonSetting_TeleMeasuring_Struct teleMeasuringBuf {};
                 std::memcpy(&teleMeasuringBuf, decodeBuffer_.data() + payloadOffset, sizeof(teleMeasuringBuf));
                 const std::uint32_t tempCRC =
-                    CRC32(reinterpret_cast<std::uint32_t *>(&teleMeasuringBuf), CommonSetting_YC_CRCLength_4Byte);
+                    CRC32(reinterpret_cast<std::uint32_t *>(&teleMeasuringBuf), CommonSetting_TeleMeasuring_CRCLength_4Byte);
                 if (tempCRC == teleMeasuringBuf.CRC) {
                     std::memcpy(&TeleMeasuringSetting, &teleMeasuringBuf, sizeof(TeleMeasuringSetting));
                     TeleMeasuringSettingReady = true;
@@ -1094,15 +1193,15 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
                 }
             } else {
                 TCP_LOGW("CommonSetting_TeleMeasuring length mismatch. expected=%{public}d actual=%{public}d",
-                    static_cast<int>(CommonSetting_YC_Length_1Byte), dataLength);
+                    static_cast<int>(CommonSetting_TeleMeasuring_Length_1Byte), dataLength);
             }
             break;
         case YT_ObjectAddr_CommonSetting_TeleSignaling:
-            if (payloadLength == CommonSetting_YX_Length_1Byte) {
+            if (payloadLength == CommonSetting_TeleSignaling_Length_1Byte) {
                 CommonSetting_TeleSignaling_Struct teleSignalingBuf {};
                 std::memcpy(&teleSignalingBuf, decodeBuffer_.data() + payloadOffset, sizeof(teleSignalingBuf));
                 const std::uint32_t tempCRC =
-                    CRC32(reinterpret_cast<std::uint32_t *>(&teleSignalingBuf), CommonSetting_YX_CRCLength_4Byte);
+                    CRC32(reinterpret_cast<std::uint32_t *>(&teleSignalingBuf), CommonSetting_TeleSignaling_CRCLength_4Byte);
                 if (tempCRC == teleSignalingBuf.CRC) {
                     std::memcpy(&TeleSignalingSetting, &teleSignalingBuf, sizeof(TeleSignalingSetting));
                     TeleSignalingSettingReady = true;
@@ -1114,15 +1213,15 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
                 }
             } else {
                 TCP_LOGW("CommonSetting_TeleSignaling length mismatch. expected=%{public}d actual=%{public}d",
-                    static_cast<int>(CommonSetting_YX_Length_1Byte), dataLength);
+                    static_cast<int>(CommonSetting_TeleSignaling_Length_1Byte), dataLength);
             }
             break;
         case YT_ObjectAddr_CommonSetting_TeleControlling:
-            if (payloadLength == CommonSetting_YK_Length_1Byte) {
+            if (payloadLength == CommonSetting_TeleControlling_Length_1Byte) {
                 CommonSetting_TeleControlling_Struct teleControllingBuf {};
                 std::memcpy(&teleControllingBuf, decodeBuffer_.data() + payloadOffset, sizeof(teleControllingBuf));
                 const std::uint32_t tempCRC =
-                    CRC32(reinterpret_cast<std::uint32_t *>(&teleControllingBuf), CommonSetting_YK_CRCLength_4Byte);
+                    CRC32(reinterpret_cast<std::uint32_t *>(&teleControllingBuf), CommonSetting_TeleControlling_CRCLength_4Byte);
                 if (tempCRC == teleControllingBuf.CRC) {
                     std::memcpy(&TeleControllingSetting, &teleControllingBuf, sizeof(TeleControllingSetting));
                     TeleControllingSettingReady = true;
@@ -1134,7 +1233,7 @@ void TcpClient::DecodeRemoteAdjustPacket(std::uint16_t objectAddr, std::size_t *
                 }
             } else {
                 TCP_LOGW("CommonSetting_TeleControlling length mismatch. expected=%{public}d actual=%{public}d",
-                    static_cast<int>(CommonSetting_YK_Length_1Byte), dataLength);
+                    static_cast<int>(CommonSetting_TeleControlling_Length_1Byte), dataLength);
             }
             break;
         case YT_ObjectAddr_CommonSetting_ExceedingLimit:

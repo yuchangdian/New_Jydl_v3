@@ -86,6 +86,26 @@ export interface CommonSettingPrimarySystemStructValue {
   CRC: number;
 }
 
+export interface CommonSettingPrimarySystemWriteValue {
+  SystemGroundingMode: number;
+  PTp_Bus_Primary: number;
+  PTp_Bus_Secondary: number;
+  PTo_Bus_Primary: number;
+  PTo_Bus_Secondary: number;
+  PT_Line_Primary: number;
+  PT_Line_Secondary: number;
+  PT_Line_Phase: number;
+  CTp_Protection_Primary: number;
+  CTp_Protection_Secondary: number;
+  CTo_Primary: number;
+  CTo_Secondary: number;
+  CTp_Measure_Primary: number;
+  CTp_Measure_Secondary: number;
+  Mode_CTConnectioin: number;
+  Mode_Iosample: number;
+  RatedPower_Line: number;
+}
+
 function formatPrimarySystemNumber(value: number, minFractionDigits: number = 0): string {
   if (typeof value !== 'number' || !isFinite(value)) {
     return '';
@@ -110,6 +130,42 @@ function normalizePrimarySystemLinePhase(value: string): string {
     return '三相';
   }
   return value;
+}
+
+function parsePrimarySystemWriteNumber(value: string, fallbackValue: number): number {
+  let parsedValue = Number(value);
+  if (isValidPrimarySystemNumber(parsedValue)) {
+    return parsedValue;
+  }
+  return isValidPrimarySystemNumber(fallbackValue) ? fallbackValue : 0;
+}
+
+function getPrimarySystemLinePhaseCode(value: string, fallbackValue: number): number {
+  let normalizedValue = normalizePrimarySystemLinePhase(value);
+  let optionIndex = COMMON_SETTING_PRIMARY_SYSTEM_LINE_PHASE_OPTIONS.findIndex((item: string) => item === normalizedValue);
+  let phaseCodes: number[] = [0x01, 0x02, 0x04, 0x03, 0x05, 0x06, 0x07];
+  if (optionIndex >= 0 && optionIndex < phaseCodes.length) {
+    return phaseCodes[optionIndex];
+  }
+  return Number.isInteger(fallbackValue) ? fallbackValue : 0x01;
+}
+
+function getPrimarySystemCtConnectionCode(value: string, fallbackValue: number): number {
+  let optionIndex = COMMON_SETTING_PRIMARY_SYSTEM_CT_CONNECTION_OPTIONS.findIndex((item: string) => item === value);
+  let modeCodes: number[] = [0x01, 0x00];
+  if (optionIndex >= 0 && optionIndex < modeCodes.length) {
+    return modeCodes[optionIndex];
+  }
+  return Number.isInteger(fallbackValue) ? fallbackValue : 0x01;
+}
+
+function getPrimarySystemZeroCurrentCode(value: string, fallbackValue: number): number {
+  let optionIndex = COMMON_SETTING_PRIMARY_SYSTEM_ZERO_CURRENT_OPTIONS.findIndex((item: string) => item === value);
+  let modeCodes: number[] = [0x00, 0x01];
+  if (optionIndex >= 0 && optionIndex < modeCodes.length) {
+    return modeCodes[optionIndex];
+  }
+  return Number.isInteger(fallbackValue) ? fallbackValue : 0x00;
 }
 
 export function isUsableCommonSettingPrimarySystemStructValue(
@@ -201,6 +257,75 @@ export function createCommonSettingPrimarySystemDataFromStruct(
     data.zeroCurrentMode = source.Mode_Iosample_Text;
   }
   return data;
+}
+
+export function createCommonSettingPrimarySystemWriteValue(
+  data: CommonSettingPrimarySystemData,
+  fallbackSource?: CommonSettingPrimarySystemStructValue
+): CommonSettingPrimarySystemWriteValue {
+  let fallbackGroundingMode = fallbackSource ? fallbackSource.SystemGroundingMode : 0;
+  let fallbackLinePhase = fallbackSource ? fallbackSource.PT_Line_Phase : 0x01;
+  let fallbackCtConnection = fallbackSource ? fallbackSource.Mode_CTConnectioin : 0x01;
+  let fallbackZeroCurrentMode = fallbackSource ? fallbackSource.Mode_Iosample : 0x00;
+
+  return {
+    SystemGroundingMode: Number.isInteger(fallbackGroundingMode) ? fallbackGroundingMode : 0,
+    PTp_Bus_Primary: parsePrimarySystemWriteNumber(
+      data.busPtPrimary,
+      fallbackSource ? fallbackSource.PTp_Bus_Primary : 10.0
+    ),
+    PTp_Bus_Secondary: parsePrimarySystemWriteNumber(
+      data.busPtSecondary,
+      fallbackSource ? fallbackSource.PTp_Bus_Secondary : 100
+    ),
+    PTo_Bus_Primary: parsePrimarySystemWriteNumber(
+      data.busZeroPtPrimary,
+      fallbackSource ? fallbackSource.PTo_Bus_Primary : 10.0
+    ),
+    PTo_Bus_Secondary: parsePrimarySystemWriteNumber(
+      data.busZeroPtSecondary,
+      fallbackSource ? fallbackSource.PTo_Bus_Secondary : 100
+    ),
+    PT_Line_Primary: parsePrimarySystemWriteNumber(
+      data.linePtPrimary,
+      fallbackSource ? fallbackSource.PT_Line_Primary : 10.0
+    ),
+    PT_Line_Secondary: parsePrimarySystemWriteNumber(
+      data.linePtSecondary,
+      fallbackSource ? fallbackSource.PT_Line_Secondary : 100
+    ),
+    PT_Line_Phase: getPrimarySystemLinePhaseCode(data.linePhase, fallbackLinePhase),
+    CTp_Protection_Primary: parsePrimarySystemWriteNumber(
+      data.protectCtPrimary,
+      fallbackSource ? fallbackSource.CTp_Protection_Primary : 600
+    ),
+    CTp_Protection_Secondary: parsePrimarySystemWriteNumber(
+      data.protectCtSecondary,
+      fallbackSource ? fallbackSource.CTp_Protection_Secondary : 5
+    ),
+    CTo_Primary: parsePrimarySystemWriteNumber(
+      data.zeroCtPrimary,
+      fallbackSource ? fallbackSource.CTo_Primary : 120
+    ),
+    CTo_Secondary: parsePrimarySystemWriteNumber(
+      data.zeroCtSecondary,
+      fallbackSource ? fallbackSource.CTo_Secondary : 5
+    ),
+    CTp_Measure_Primary: parsePrimarySystemWriteNumber(
+      data.measureCtPrimary,
+      fallbackSource ? fallbackSource.CTp_Measure_Primary : 600
+    ),
+    CTp_Measure_Secondary: parsePrimarySystemWriteNumber(
+      data.measureCtSecondary,
+      fallbackSource ? fallbackSource.CTp_Measure_Secondary : 5
+    ),
+    Mode_CTConnectioin: getPrimarySystemCtConnectionCode(data.ctConnectionMode, fallbackCtConnection),
+    Mode_Iosample: getPrimarySystemZeroCurrentCode(data.zeroCurrentMode, fallbackZeroCurrentMode),
+    RatedPower_Line: parsePrimarySystemWriteNumber(
+      data.ratedPower,
+      fallbackSource ? fallbackSource.RatedPower_Line : 1200
+    )
+  };
 }
 
 export function serializeCommonSettingPrimarySystemData(data: CommonSettingPrimarySystemData): string {

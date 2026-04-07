@@ -9,6 +9,7 @@ namespace {
 
 constexpr int TELEMETRY_NAPI_LOG_DOMAIN = 0x0000;
 constexpr const char *TELEMETRY_NAPI_LOG_TAG = "JY_TELEMETRY_NAPI";
+constexpr std::size_t HARMONIC_VALUE_GROUP_COUNT = 3;
 
 #define TELEMETRY_LOGI(format, ...) OH_LOG_Print(LOG_APP, LOG_INFO, TELEMETRY_NAPI_LOG_DOMAIN, TELEMETRY_NAPI_LOG_TAG, format, ##__VA_ARGS__)
 #define TELEMETRY_LOGW(format, ...) OH_LOG_Print(LOG_APP, LOG_WARN, TELEMETRY_NAPI_LOG_DOMAIN, TELEMETRY_NAPI_LOG_TAG, format, ##__VA_ARGS__)
@@ -18,6 +19,7 @@ napi_value CreateBoolean(napi_env env, bool value)
 {
     napi_value result = nullptr;
     napi_get_boolean(env, value, &result);
+    //TELEMETRY_LOGI("SendRemoteMetryQueryFrame result=%{public}d", result);
     return result;
 }
 
@@ -25,6 +27,7 @@ napi_value CreateDouble(napi_env env, double value)
 {
     napi_value result = nullptr;
     napi_create_double(env, value, &result);
+    //TELEMETRY_LOGI("napi_create_double result=%{public}d", result);
     return result;
 }
 
@@ -50,14 +53,42 @@ bool SendRemoteMetryQueryFrame(std::uint16_t objectAddr)
     return sent;
 }
 
-napi_value CreateFloatArray(napi_env env, const float values[30])
+template <std::size_t N>
+napi_value CreateFloatArray(napi_env env, const float (&values)[N])
 {
     napi_value result = nullptr;
-    napi_create_array_with_length(env, 30, &result);
-    for (std::uint32_t index = 0; index < 30; index++) {
+    napi_create_array_with_length(env, N, &result);
+    for (std::uint32_t index = 0; index < N; index++) {
         napi_set_element(env, result, index, CreateDouble(env, values[index]));
     }
     return result;
+}
+
+template <std::size_t N>
+void FillInterleavedHarmonicValues(
+    float (&output)[N * HARMONIC_VALUE_GROUP_COUNT],
+    const float (&frequency)[N],
+    const float (&rms)[N],
+    const float (&angle)[N])
+{
+    for (std::size_t index = 0; index < N; ++index) {
+        const std::size_t baseIndex = index * HARMONIC_VALUE_GROUP_COUNT;
+        output[baseIndex] = frequency[index];
+        output[baseIndex + 1] = rms[index];
+        output[baseIndex + 2] = angle[index];
+    }
+}
+
+template <std::size_t N>
+napi_value CreateInterleavedHarmonicArray(
+    napi_env env,
+    const float (&frequency)[N],
+    const float (&rms)[N],
+    const float (&angle)[N])
+{
+    float values[N * HARMONIC_VALUE_GROUP_COUNT] = {0};
+    FillInterleavedHarmonicValues(values, frequency, rms, angle);
+    return CreateFloatArray(env, values);
 }
 
 napi_value CreateBaseFreqDisplayObject(napi_env env, const YC_BaseFreq_Struct &value, bool ready)
@@ -100,9 +131,12 @@ napi_value CreateHarmonicVoltageDisplayObject(napi_env env, const YC_HarmonicU_S
     napi_create_object(env, &result);
 
     napi_set_named_property(env, result, "ready", CreateBoolean(env, ready));
-    napi_set_named_property(env, result, "Ua", CreateFloatArray(env, value.Ua));
-    napi_set_named_property(env, result, "Ub", CreateFloatArray(env, value.Ub));
-    napi_set_named_property(env, result, "Uc", CreateFloatArray(env, value.Uc));
+    napi_set_named_property(env, result, "Ua",
+        CreateInterleavedHarmonicArray(env, value.Ua_Frequency, value.Ua_RMS, value.Ua_Angle));
+    napi_set_named_property(env, result, "Ub",
+        CreateInterleavedHarmonicArray(env, value.Ub_Frequency, value.Ub_RMS, value.Ub_Angle));
+    napi_set_named_property(env, result, "Uc",
+        CreateInterleavedHarmonicArray(env, value.Uc_Frequency, value.Uc_RMS, value.Uc_Angle));
 
     return result;
 }
@@ -113,9 +147,12 @@ napi_value CreateHarmonicCurrentDisplayObject(napi_env env, const YC_HarmonicI_S
     napi_create_object(env, &result);
 
     napi_set_named_property(env, result, "ready", CreateBoolean(env, ready));
-    napi_set_named_property(env, result, "Ia", CreateFloatArray(env, value.Ia));
-    napi_set_named_property(env, result, "Ib", CreateFloatArray(env, value.Ib));
-    napi_set_named_property(env, result, "Ic", CreateFloatArray(env, value.Ic));
+    napi_set_named_property(env, result, "Ia",
+        CreateInterleavedHarmonicArray(env, value.Ia_Frequency, value.Ia_RMS, value.Ia_Angle));
+    napi_set_named_property(env, result, "Ib",
+        CreateInterleavedHarmonicArray(env, value.Ib_Frequency, value.Ib_RMS, value.Ib_Angle));
+    napi_set_named_property(env, result, "Ic",
+        CreateInterleavedHarmonicArray(env, value.Ic_Frequency, value.Ic_RMS, value.Ic_Angle));
 
     return result;
 }

@@ -43,8 +43,34 @@ interface CommonSettingAnalogQuantityStructValue {
   CRC: number;
 }
 
+interface CommonSettingAnalogQuantityWriteParameterValue {
+  Ua: number;
+  Ub: number;
+  Uc: number;
+  Uo: number;
+  IA: number;
+  IB: number;
+  IC: number;
+  Io: number;
+  Ia: number;
+  Ib: number;
+  Ic: number;
+  Is: number;
+  Ux: number;
+  Iby1: number;
+  Iby2: number;
+  Iby3: number;
+}
+
+interface CommonSettingAnalogQuantityWriteValue {
+  Reference: CommonSettingAnalogQuantityWriteParameterValue;
+  Correction: CommonSettingAnalogQuantityWriteParameterValue;
+  ZeroDrift: CommonSettingAnalogQuantityWriteParameterValue;
+}
+
 interface AnalogQuantityNativeModule {
   getAnalogQuantitySetting?: () => CommonSettingAnalogQuantityStructValue | undefined;
+  updateAnalogQuantitySetting?: (value: CommonSettingAnalogQuantityWriteValue) => boolean;
 }
 
 declare function requireNapi(
@@ -385,6 +411,10 @@ export struct CommonSetting_AnalogQuantity_Set {
   @State vm: CommonSettingAnalogQuantityVM = new CommonSettingAnalogQuantityVM();
   @State fieldValues: CommonSettingAnalogQuantityData = createDefaultCommonSettingAnalogQuantityValues();
   @State uiScale: number = 1;
+  @State feedbackDialogVisible: boolean = false;
+  @State feedbackMessage: string = '';
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
   private cachedAnalogQuantityNativeModule?: AnalogQuantityNativeModule;
 
   private readonly fontSize: CommonSettingAnalogQuantityFontSize = new CommonSettingAnalogQuantityFontSize();
@@ -490,6 +520,146 @@ export struct CommonSetting_AnalogQuantity_Set {
       console.error(`load native analog quantity data failed: ${JSON.stringify(error)}`);
       return false;
     }
+  }
+
+  private showFeedback(message: string): void {
+    this.feedbackMessage = message;
+    this.feedbackDialogVisible = true;
+  }
+
+  private closeFeedback(): void {
+    this.feedbackDialogVisible = false;
+    this.feedbackMessage = '';
+  }
+
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private parseAnalogQuantityFieldNumber(value: string, fallbackValue: number): number {
+    let parsedValue = Number(value);
+    if (typeof parsedValue === 'number' && isFinite(parsedValue)) {
+      return parsedValue;
+    }
+    return typeof fallbackValue === 'number' && isFinite(fallbackValue) ? fallbackValue : 0;
+  }
+
+  private createAnalogQuantityReferenceWriteValue(
+    fallbackValue?: CommonSettingAnalogQuantityParameterStructValue
+  ): CommonSettingAnalogQuantityWriteParameterValue {
+    return {
+      Ua: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Ua, fallbackValue?.Ua ?? 100),
+      Ub: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Ub, fallbackValue?.Ub ?? 100),
+      Uc: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Uc, fallbackValue?.Uc ?? 100),
+      Uo: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Uo, fallbackValue?.Uo ?? 100),
+      IA: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_IA, fallbackValue?.IA ?? 5),
+      IB: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_IB, fallbackValue?.IB ?? 5),
+      IC: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_IC, fallbackValue?.IC ?? 5),
+      Io: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Io, fallbackValue?.Io ?? 5),
+      Ia: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Ia, fallbackValue?.Ia ?? 5),
+      Ib: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Ib, fallbackValue?.Ib ?? 5),
+      Ic: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Ic, fallbackValue?.Ic ?? 5),
+      Is: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Is, fallbackValue?.Is ?? 5),
+      Ux: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Ux, fallbackValue?.Ux ?? 100),
+      Iby1: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Iby1, fallbackValue?.Iby1 ?? 5),
+      Iby2: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Iby2, fallbackValue?.Iby2 ?? 5),
+      Iby3: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Reference_Iby3, fallbackValue?.Iby3 ?? 5)
+    };
+  }
+
+  private createAnalogQuantityCorrectionWriteValue(
+    fallbackValue?: CommonSettingAnalogQuantityParameterStructValue
+  ): CommonSettingAnalogQuantityWriteParameterValue {
+    return {
+      Ua: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Ua, fallbackValue?.Ua ?? 100),
+      Ub: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Ub, fallbackValue?.Ub ?? 100),
+      Uc: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Uc, fallbackValue?.Uc ?? 100),
+      Uo: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Uo, fallbackValue?.Uo ?? 100),
+      IA: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_IA, fallbackValue?.IA ?? 5),
+      IB: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_IB, fallbackValue?.IB ?? 5),
+      IC: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_IC, fallbackValue?.IC ?? 5),
+      Io: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Io, fallbackValue?.Io ?? 5),
+      Ia: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Ia, fallbackValue?.Ia ?? 5),
+      Ib: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Ib, fallbackValue?.Ib ?? 5),
+      Ic: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Ic, fallbackValue?.Ic ?? 5),
+      Is: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Is, fallbackValue?.Is ?? 5),
+      Ux: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Ux, fallbackValue?.Ux ?? 100),
+      Iby1: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Iby1, fallbackValue?.Iby1 ?? 5),
+      Iby2: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Iby2, fallbackValue?.Iby2 ?? 5),
+      Iby3: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_Correction_Iby3, fallbackValue?.Iby3 ?? 5)
+    };
+  }
+
+  private createAnalogQuantityZeroDriftWriteValue(
+    fallbackValue?: CommonSettingAnalogQuantityParameterStructValue
+  ): CommonSettingAnalogQuantityWriteParameterValue {
+    return {
+      Ua: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Ua, fallbackValue?.Ua ?? 800),
+      Ub: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Ub, fallbackValue?.Ub ?? 100),
+      Uc: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Uc, fallbackValue?.Uc ?? 100),
+      Uo: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Uo, fallbackValue?.Uo ?? 100),
+      IA: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_IA, fallbackValue?.IA ?? 5),
+      IB: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_IB, fallbackValue?.IB ?? 5),
+      IC: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_IC, fallbackValue?.IC ?? 5),
+      Io: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Io, fallbackValue?.Io ?? 5),
+      Ia: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Ia, fallbackValue?.Ia ?? 5),
+      Ib: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Ib, fallbackValue?.Ib ?? 5),
+      Ic: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Ic, fallbackValue?.Ic ?? 5),
+      Is: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Is, fallbackValue?.Is ?? 5),
+      Ux: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Ux, fallbackValue?.Ux ?? 100),
+      Iby1: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Iby1, fallbackValue?.Iby1 ?? 5),
+      Iby2: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Iby2, fallbackValue?.Iby2 ?? 5),
+      Iby3: this.parseAnalogQuantityFieldNumber(this.fieldValues.Edit_Analog_ZeroDrift_Iby3, fallbackValue?.Iby3 ?? 5)
+    };
+  }
+
+  private createAnalogQuantityWriteValue(
+    fallbackSource?: CommonSettingAnalogQuantityStructValue
+  ): CommonSettingAnalogQuantityWriteValue {
+    return {
+      Reference: this.createAnalogQuantityReferenceWriteValue(fallbackSource?.Reference),
+      Correction: this.createAnalogQuantityCorrectionWriteValue(fallbackSource?.Correction),
+      ZeroDrift: this.createAnalogQuantityZeroDriftWriteValue(fallbackSource?.ZeroDrift)
+    };
+  }
+
+  private writeNativeAnalogQuantityData(): boolean {
+    try {
+      let nativeModule = this.loadAnalogQuantityNativeModule();
+      if (!nativeModule || typeof nativeModule.updateAnalogQuantitySetting !== 'function') {
+        return false;
+      }
+
+      let currentStructValue: CommonSettingAnalogQuantityStructValue | undefined = undefined;
+      if (typeof nativeModule.getAnalogQuantitySetting === 'function') {
+        currentStructValue = nativeModule.getAnalogQuantitySetting();
+      }
+
+      let writeValue = this.createAnalogQuantityWriteValue(currentStructValue);
+      let writeSuccess = nativeModule.updateAnalogQuantitySetting(writeValue);
+      if (writeSuccess) {
+        this.loadNativeAnalogQuantityData();
+      }
+      return writeSuccess;
+    } catch (error) {
+      console.error(`write native analog quantity data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
+  private submitCurrentData(): void {
+    let writeSuccess = this.writeNativeAnalogQuantityData();
+    if (!writeSuccess) {
+      this.showFeedback('提交失败，请检查模拟量参数结构体写入。');
+      return;
+    }
+    this.showSubmitWaiting('界面参数已写入模拟量参数结构体，等待装置回应...');
   }
 
   private getFieldValue(fieldKey: string): string {
@@ -751,36 +921,49 @@ export struct CommonSetting_AnalogQuantity_Set {
   }
 
   build() {
-    Column() {
+    Stack({ alignContent: Alignment.TopStart }) {
       Column() {
-        this.HeaderBar();
+        Column() {
+          this.HeaderBar();
 
-        Scroll() {
-          Column() {
-            this.ColumnHeaderRow();
+          Scroll() {
+            Column() {
+              this.ColumnHeaderRow();
 
-            ForEach(COMMON_SETTING_ANALOG_QUANTITY_ROWS, (row: AnalogRowConfig) => {
-              this.AnalogPairRow(row);
-            }, (row: AnalogRowConfig) => row.left.referenceKey)
+              ForEach(COMMON_SETTING_ANALOG_QUANTITY_ROWS, (row: AnalogRowConfig) => {
+                this.AnalogPairRow(row);
+              }, (row: AnalogRowConfig) => row.left.referenceKey)
+            }
+            .width('100%')
+            .constraintSize({ minHeight: this.s(this.contentMinHeight) })
+            .padding({ bottom: this.s(this.contentBottomPadding) });
           }
+          .layoutWeight(1)
           .width('100%')
-          .constraintSize({ minHeight: this.s(this.contentMinHeight) })
-          .padding({ bottom: this.s(this.contentBottomPadding) });
-        }
-        .layoutWeight(1)
-        .width('100%')
-        .backgroundColor('#FFFFFF');
+          .backgroundColor('#FFFFFF');
 
-        this.BottomBar();
+          this.BottomBar();
+        }
+        .width('100%')
+        .height('100%')
+        .constraintSize({ maxWidth: this.s(this.pageMaxWidth) })
+        .backgroundColor('#FFFFFF');
       }
       .width('100%')
       .height('100%')
-      .constraintSize({ maxWidth: this.s(this.pageMaxWidth) })
+      .alignItems(HorizontalAlign.Center)
       .backgroundColor('#FFFFFF');
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
+      }
+
+      if (this.feedbackDialogVisible) {
+        this.FeedbackOverlay();
+      }
     }
     .width('100%')
     .height('100%')
-    .alignItems(HorizontalAlign.Center)
     .backgroundColor('#FFFFFF');
   }
 
@@ -1008,6 +1191,7 @@ export struct CommonSetting_AnalogQuantity_Set {
         .borderRadius(this.s(this.buttonRadius))
         .padding(0)
         .onClick(() => {
+          this.submitCurrentData();
         });
 
       Blank().layoutWeight(10);
@@ -1041,5 +1225,111 @@ export struct CommonSetting_AnalogQuantity_Set {
     .height(this.s(this.bottomBarHeight))
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D3D3D3');
+  }
+
+  @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeSubmitWaiting();
+      });
+
+      Column() {
+        Text('等待回应')
+          .width('100%')
+          .fontSize(this.s(18))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(18))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button('关闭')
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(18))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
+          });
+      }
+      .width(this.s(320))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(10));
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  @Builder
+  FeedbackOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeFeedback();
+      });
+
+      Column() {
+        Text('提示')
+          .width('100%')
+          .fontSize(this.s(18))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.feedbackMessage)
+          .width('100%')
+          .fontSize(this.s(18))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button('关闭')
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(18))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeFeedback();
+          });
+      }
+      .width(this.s(320))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(10));
+    }
+    .width('100%')
+    .height('100%');
   }
 }

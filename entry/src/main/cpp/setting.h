@@ -126,8 +126,8 @@ typedef struct
 }CommonSetting_TeleMeasuring_Struct;
 extern CommonSetting_TeleMeasuring_Struct TeleMeasuringSetting;
 extern bool TeleMeasuringSettingReady;
-extern uint32_t CommonSetting_YC_Length_1Byte;		// 遥测参数定值长度（单位：字节）;
-extern uint32_t CommonSetting_YC_CRCLength_4Byte;	// 遥测参数定值CRC长度（单位：4字节）;
+extern uint32_t CommonSetting_TeleMeasuring_Length_1Byte;		// 遥测参数定值长度（单位：字节）;
+extern uint32_t CommonSetting_TeleMeasuring_CRCLength_4Byte;	// 遥测参数定值CRC长度（单位：4字节）;
 
 /*****************************************************************************/
 /*-------------------------------  遥信参数定值  -----------------------------*/
@@ -150,8 +150,8 @@ typedef struct
 }CommonSetting_TeleSignaling_Struct;
 extern CommonSetting_TeleSignaling_Struct TeleSignalingSetting;
 extern bool TeleSignalingSettingReady;
-extern uint32_t CommonSetting_YX_Length_1Byte;		// 遥信参数定值长度（单位：字节）;
-extern uint32_t CommonSetting_YX_CRCLength_4Byte;	// 遥信参数定值CRC长度（单位：4字节）;
+extern uint32_t CommonSetting_TeleSignaling_Length_1Byte;		// 遥信参数定值长度（单位：字节）;
+extern uint32_t CommonSetting_TeleSignaling_CRCLength_4Byte;	// 遥信参数定值CRC长度（单位：4字节）;
 
 /*****************************************************************************/
 /*-------------------------------  遥控参数定值  -----------------------------*/
@@ -184,8 +184,8 @@ typedef struct
 }CommonSetting_TeleControlling_Struct;
 extern CommonSetting_TeleControlling_Struct TeleControllingSetting;
 extern bool TeleControllingSettingReady;
-extern uint32_t CommonSetting_YK_Length_1Byte;		// 遥控参数定值长度（单位：字节）;
-extern uint32_t CommonSetting_YK_CRCLength_4Byte;	// 遥控参数定值CRC长度（单位：4字节）;
+extern uint32_t CommonSetting_TeleControlling_Length_1Byte;		// 遥控参数定值长度（单位：字节）;
+extern uint32_t CommonSetting_TeleControlling_CRCLength_4Byte;	// 遥控参数定值CRC长度（单位：4字节）;
 
 //TCont_Sync_Volue_VoltageDifferenceBlock
 
@@ -360,8 +360,10 @@ typedef struct
     uint32_t CRC;	//校验码
 }CommonSetting_PowerQuality_Struct;
 
-extern uint16_t CommonSetting_PowerQuality_Length_1Byte;		// 电能质量-告警定值长度（单位：字节）;
-extern uint16_t CommonSetting_PowerQuality_CRCLength_4Byte;	// 电能质量-告警定值CRC长度（单位：4字节）;
+extern CommonSetting_PowerQuality_Struct PowerQualitySetting;
+extern bool PowerQualitySettingReady;
+extern uint32_t CommonSetting_PowerQuality_Length_1Byte;		// 电能质量-告警定值长度（单位：字节）;
+extern uint32_t CommonSetting_PowerQuality_CRCLength_4Byte;	// 电能质量-告警定值CRC长度（单位：4字节）;
 
 //---------------------------------------------------------------
 typedef struct
@@ -1049,26 +1051,10 @@ extern AnalogCoeff_Struct coeff;
 typedef struct
 {
     uint16_t Common_addr;	//Common_Addr_RemoteAdjust
-    uint16_t Object_addr;	//设备参数遥调地址（自定义）
-    uint16_t Length;
-    DeviceSetting_Struct DeviceSetting;
-}RemoteAdjust_DeviceSetting_Struct;	//设备参数遥调数据结构
-
-typedef struct
-{
-    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
     uint16_t Object_addr;	//系统定值遥调地址（自定义）
     uint16_t Length;
     CommonSetting_PrimarySystem_Struct PrimarySystem;
 }RemoteAdjust_PrimarySystem_Struct;	//系统定值遥调数据结构
-
-typedef struct
-{
-    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
-    uint16_t Object_addr;	//测控参数遥调地址（自定义）
-    uint16_t Length;
-    ControlSetting_Struct ControlSetting;
-}RemoteAdjust_ControlSetting_Struct;	//测控参数遥调数据结构
 
 typedef struct
 {
@@ -1103,6 +1089,76 @@ typedef struct
     uint16_t SettingCode;	//定值套号
     uint16_t CodeConfirm;	//定值确认
 }RemoteAdjust_SettingCode_Struct;	//定值套号遥调数据结构
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_TeleAdjusting
+    uint16_t Object_addr;	//遥调地址（自定义）
+    uint16_t Length;
+    uint16_t InitCode;			//初始化
+    uint16_t InitCodeConfirm;	//初始化确认
+}Package_YT_MeterageInit_Struct;	//点度量初始化遥调数据结构
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_TeleAdjusting
+    uint16_t Object_addr;	//遥调地址（自定义）
+    uint16_t Length;
+    uint8_t  Time_s;			//0~59
+    uint8_t  Time_min;			//0~59
+    uint8_t  Time_hour;		//0~23
+    uint8_t  Time_day;			//1~31
+    uint8_t  Time_month;		//1~12
+    uint8_t  Time_year;		//0~199
+}Package_YT_DataTimeSet_Struct;	//时间初始化遥调数据结构
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
+    uint16_t Object_addr;	//遥调地址
+    uint16_t Length;
+    CommonSetting_TeleMeasuring_Struct TeleMeasuring;
+}RemoteAdjust_TeleMeasuring_Struct;
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
+    uint16_t Object_addr;	//遥调地址
+    uint16_t Length;
+    CommonSetting_TeleSignaling_Struct TeleSignaling;
+}RemoteAdjust_TeleSignaling_Struct;
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
+    uint16_t Object_addr;	//遥调地址
+    uint16_t Length;
+    CommonSetting_TeleControlling_Struct TeleControlling;
+}RemoteAdjust_TeleControlling_Struct;
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
+    uint16_t Object_addr;	//遥调地址
+    uint16_t Length;
+    CommonSetting_ExceedingLimit_Struct ExceedingLimit;
+}RemoteAdjust_ExceedingLimit_Struct;
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
+    uint16_t Object_addr;	//遥调地址
+    uint16_t Length;
+    CommonSetting_Statistics_Struct Statistics;
+}RemoteAdjust_Statistics_Struct;
+
+typedef struct
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteAdjust
+    uint16_t Object_addr;	//遥调地址
+    uint16_t Length;
+    CommonSetting_PowerQuality_Struct PowerQuality;
+}RemoteAdjust_PowerQuality_Struct;
 
 #pragma pack()
 #endif

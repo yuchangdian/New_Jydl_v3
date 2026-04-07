@@ -8,6 +8,8 @@
 #include "telemetry_napi.h"
 #include "tcp_client.h"
 
+
+
 static napi_value Add(napi_env env, napi_callback_info info)
 {
     size_t argc = 2;
@@ -160,13 +162,23 @@ static napi_value Init(napi_env env, napi_value exports)
         {"getHarmonicVoltageDisplayData", nullptr, GetHarmonicVoltageDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getHarmonicCurrentDisplayData", nullptr, GetHarmonicCurrentDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getPrimarySystemSetting", nullptr, GetPrimarySystemSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updatePrimarySystemSetting", nullptr, UpdatePrimarySystemSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getAnalogQuantitySetting", nullptr, GetAnalogQuantitySetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateAnalogQuantitySetting", nullptr, UpdateAnalogQuantitySetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getTeleMeasuringSetting", nullptr, GetTeleMeasuringSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateTeleMeasuringSetting", nullptr, UpdateTeleMeasuringSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getTeleSignalingSetting", nullptr, GetTeleSignalingSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateTeleSignalingSetting", nullptr, UpdateTeleSignalingSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getTeleControllingSetting", nullptr, GetTeleControllingSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateTeleControllingSetting", nullptr, UpdateTeleControllingSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getExceedingLimitSetting", nullptr, GetExceedingLimitSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateExceedingLimitSetting", nullptr, UpdateExceedingLimitSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getPowerQualitySetting", nullptr, GetPowerQualitySetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updatePowerQualitySetting", nullptr, UpdatePowerQualitySetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getStatisticsSetting", nullptr, GetStatisticsSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateStatisticsSetting", nullptr, UpdateStatisticsSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getRelaySettingByZone", nullptr, GetRelaySettingByZone, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateRelaySettingByZone", nullptr, UpdateRelaySettingByZone, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"sendTcpData", nullptr, SendTcpData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"add", nullptr, Add, nullptr, nullptr, nullptr, napi_default, nullptr}
         

@@ -40,8 +40,33 @@ interface CommonSettingExceedingLimitStructValue {
   CRC: number;
 }
 
+interface CommonSettingExceedingLimitWriteValue {
+  Enable_LineVoltageExceedingUpperLimit: number;
+  Value_LineVoltageExceedingUpperLimit: number;
+  Enable_LineVoltageExceedingLowerLimit: number;
+  Value_LineVoltageExceedingLowerLimit: number;
+  Enable_ZeroSequenceVoltageExceedingUpperLimit: number;
+  Value_ZeroSequenceVoltageExceedingUpperLimit: number;
+  Enable_VoltageImbalanceRateExceedingUpperLimit: number;
+  Value_VoltageImbalanceRateExceedingUpperLimit: number;
+  Enable_PhaseCurrentExceedingUpperLimit: number;
+  Value_PhaseCurrentExceedingUpperLimit: number;
+  Enable_ZeroSequenceCurrentExceedingUpperLimit: number;
+  Value_ZeroSequenceCurrentExceedingUpperLimit: number;
+  Enable_CurrentImbalanceRateExceedingUpperLimit: number;
+  Value_CurrentImbalanceRateExceedingUpperLimit: number;
+  Enable_PhaseDifferentialCurrentExceedingUpperLimit: number;
+  Value_PhaseDifferentialCurrentExceedingUpperLimit: number;
+  Enable_ZeroSequenceDifferentialCurrentExceedingUpperLimit: number;
+  Value_ZeroSequenceDifferentialCurrentExceedingUpperLimit: number;
+  Enable_LoadRateExceedingUpperLimit: number;
+  Value_LoadRateRateExceedingUpperLimit: number;
+  Time_Delay: number;
+}
+
 interface ExceedingLimitNativeModule {
   getExceedingLimitSetting?: () => CommonSettingExceedingLimitStructValue | undefined;
+  updateExceedingLimitSetting?: (value: CommonSettingExceedingLimitWriteValue) => boolean;
 }
 
 declare function requireNapi(
@@ -283,6 +308,8 @@ export struct CommonSetting_ExceedingLimit_Set {
   @State selectOverlayValue: string = '';
   @State feedbackDialogVisible: boolean = false;
   @State feedbackMessage: string = '';
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
 
   private readonly fontSize: CommonSettingExceedingLimitFontSize = new CommonSettingExceedingLimitFontSize();
   private readonly enableOptions: string[] = COMMON_SETTING_EXCEEDING_LIMIT_ENABLE_OPTIONS;
@@ -589,10 +616,172 @@ export struct CommonSetting_ExceedingLimit_Set {
     this.formData = createDefaultCommonSettingExceedingLimitData();
   }
 
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private parseExceedingLimitFieldNumber(value: string, fallbackValue: number): number {
+    let parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return fallbackValue;
+    }
+    return parsed;
+  }
+
+  private parseExceedingLimitFieldUint(value: string, fallbackValue: number): number {
+    return Math.max(0, Math.round(this.parseExceedingLimitFieldNumber(value, fallbackValue)));
+  }
+
+  private getExceedingLimitEnableCode(value: string, fallbackValue: number): number {
+    if (value === '投入') {
+      return 1;
+    }
+    if (value === '退出') {
+      return 0;
+    }
+    if (fallbackValue === 0 || fallbackValue === 1) {
+      return fallbackValue;
+    }
+    return 1;
+  }
+
+  private createExceedingLimitWriteValue(
+    fallbackSource?: CommonSettingExceedingLimitStructValue
+  ): CommonSettingExceedingLimitWriteValue {
+    return {
+      Enable_LineVoltageExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.lineVoltageUpperEnabled,
+        fallbackSource?.Enable_LineVoltageExceedingUpperLimit ?? 1
+      ),
+      Value_LineVoltageExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.lineVoltageUpperValue,
+        fallbackSource?.Value_LineVoltageExceedingUpperLimit ?? 0
+      ),
+      Enable_LineVoltageExceedingLowerLimit: this.getExceedingLimitEnableCode(
+        this.formData.lineVoltageLowerEnabled,
+        fallbackSource?.Enable_LineVoltageExceedingLowerLimit ?? 1
+      ),
+      Value_LineVoltageExceedingLowerLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.lineVoltageLowerValue,
+        fallbackSource?.Value_LineVoltageExceedingLowerLimit ?? 0
+      ),
+      Enable_ZeroSequenceVoltageExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.zeroSequenceVoltageUpperEnabled,
+        fallbackSource?.Enable_ZeroSequenceVoltageExceedingUpperLimit ?? 1
+      ),
+      Value_ZeroSequenceVoltageExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.zeroSequenceVoltageUpperValue,
+        fallbackSource?.Value_ZeroSequenceVoltageExceedingUpperLimit ?? 0
+      ),
+      Enable_VoltageImbalanceRateExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.voltageImbalanceRateUpperEnabled,
+        fallbackSource?.Enable_VoltageImbalanceRateExceedingUpperLimit ?? 1
+      ),
+      Value_VoltageImbalanceRateExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.voltageImbalanceRateUpperValue,
+        fallbackSource?.Value_VoltageImbalanceRateExceedingUpperLimit ?? 0
+      ),
+      Enable_PhaseCurrentExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.phaseCurrentUpperEnabled,
+        fallbackSource?.Enable_PhaseCurrentExceedingUpperLimit ?? 1
+      ),
+      Value_PhaseCurrentExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.phaseCurrentUpperValue,
+        fallbackSource?.Value_PhaseCurrentExceedingUpperLimit ?? 0
+      ),
+      Enable_ZeroSequenceCurrentExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.zeroSequenceCurrentUpperEnabled,
+        fallbackSource?.Enable_ZeroSequenceCurrentExceedingUpperLimit ?? 1
+      ),
+      Value_ZeroSequenceCurrentExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.zeroSequenceCurrentUpperValue,
+        fallbackSource?.Value_ZeroSequenceCurrentExceedingUpperLimit ?? 0
+      ),
+      Enable_CurrentImbalanceRateExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.currentImbalanceRateUpperEnabled,
+        fallbackSource?.Enable_CurrentImbalanceRateExceedingUpperLimit ?? 1
+      ),
+      Value_CurrentImbalanceRateExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.currentImbalanceRateUpperValue,
+        fallbackSource?.Value_CurrentImbalanceRateExceedingUpperLimit ?? 0
+      ),
+      Enable_PhaseDifferentialCurrentExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.phaseDifferentialCurrentUpperEnabled,
+        fallbackSource?.Enable_PhaseDifferentialCurrentExceedingUpperLimit ?? 1
+      ),
+      Value_PhaseDifferentialCurrentExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.phaseDifferentialCurrentUpperValue,
+        fallbackSource?.Value_PhaseDifferentialCurrentExceedingUpperLimit ?? 0
+      ),
+      Enable_ZeroSequenceDifferentialCurrentExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.zeroSequenceDifferentialCurrentUpperEnabled,
+        fallbackSource?.Enable_ZeroSequenceDifferentialCurrentExceedingUpperLimit ?? 1
+      ),
+      Value_ZeroSequenceDifferentialCurrentExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.zeroSequenceDifferentialCurrentUpperValue,
+        fallbackSource?.Value_ZeroSequenceDifferentialCurrentExceedingUpperLimit ?? 0
+      ),
+      Enable_LoadRateExceedingUpperLimit: this.getExceedingLimitEnableCode(
+        this.formData.loadRateUpperEnabled,
+        fallbackSource?.Enable_LoadRateExceedingUpperLimit ?? 1
+      ),
+      Value_LoadRateRateExceedingUpperLimit: this.parseExceedingLimitFieldNumber(
+        this.formData.loadRateUpperValue,
+        fallbackSource?.Value_LoadRateRateExceedingUpperLimit ?? 0
+      ),
+      Time_Delay: this.parseExceedingLimitFieldUint(
+        this.formData.delayTime,
+        fallbackSource?.Time_Delay ?? 0
+      )
+    };
+  }
+
+  private writeNativeExceedingLimitData(): boolean {
+    try {
+      let nativeModule = this.loadExceedingLimitNativeModule();
+      if (!nativeModule || typeof nativeModule.updateExceedingLimitSetting !== 'function') {
+        return false;
+      }
+
+      let currentStructValue: CommonSettingExceedingLimitStructValue | undefined = undefined;
+      if (typeof nativeModule.getExceedingLimitSetting === 'function') {
+        currentStructValue = nativeModule.getExceedingLimitSetting();
+      }
+
+      let writeValue = this.createExceedingLimitWriteValue(currentStructValue);
+      let writeSuccess = nativeModule.updateExceedingLimitSetting(writeValue);
+      if (writeSuccess) {
+        this.loadNativeExceedingLimitData();
+      }
+      return writeSuccess;
+    } catch (error) {
+      console.error(`write native exceeding limit data failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
   private submitCurrentData(): void {
     let saveSuccess = this.savePersistedData();
-    this.feedbackMessage = saveSuccess ? '提交成功' : '提交失败';
-    this.feedbackDialogVisible = true;
+    if (!saveSuccess) {
+      this.feedbackMessage = '提交失败';
+      this.feedbackDialogVisible = true;
+      return;
+    }
+
+    let writeSuccess = this.writeNativeExceedingLimitData();
+    if (!writeSuccess) {
+      this.feedbackMessage = '提交失败，请检查越限报警参数结构体写入。';
+      this.feedbackDialogVisible = true;
+      return;
+    }
+
+    this.showSubmitWaiting('界面参数已写入越限报警参数结构体，等待装置回应...');
   }
 
   private closeFeedback(): void {
@@ -620,6 +809,10 @@ export struct CommonSetting_ExceedingLimit_Set {
 
       if (this.selectOverlayVisible) {
         this.SelectOverlay();
+      }
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
       }
 
       if (this.feedbackDialogVisible) {
@@ -909,6 +1102,59 @@ export struct CommonSetting_ExceedingLimit_Set {
       }
       .width(this.s(this.overlayCardWidth))
       .padding({ left: this.s(14), right: this.s(14), top: this.s(14), bottom: this.s(14) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(this.s(this.overlayCardRadius));
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row() {
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#55000000')
+      .onClick(() => {
+        this.closeSubmitWaiting();
+      });
+
+      Column() {
+        Text('等待回应')
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogTitle))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(10) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(18) });
+
+        Button('关闭')
+          .width('100%')
+          .height(this.s(40))
+          .fontSize(this.s(this.fontSize.dialogBody))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .backgroundColor('#E5E5E5')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
+          });
+      }
+      .width(this.s(280))
+      .padding({ left: this.s(16), right: this.s(16), top: this.s(16), bottom: this.s(16) })
       .backgroundColor('#F7F7F7')
       .border({ width: 1, color: '#D2D2D2' })
       .borderRadius(this.s(this.overlayCardRadius));

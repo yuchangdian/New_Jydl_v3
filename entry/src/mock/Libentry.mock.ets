@@ -65,6 +65,37 @@ export const getHarmonicCurrentDisplayData = () => {
   };
 };
 
+export const getPrimarySystemSetting = () => {
+  return {
+    ready: false,
+    SystemGroundingMode: 0,
+    PTp_Bus_Primary: 0,
+    PTp_Bus_Secondary: 0,
+    PTo_Bus_Primary: 0,
+    PTo_Bus_Secondary: 0,
+    PT_Line_Primary: 0,
+    PT_Line_Secondary: 0,
+    PT_Line_Phase: 0,
+    PT_Line_Phase_Text: '',
+    CTp_Protection_Primary: 0,
+    CTp_Protection_Secondary: 0,
+    CTo_Primary: 0,
+    CTo_Secondary: 0,
+    CTp_Measure_Primary: 0,
+    CTp_Measure_Secondary: 0,
+    Mode_CTConnectioin: 0,
+    Mode_CTConnectioin_Text: '',
+    Mode_Iosample: 0,
+    Mode_Iosample_Text: '',
+    RatedPower_Line: 0,
+    CRC: 0
+  };
+};
+
+export const updatePrimarySystemSetting = (_value: any): boolean => {
+  return true;
+};
+
 const defaultAnalogParameter = () => {
   return {
     Ua: 100.00,
@@ -96,6 +127,10 @@ export const getAnalogQuantitySetting = () => {
   };
 };
 
+export const updateAnalogQuantitySetting = (_value: any): boolean => {
+  return true;
+};
+
 export const getTeleMeasuringSetting = () => {
   return {
     ready: false,
@@ -109,6 +144,10 @@ export const getTeleMeasuringSetting = () => {
     Enable_PrimaryEnergy: 0,
     CRC: 0
   };
+};
+
+export const updateTeleMeasuringSetting = (_value: any): boolean => {
+  return true;
 };
 
 export const getTeleSignalingSetting = () => {
@@ -125,6 +164,10 @@ export const getTeleSignalingSetting = () => {
     Enable_Logic: 0,
     CRC: 0
   };
+};
+
+export const updateTeleSignalingSetting = (_value: any): boolean => {
+  return true;
 };
 
 export const getTeleControllingSetting = () => {
@@ -146,6 +189,10 @@ export const getTeleControllingSetting = () => {
     Sync_Enable_CloseMode_YK: 0,
     CRC: 0
   };
+};
+
+export const updateTeleControllingSetting = (_value: any): boolean => {
+  return true;
 };
 
 export const getExceedingLimitSetting = () => {
@@ -174,6 +221,43 @@ export const getExceedingLimitSetting = () => {
     Time_Delay: 0,
     CRC: 0
   };
+};
+
+export const updateExceedingLimitSetting = (_value: any): boolean => {
+  return true;
+};
+
+export const getPowerQualitySetting = () => {
+  return {
+    ready: false,
+    Enable_FrequencyDeviation: 0,
+    Value_FrequencyDeviation: 0,
+    Enable_VoltageDeviation: 0,
+    Value_VoltageDeviation: 0,
+    Enable_VoltageUnbalance: 0,
+    Value_VoltageUnbalance: 0,
+    Enable_VoltageFluct: 0,
+    Value_VoltageFluct: 0,
+    Enable_VoltageFlicke: 0,
+    Value_VoltageFlicke: 0,
+    Enable_VoltageSeg: 0,
+    Value_VoltageSeg: 0,
+    Enable_VoltageTHD: 0,
+    Value_VoltageTHD: 0,
+    Enable_VoltageHAR: 0,
+    Value_VoltageHAR: 0,
+    Enable_CurrentUnbalance: 0,
+    Value_CurrentUnbalance: 0,
+    Enable_CurrentTHD: 0,
+    Value_CurrentTHD: 0,
+    Enable_CurrentHAR: 0,
+    Value_CurrentHAR: 0,
+    CRC: 0
+  };
+};
+
+export const updatePowerQualitySetting = (_value: any): boolean => {
+  return true;
 };
 
 export const getStatisticsSetting = () => {
@@ -239,12 +323,20 @@ export const getStatisticsSetting = () => {
   };
 };
 
+export const updateStatisticsSetting = (_value: any): boolean => {
+  return true;
+};
+
 export const getRelaySettingByZone = (_zoneCode: number) => {
   return {
     ready: false,
     zoneCode: 1,
     fields: []
   };
+};
+
+export const updateRelaySettingByZone = (_value: any): boolean => {
+  return true;
 };
 
 export const add = (a: number, b: number): number => {

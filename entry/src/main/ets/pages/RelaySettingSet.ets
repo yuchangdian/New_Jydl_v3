@@ -101,8 +101,21 @@ interface RelaySettingZoneValue {
   fields: RelaySettingFieldEntry[];
 }
 
+interface RelaySettingWriteFieldEntry {
+  id: string;
+  textValue: string;
+  numberValue: number;
+  enumValue: number;
+}
+
+interface RelaySettingWriteZoneValue {
+  zoneCode: number;
+  fields: RelaySettingWriteFieldEntry[];
+}
+
 interface RelaySettingNativeModule {
   getRelaySettingByZone?: (zoneCode: number) => RelaySettingZoneValue | undefined;
+  updateRelaySettingByZone?: (value: RelaySettingWriteZoneValue) => boolean;
 }
 
 declare function requireNapi(
@@ -519,6 +532,8 @@ struct RelaySettingSet {
   @State selectOverlayOptions: string[] = [];
   @State selectOverlayValue: string = '';
   @State selectOverlayTargetBindingIndex: number = -1;
+  @State submitWaitingDialogVisible: boolean = false;
+  @State submitWaitingMessage: string = '';
 
   private currentProfileData: RelaySettingProfile = new RelaySettingProfile('01');
   private loadToken: number = 0;
@@ -934,6 +949,82 @@ struct RelaySettingSet {
     this.saveRelayZoneProfile(this.currentZoneCode, this.currentProfileData);
     this.syncLegacyMirrorStore();
     this.vm.noticeText = noticeText;
+  }
+
+  private showFeedback(noticeText: string): void {
+    this.vm.noticeText = noticeText;
+  }
+
+  private showSubmitWaiting(message: string): void {
+    this.submitWaitingMessage = message;
+    this.submitWaitingDialogVisible = true;
+  }
+
+  private closeSubmitWaiting(): void {
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
+  }
+
+  private createRelaySettingWriteValue(): RelaySettingWriteZoneValue {
+    let fields: RelaySettingWriteFieldEntry[] = [];
+    let profile = this.currentProfile();
+    for (let bindingIndex = 0; bindingIndex < RELAY_FIELD_BINDINGS.length; bindingIndex++) {
+      let binding = RELAY_FIELD_BINDINGS[bindingIndex];
+      let fallbackField = relayDefaultStoredField(binding);
+      let sourceField = relayReadProfileField(profile, binding);
+      let normalizedField = relayParseStoredField(
+        relayFormatStoredField(sourceField, binding),
+        binding,
+        sourceField ? sourceField : fallbackField
+      );
+      fields.push({
+        id: binding.fieldId,
+        textValue: normalizedField.textValue,
+        numberValue: normalizedField.numberValue,
+        enumValue: normalizedField.enumValue
+      });
+    }
+
+    return {
+      zoneCode: Number(relayNormalizeSetZoneCode(this.currentZoneCode)),
+      fields: fields
+    };
+  }
+
+  private writeNativeRelaySettingByZone(): boolean {
+    try {
+      let nativeModule = this.loadRelaySettingNativeModule();
+      if (!nativeModule || typeof nativeModule.updateRelaySettingByZone !== 'function') {
+        return false;
+      }
+      return !!nativeModule.updateRelaySettingByZone(this.createRelaySettingWriteValue());
+    } catch (error) {
+      console.error(`write native relay setting failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
+  private submitCurrentData(): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    this.closeSelectOverlay();
+    this.closeSubmitWaiting();
+
+    try {
+      this.saveValueEntries();
+    } catch (error) {
+      this.showFeedback('提交失败');
+      return;
+    }
+
+    if (!this.writeNativeRelaySettingByZone()) {
+      this.showFeedback('提交失败，请检查当前区保护定值写入。');
+      return;
+    }
+
+    this.showSubmitWaiting(`当前${this.currentZoneCode}区保护定值已写入结构体，等待装置回应...`);
   }
 
   private resetCurrentZoneValues(): void {
@@ -1502,6 +1593,8 @@ struct RelaySettingSet {
     this.modeInSelected = this.vm.headerMode.inMode.checked;
     this.selectOverlayVisible = false;
     this.selectOverlayTargetBindingIndex = -1;
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
     this.vm.noticeText = '';
     this.isLoading = true;
     this.currentDisplayValues = [];
@@ -1537,6 +1630,8 @@ struct RelaySettingSet {
     this.sectionRenderToken++;
     this.selectOverlayVisible = false;
     this.selectOverlayTargetBindingIndex = -1;
+    this.submitWaitingDialogVisible = false;
+    this.submitWaitingMessage = '';
   }
 
   private setMode(isIn: boolean): void {
@@ -1577,6 +1672,10 @@ struct RelaySettingSet {
 
       if (this.selectOverlayVisible && !this.isLoading) {
         this.SelectOverlay();
+      }
+
+      if (this.submitWaitingDialogVisible) {
+        this.SubmitWaitingOverlay();
       }
     }
     .width('100%')
@@ -1987,6 +2086,55 @@ struct RelaySettingSet {
   }
 
   @Builder
+  SubmitWaitingOverlay() {
+    Stack() {
+      Row()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#55000000');
+
+      Column() {
+        Text('等待回应')
+          .fontSize(this.s(this.sectionTitleFontSize))
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .margin({ bottom: this.s(12) });
+
+        Text(this.submitWaitingMessage)
+          .width('100%')
+          .fontSize(this.s(this.inputValueFontSize))
+          .fontColor('#333333')
+          .fontFamily('STKaiti')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: this.s(16) });
+
+        Button('确定')
+          .width(this.s(120))
+          .height(this.s(38))
+          .fontSize(this.s(this.fieldLabelFontSize))
+          .fontColor('#000000')
+          .fontFamily('STKaiti')
+          .fontWeight(FontWeight.Bold)
+          .backgroundColor('#D9D9D9')
+          .border({ width: 0 })
+          .borderRadius(this.s(8))
+          .onClick(() => {
+            this.closeSubmitWaiting();
+          });
+      }
+      .width(this.s(360))
+      .padding({ left: this.s(18), right: this.s(18), top: this.s(18), bottom: this.s(18) })
+      .backgroundColor('#F7F7F7')
+      .border({ width: 1, color: '#D2D2D2' })
+      .borderRadius(8)
+      .alignItems(HorizontalAlign.Center);
+    }
+    .width('100%')
+    .height('100%');
+  }
+
+  @Builder
   BottomBar() {
     Row() {
       Blank().layoutWeight(5);
@@ -2018,7 +2166,7 @@ struct RelaySettingSet {
         .border({ width: 0 })
         .borderRadius(this.s(this.bottomButtonRadius))
         .onClick(() => {
-          this.saveValueEntries();
+          this.submitCurrentData();
         });
 
       Blank().layoutWeight(5);

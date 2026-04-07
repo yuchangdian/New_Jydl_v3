@@ -46,20 +46,25 @@ bool StatisticsSettingReady = false;
 uint32_t CommonSetting_Statistics_Length_1Byte = sizeof(CommonSetting_Statistics_Struct);
 uint32_t CommonSetting_Statistics_CRCLength_4Byte = sizeof(CommonSetting_Statistics_Struct)/4-1;
 
+CommonSetting_PowerQuality_Struct PowerQualitySetting;
+bool PowerQualitySettingReady = false;
+uint32_t CommonSetting_PowerQuality_Length_1Byte = sizeof(CommonSetting_PowerQuality_Struct);
+uint32_t CommonSetting_PowerQuality_CRCLength_4Byte = sizeof(CommonSetting_PowerQuality_Struct)/4-1;
+
 CommonSetting_TeleControlling_Struct TeleControllingSetting;
 bool TeleControllingSettingReady = false;
-uint32_t CommonSetting_YK_Length_1Byte = sizeof(CommonSetting_TeleControlling_Struct);
-uint32_t CommonSetting_YK_CRCLength_4Byte = sizeof(CommonSetting_TeleControlling_Struct)/4-1;
+uint32_t CommonSetting_TeleControlling_Length_1Byte = sizeof(CommonSetting_TeleControlling_Struct);
+uint32_t CommonSetting_TeleControlling_CRCLength_4Byte = sizeof(CommonSetting_TeleControlling_Struct)/4-1;
 
 CommonSetting_TeleMeasuring_Struct TeleMeasuringSetting;
 bool TeleMeasuringSettingReady = false;
-uint32_t CommonSetting_YC_Length_1Byte = sizeof(CommonSetting_TeleMeasuring_Struct);
-uint32_t CommonSetting_YC_CRCLength_4Byte = sizeof(CommonSetting_TeleMeasuring_Struct)/4-1;
+uint32_t CommonSetting_TeleMeasuring_Length_1Byte = sizeof(CommonSetting_TeleMeasuring_Struct);
+uint32_t CommonSetting_TeleMeasuring_CRCLength_4Byte = sizeof(CommonSetting_TeleMeasuring_Struct)/4-1;
 
  CommonSetting_TeleSignaling_Struct TeleSignalingSetting;
  bool TeleSignalingSettingReady = false;
- uint32_t CommonSetting_YX_Length_1Byte = sizeof(CommonSetting_TeleSignaling_Struct);
- uint32_t CommonSetting_YX_CRCLength_4Byte = sizeof(CommonSetting_TeleSignaling_Struct)/4-1;
+ uint32_t CommonSetting_TeleSignaling_Length_1Byte = sizeof(CommonSetting_TeleSignaling_Struct);
+ uint32_t CommonSetting_TeleSignaling_CRCLength_4Byte = sizeof(CommonSetting_TeleSignaling_Struct)/4-1;
 
 //CommonSetting.PrimarySystem = PrimarySystemSetting;
 CommonSetting_All_Struct CommonSetting_All;
@@ -73,8 +78,8 @@ uint32_t SoftStrap_DataLength = sizeof(ProtectionSoftStrap_Struct);
 uint32_t SoftStrap_CRCLength = sizeof(ProtectionSoftStrap_Struct)/4-1;
 AnalogCoeff_Struct AnalogCoeff;
 
-PowerQualitySetting_struct PowerQualitySetting;
-PowerQualitySetting_struct PowerQualitySetting_Buf;
+PowerQualitySetting_struct LegacyPowerQualitySetting;
+PowerQualitySetting_struct LegacyPowerQualitySetting_Buf;
 
 YC_BaseFreq_Struct BaseFreq_Dsip;
 bool BaseFreqDisplayReady = false;
