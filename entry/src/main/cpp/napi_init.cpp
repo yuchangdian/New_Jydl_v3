@@ -178,6 +178,7 @@ static napi_value Init(napi_env env, napi_value exports)
         {"getStatisticsSetting", nullptr, GetStatisticsSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"updateStatisticsSetting", nullptr, UpdateStatisticsSetting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getRelaySettingByZone", nullptr, GetRelaySettingByZone, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"requestRelaySettingByZone", nullptr, RequestRelaySettingByZone, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"updateRelaySettingByZone", nullptr, UpdateRelaySettingByZone, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"sendTcpData", nullptr, SendTcpData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"add", nullptr, Add, nullptr, nullptr, nullptr, napi_default, nullptr}

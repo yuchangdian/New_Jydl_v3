@@ -186,6 +186,9 @@ export struct CommonSetting_TeleSignaling_Set {
   private readonly logicOptions: string[] = ['原值', '取反', '屏蔽'];
   private cachedTeleSignalingNativeModule?: TeleSignalingNativeModule;
 
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1024;
   private readonly headerHeight: number = 80;
   private readonly footerHeight: number = 80;
@@ -219,12 +222,12 @@ export struct CommonSetting_TeleSignaling_Set {
   aboutToAppear(): void {
     try {
       let currentDisplay = display.getDefaultDisplaySync();
-      let scaleX = currentDisplay.width / 1024;
-      let scaleY = currentDisplay.height / 600;
+      let scaleX = currentDisplay.width / this.pageBaseWidth;
+      let scaleY = currentDisplay.height / this.pageBaseHeight;
       let scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     this.loadNativeTeleSignalingData();
   }

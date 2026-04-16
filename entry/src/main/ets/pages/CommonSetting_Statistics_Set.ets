@@ -583,8 +583,9 @@ export struct CommonSetting_Statistics_Set {
   private cachedStatisticsNativeModule?: StatisticsNativeModule;
 
   private readonly pageMaxWidth: number = 1024;
-  private readonly pageBaseWidth: number = 1024;
-  private readonly pageBaseHeight: number = 600;
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly headerHeight: number = 80;
   private readonly footerHeight: number = 80;
   private readonly contentMinHeight: number = 1140;
@@ -623,9 +624,9 @@ export struct CommonSetting_Statistics_Set {
       let scaleX = d.width / this.pageBaseWidth;
       let scaleY = d.height / this.pageBaseHeight;
       let scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     if (!this.loadNativeStatisticsData()) {
       this.loadPersistedData();

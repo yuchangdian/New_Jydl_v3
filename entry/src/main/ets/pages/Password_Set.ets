@@ -39,6 +39,9 @@ export struct Password_Set {
   @State confirmPassword: string = '';
 
   private readonly fontSize: PasswordSetFontSize = new PasswordSetFontSize();
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1024;
   private readonly headerHeight: number = 81;
   private readonly footerHeight: number = 91;
@@ -65,12 +68,12 @@ export struct Password_Set {
   aboutToAppear(): void {
     try {
       let d = display.getDefaultDisplaySync();
-      let sx = d.width / 1024;
-      let sy = d.height / 600;
+      let sx = d.width / this.pageBaseWidth;
+      let sy = d.height / this.pageBaseHeight;
       let val = Math.min(sx, sy);
-      this.uiScale = val > 0 ? val : 1;
+      this.uiScale = (val > 0 ? val : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
   }
 

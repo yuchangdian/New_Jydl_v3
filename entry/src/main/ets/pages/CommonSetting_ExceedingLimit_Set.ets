@@ -315,8 +315,9 @@ export struct CommonSetting_ExceedingLimit_Set {
   private readonly enableOptions: string[] = COMMON_SETTING_EXCEEDING_LIMIT_ENABLE_OPTIONS;
   private cachedExceedingLimitNativeModule?: ExceedingLimitNativeModule;
 
-  private readonly pageBaseWidth: number = 1024;
-  private readonly pageBaseHeight: number = 600;
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1221;
   private readonly contentWidth: number = 980;
   private readonly contentBottomSpace: number = 200;
@@ -356,9 +357,9 @@ export struct CommonSetting_ExceedingLimit_Set {
       let scaleX = currentDisplay.width / this.pageBaseWidth;
       let scaleY = currentDisplay.height / this.pageBaseHeight;
       let scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     if (!this.loadNativeExceedingLimitData()) {
       this.loadPersistedData();

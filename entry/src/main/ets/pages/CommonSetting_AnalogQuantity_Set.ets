@@ -394,10 +394,10 @@ class CommonSettingAnalogQuantityFontSize {
   notice: number = 15;
   title: number = 20;
   subtitle: number = 18;
-  columnHeader: number = 18;
-  fieldLabel: number = 16;
-  inputValue: number = 16;
-  unit: number = 16;
+  columnHeader: number = 19;
+  fieldLabel: number = 17;
+  inputValue: number = 17;
+  unit: number = 17;
   button: number = 18;
   time: number = 18;
   titleMin: number = 14;
@@ -419,25 +419,26 @@ export struct CommonSetting_AnalogQuantity_Set {
 
   private readonly fontSize: CommonSettingAnalogQuantityFontSize = new CommonSettingAnalogQuantityFontSize();
   private readonly pageMaxWidth: number = 1042;
-  private readonly pageBaseWidth: number = 1024;
-  private readonly pageBaseHeight: number = 600;
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly headerHeight: number = 70;
   private readonly bottomBarHeight: number = 70;
-  private readonly contentMinHeight: number = 617;
-  private readonly contentBottomPadding: number = 200;
-  private readonly columnHeaderHeight: number = 42;
-  private readonly rowHeight: number = 48;
+  private readonly contentMinHeight: number = 450;
+  private readonly contentBottomPadding: number = 10;
+  private readonly columnHeaderHeight: number = 40;
+  private readonly rowHeight: number = 50;
   private readonly signalLabelWidth: number = 150;
-  private readonly fieldInputWidth: number = 76;
-  private readonly fieldHeight: number = 35;
-  private readonly fieldUnitWidth: number = 16;
-  private readonly fieldSpacing: number = 2;
-  private readonly fieldGroupWidth: number = 94;
+  private readonly fieldInputWidth: number = 80;
+  private readonly fieldHeight: number = 36;
+  private readonly fieldUnitWidth: number = 18;
+  private readonly fieldSpacing: number = 3;
+  private readonly fieldGroupWidth: number = 101;
   private readonly labelColumnWeight: number = 15;
   private readonly fieldColumnWeight: number = 10;
   private readonly gapColumnWeight: number = 1;
   private readonly sectionGapWeight: number = 3;
-  private readonly labelCellPadding: number = 6;
+  private readonly labelCellPadding: number = 7;
   private readonly columnHeaderLeadingWidth: number = 150;
   private readonly columnHeaderMiddleWidth: number = 150;
   private readonly columnHeaderGapWidth: number = 35;
@@ -459,9 +460,9 @@ export struct CommonSetting_AnalogQuantity_Set {
       let scaleX = currentDisplay.width / this.pageBaseWidth;
       let scaleY = currentDisplay.height / this.pageBaseHeight;
       let scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     this.loadNativeAnalogQuantityData();
   }

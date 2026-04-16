@@ -25,8 +25,8 @@ class DigitalInputTestFontSizeConfig {
 }
 
 class DigitalInputTestLayoutConfig {
-  pageBaseWidth: number = 1024;
-  pageBaseHeight: number = 600;
+  pageBaseWidth: number = 1280;
+  pageBaseHeight: number = 720;
   pageMaxWidth: number = 1024;
   headerHeight: number = 81;
   footerHeight: number = 91;
@@ -55,6 +55,7 @@ export struct DigitalInput_Test {
   @State uiScale: number = 1;
 
   private readonly pageConfig: DigitalInputTestPageConfig = DIGITAL_INPUT_TEST_PAGE_CONFIG;
+  private readonly layoutZoom: number = 1.2;
 
   private s(v: number): number {
     return Math.round(v * this.uiScale);
@@ -66,9 +67,9 @@ export struct DigitalInput_Test {
       let scaleX = currentDisplay.width / this.pageConfig.layout.pageBaseWidth;
       let scaleY = currentDisplay.height / this.pageConfig.layout.pageBaseHeight;
       let scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
   }
 

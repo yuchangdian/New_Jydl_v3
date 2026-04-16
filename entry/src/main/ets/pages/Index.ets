@@ -52,6 +52,10 @@ function createPhasorPlaceholder(unit: string): string {
   return '**.**' + unit + ANGLE_SYMBOL + '**.**' + DEGREE_SYMBOL;
 }
 
+function createPreviewPhasorText(rmsText: string, phaseText: string, unit: string): string {
+  return rmsText + unit + ANGLE_SYMBOL + phaseText + DEGREE_SYMBOL;
+}
+
 function formatBaseFreqPhasorText(rms: number, phase: number, unit: string): string {
   if (!isValidBaseFreqNumber(rms) || !isValidBaseFreqNumber(phase)) {
     return createPhasorPlaceholder(unit);
@@ -100,21 +104,34 @@ struct Index {
   @State reverseActiveEnergy: string = '**.**kW.h';
   @State reverseReactiveEnergy: string = '**.**kVar.h';
 
-  @State ua: string = '**.**V∠**.**°';
-  @State ub: string = '**.**V∠**.**°';
-  @State uc: string = '**.**V∠**.**°';
-  @State u0: string = '**.**V∠**.**°';
-  @State ux: string = '**.**V∠**.**°';
-  @State ia: string = '**.**V∠**.**°';
-  @State ib: string = '**.**V∠**.**°';
-  @State ic: string = '**.**V∠**.**°';
-  @State i0: string = '**.**V∠**.**°';
-  @State iia: string = '**.**V∠**.**°';
-  @State iib: string = '**.**V∠**.**°';
-  @State iic: string = '**.**V∠**.**°';
+  @State ua: string = createPreviewPhasorText('220.00', '000.00', 'V');
+  @State ub: string = createPreviewPhasorText('220.00', '120.00', 'V');
+  @State uc: string = createPreviewPhasorText('220.00', '240.00', 'V');
+  @State u0: string = createPreviewPhasorText('001.20', '005.00', 'V');
+  @State ux: string = createPreviewPhasorText('220.00', '030.00', 'V');
+  @State ia: string = createPreviewPhasorText('005.25', '010.00', 'A');
+  @State ib: string = createPreviewPhasorText('005.18', '130.00', 'A');
+  @State ic: string = createPreviewPhasorText('005.31', '250.00', 'A');
+  @State i0: string = createPreviewPhasorText('000.18', '015.00', 'A');
+  @State iia: string = createPreviewPhasorText('005.12', '012.00', 'A');
+  @State iib: string = createPreviewPhasorText('005.07', '132.00', 'A');
+  @State iic: string = createPreviewPhasorText('005.20', '252.00', 'A');
 
   private baseFreqRefreshTimer: number = -1;
   private cachedBaseFreqNativeModule?: BaseFreqNativeModule;
+  private readonly leftPanelWidth: number = 290;
+  private readonly leftPanelTitleFontSize: number = 28;
+  private readonly leftPanelTextFontSize: number = 22;
+  private readonly paramsValueWidth: number = 122;
+  private readonly rightSectionTitleFontSize: number = 30;
+  private readonly rightSectionValueFontSize: number = 24;
+  private readonly rightSectionSubscriptFontSize: number = 12;
+  private readonly rightSectionLabelWidth: number = 150;
+  private readonly rightSectionValueWidth: number = 280;
+  private readonly rightSectionValueFontFamily: string = 'monospace';
+  private readonly plateSectionTitleFontSize: number = 30;
+  private readonly plateItemFontSize: number = 24;
+  private readonly softPlateVerticalSpace: number = 8;
 
   @State hardPlates: Array<PlateItem> = [
     { name: '纵联保护', checked: true },
@@ -210,19 +227,23 @@ struct Index {
     return undefined;
   }
 
+  private applyBaseFreqPreviewDisplay(): void {
+    this.ua = createPreviewPhasorText('220.00', '000.00', 'V');
+    this.ub = createPreviewPhasorText('220.00', '120.00', 'V');
+    this.uc = createPreviewPhasorText('220.00', '240.00', 'V');
+    this.u0 = createPreviewPhasorText('001.20', '005.00', 'V');
+    this.ux = createPreviewPhasorText('220.00', '030.00', 'V');
+    this.ia = createPreviewPhasorText('005.25', '010.00', 'A');
+    this.ib = createPreviewPhasorText('005.18', '130.00', 'A');
+    this.ic = createPreviewPhasorText('005.31', '250.00', 'A');
+    this.i0 = createPreviewPhasorText('000.18', '015.00', 'A');
+    this.iia = createPreviewPhasorText('005.12', '012.00', 'A');
+    this.iib = createPreviewPhasorText('005.07', '132.00', 'A');
+    this.iic = createPreviewPhasorText('005.20', '252.00', 'A');
+  }
+
   private resetBaseFreqDisplay(): void {
-    this.ua = createPhasorPlaceholder('V');
-    this.ub = createPhasorPlaceholder('V');
-    this.uc = createPhasorPlaceholder('V');
-    this.u0 = createPhasorPlaceholder('V');
-    this.ux = createPhasorPlaceholder('V');
-    this.ia = createPhasorPlaceholder('A');
-    this.ib = createPhasorPlaceholder('A');
-    this.ic = createPhasorPlaceholder('A');
-    this.i0 = createPhasorPlaceholder('A');
-    this.iia = createPhasorPlaceholder('A');
-    this.iib = createPhasorPlaceholder('A');
-    this.iic = createPhasorPlaceholder('A');
+    this.applyBaseFreqPreviewDisplay();
   }
 
   private refreshBaseFreqDisplay(): void {
@@ -268,6 +289,7 @@ struct Index {
         this.RightPanel()
       }
       .layoutWeight(1)
+      .alignItems(VerticalAlign.Top)
     }
     .width('100%')
     .height('100%')
@@ -280,7 +302,7 @@ struct Index {
   LeftPanel() {
     Column() {
       Text(`频率：${this.frequency}`)
-        .fontSize(20)
+        .fontSize(this.leftPanelTitleFontSize)
         .fontWeight(FontWeight.Bold)
         .width('100%')
         .textAlign(TextAlign.Center)
@@ -290,41 +312,49 @@ struct Index {
         this.ParamsList()
       }
       .width('100%')
-      .margin({ top: 10 })
-
+      .margin({ top: 16 })
+/*
       Text('运行状态')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Center)
-        .margin({ top: 15,bottom:5 })
+        .margin({ top: 18, bottom: 8 })
         .decoration({ type: TextDecorationType.Underline })
 
       Text('远方控制')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Center)
+        .margin({ top: 6 })
         .decoration({ type: TextDecorationType.Underline })
+*/
+      Blank()
+        .layoutWeight(1)
 
       Text('当前定值区号: 01')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Center)
-        .margin({ top: 10,bottom:0 })
+        .margin({ top: 14, bottom: 2 })
       Text('软件版本: V1.00')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Center)
-        .margin({ top: 10,bottom:10 })
-      Text('2024/7/7 12:12:12')
-        .fontSize(16)
+        .margin({ top: 12, bottom: 12 })
+      Text('2026/7/7 12:12:12')
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Center)
+        .margin({ bottom: 10 })
+
     }
-    .width(220)
+    .width(this.leftPanelWidth)
     .height('100%')
     .backgroundColor('#e2e6ec')
-    .padding(10)
+    .padding({ left: 16, right: 16, top: 16, bottom: 30 })
     .border({ width: { top: 1 }, color: '#000000' })
+    //.margin({ bottom: 14 })
+    //.margin({ bottom: 50 })
   }
 
   @Builder
@@ -433,79 +463,79 @@ struct Index {
           .strokeWidth(1)
           .fill('#000000')
       }
-      .width(80)
-      .height(200)
+      .width(90)
+      .height(220)
     }
-    .margin({ right: 10 })
+    .margin({ right: 14 })
   }
 
   @Builder
   // 左侧参数列表：显示电压、电流、功率、电能等关键量测值。
   ParamsList() {
-    Column({space:5}) {
+    Column({space:7}) {
       Text(`U=${this.voltage}`)
-        .fontSize(16)
-        .width(100)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text(`I=${this.current}`)
-        .fontSize(16)
-        .width(100)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text(`P=${this.power}`)
-        .fontSize(16)
-        .width(100)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text(`Q=${this.reactivePower}`)
-        .fontSize(16)
-        .width(100)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text(`cos=${this.powerFactor}`)
-        .fontSize(16)
-        .width(100)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text('正向有功电能')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Start)
 
       Text(this.forwardActiveEnergy)
-        .fontSize(16)
-        .width(80)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text('正向无功电能')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Start)
 
       Text(this.forwardReactiveEnergy)
-        .fontSize(16)
-        .width(80)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text('反向有功电能')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Start)
 
       Text(this.reverseActiveEnergy)
-        .fontSize(16)
-        .width(80)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
 
       Text('反向无功电能')
-        .fontSize(16)
+        .fontSize(this.leftPanelTextFontSize)
         .width('100%')
         .textAlign(TextAlign.Start)
 
       Text(this.reverseReactiveEnergy)
-        .fontSize(16)
-        .width(80)
+        .fontSize(this.leftPanelTextFontSize)
+        .width(this.paramsValueWidth)
         .textAlign(TextAlign.Start)
     }
     .layoutWeight(1)
@@ -514,131 +544,165 @@ struct Index {
   @Builder
   // 右侧主内容区：显示三相量测值以及软压板、硬压板区域。
   RightPanel() {
-    Scroll() {
+    Column() {
       Column() {
         Row() {
           Text('电      压:')
-            .fontSize(22)
+            .fontSize(this.rightSectionTitleFontSize)
             .fontWeight(FontWeight.Bold)
-            .width(120)
+            .width(this.rightSectionLabelWidth)
 
           Text(`Uₐ ${this.ua}`)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width(200)
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
 
           Text() {
             Span('U')
-              .fontSize(20)
+              .fontSize(this.rightSectionValueFontSize)
             Span('b')
-              .fontSize(9)
+              .fontSize(this.rightSectionSubscriptFontSize)
               .baselineOffset(LengthMetrics.vp(-4))
             Span(` ${this.ub}`)
-          }.fontSize(20)
-          .width(200)
+          }.fontSize(this.rightSectionValueFontSize)
+          .width(this.rightSectionValueWidth)
+          .maxLines(1)
           .fontWeight(FontWeight.Regular)
+          .fontFamily(this.rightSectionValueFontFamily)
+          .textAlign(TextAlign.Start)
 
 
           Text(`U꜀ ${this.uc}`)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width(200)
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
         }
         .width('100%')
 
         Row(){
           Text(`U₀ ${this.u0} `)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width(200)
-            .margin({top:5})
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
+            .margin({ top: 8 })
 
           Text(`Uₓ ${this.ux}`)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width(200)
-            .margin({top:5})
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
+            .margin({ top: 8 })
         }
         .width('100%')
-        .padding({ left: 120 })
+        .padding({ left: this.rightSectionLabelWidth })
 
         Row() {
           Text('保护电流：')
-            .fontSize(22)
+            .fontSize(this.rightSectionTitleFontSize)
             .fontWeight(FontWeight.Bold)
-            .margin({ top: 10 })
-            .width(120)
+            .margin({ top: 14 })
+            .width(this.rightSectionLabelWidth)
 
           Text(`Iₐ ${this.ia}`)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width('100%')
-            .margin({ top: 10 })
-            .width(200)
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
+            .margin({ top: 14 })
 
           Text() {
             Span('I')
-              .fontSize(20)
+              .fontSize(this.rightSectionValueFontSize)
             Span('b')
-              .fontSize(9)
+              .fontSize(this.rightSectionSubscriptFontSize)
               .baselineOffset(LengthMetrics.vp(-4))
             Span(` ${this.ib} `)
-          }.fontSize(20)
-          .width(200)
+          }.fontSize(this.rightSectionValueFontSize)
+          .width(this.rightSectionValueWidth)
+          .maxLines(1)
           .fontWeight(FontWeight.Regular)
-          .margin({ top: 10 })
+          .fontFamily(this.rightSectionValueFontFamily)
+          .textAlign(TextAlign.Start)
+          .margin({ top: 14 })
 
           Text(`I꜀ ${this.ic}`)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width('100%')
-            .margin({ top: 10 })
-            .width(200)
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
+            .margin({ top: 14 })
         }
         .width('100%')
         Row(){
           Text(`3I₀ ${this.i0}`)
-            .fontSize(18)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width(200)
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
 
         }
         .width('100%')
-        .margin({top:5})
+        .margin({ top: 8 })
 
-          .padding({ left: 120 })
+          .padding({ left: this.rightSectionLabelWidth })
 
         Row() {
           Text(`测量电流：`)
-            .fontSize(22)
+            .fontSize(this.rightSectionTitleFontSize)
             .fontWeight(FontWeight.Bold)
-            .margin({ top: 10 })
-            .width(120)
+            .margin({ top: 14 })
+            .width(this.rightSectionLabelWidth)
 
           Text(`Iₐ ${this.iia}`)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width(200)
-            .margin({ top: 10 })
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
+            .margin({ top: 14 })
 
           Text() {
             Span('I')
-              .fontSize(20)
+              .fontSize(this.rightSectionValueFontSize)
             Span('b')
-              .fontSize(9)
+              .fontSize(this.rightSectionSubscriptFontSize)
               .baselineOffset(LengthMetrics.vp(-4))
             Span(` ${this.iib} `)
-          }.fontSize(20)
-          .width(200)
+          }.fontSize(this.rightSectionValueFontSize)
+          .width(this.rightSectionValueWidth)
+          .maxLines(1)
           .fontWeight(FontWeight.Regular)
-          .margin({ top: 10 })
+          .fontFamily(this.rightSectionValueFontFamily)
+          .textAlign(TextAlign.Start)
+          .margin({ top: 14 })
 
 
           Text(`I꜀ ${this.iic}`)
-            .fontSize(20)
+            .fontSize(this.rightSectionValueFontSize)
             .fontWeight(FontWeight.Regular)
-            .width(200)
-            .margin({ top: 10 })
+            .width(this.rightSectionValueWidth)
+            .maxLines(1)
+            .fontFamily(this.rightSectionValueFontFamily)
+            .textAlign(TextAlign.Start)
+            .margin({ top: 14 })
         }
         .width('100%')
 
@@ -647,7 +711,7 @@ struct Index {
         this.SoftPlateSection()
       }
       .width('100%')
-      .padding({ left: 8, right: 5, top: 0, bottom: 5 })
+      .padding({ left: 8, right: 5, top: 16, bottom: 5 })
     }
     .layoutWeight(1)
   }
@@ -658,7 +722,7 @@ struct Index {
     Column() {
       Row() {
         Text('硬压板：')
-          .fontSize(15)
+          .fontSize(this.plateSectionTitleFontSize)
           .fontWeight(FontWeight.Bold)
 
         ForEach(this.hardPlates, (plate: PlateItem, index: number) => {
@@ -671,7 +735,7 @@ struct Index {
               })
 
             Text(plate.name)
-              .fontSize(14)
+              .fontSize(this.plateItemFontSize)
               .margin({ left: 4 })
           }
           .margin({ left: 10 })
@@ -691,7 +755,7 @@ struct Index {
     Column() {
       Row() {
         Text('软压板：')
-          .fontSize(15)
+          .fontSize(this.plateSectionTitleFontSize)
           .fontWeight(FontWeight.Bold)
 
         ForEach(this.softPlates.slice(0, 3), (plate: PlateItem, index: number) => {
@@ -705,7 +769,7 @@ struct Index {
               .margin('4.00px')
 
             Text(plate.name)
-              .fontSize(14)
+              .fontSize(this.plateItemFontSize)
               .margin({ left: 4 })
           }
           .margin({ left: 10 })
@@ -715,7 +779,7 @@ struct Index {
       .alignItems(VerticalAlign.Center)
       .margin({top:10})
       Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.SpaceBetween }) {
-        Column() {
+        Column({ space: this.softPlateVerticalSpace }) {
           ForEach(this.softPlates.slice(3, 9), (plate: PlateItem, index: number) => {
             Row() {
               Checkbox()
@@ -727,7 +791,7 @@ struct Index {
                 .margin('8.00px')
 
               Text(plate.name)
-                .fontSize(14)
+                .fontSize(this.plateItemFontSize)
                 .margin({ left: 4 })
             }
           })
@@ -736,7 +800,7 @@ struct Index {
         .alignItems(HorizontalAlign.Start)
         .align(Alignment.TopStart)
 
-        Column() {
+        Column({ space: this.softPlateVerticalSpace }) {
           ForEach(this.softPlates.slice(9, 15), (plate: PlateItem, index: number) => {
             Row() {
               Checkbox()
@@ -748,7 +812,7 @@ struct Index {
                 .margin('8.00px')
 
               Text(plate.name)
-                .fontSize(14)
+                .fontSize(this.plateItemFontSize)
                 .margin({ left: 4 })
             }
           })
@@ -758,7 +822,7 @@ struct Index {
         .alignSelf(ItemAlign.Start)
         .alignItems(HorizontalAlign.Start)
 
-        Column() {
+        Column({ space: this.softPlateVerticalSpace }) {
           ForEach(this.softPlates.slice(15, 20), (plate: PlateItem, index: number) => {
             Row() {
               Checkbox()
@@ -770,7 +834,7 @@ struct Index {
                 .margin('8.00px')
 
               Text(plate.name)
-                .fontSize(14)
+                .fontSize(this.plateItemFontSize)
                 .margin({ left: 4 })
             }
           })
@@ -779,7 +843,7 @@ struct Index {
         .alignItems(HorizontalAlign.Start)
         .margin({ top: 34 })
 
-        Column() {
+        Column({ space: this.softPlateVerticalSpace }) {
           ForEach(this.softPlates.slice(20, 26), (plate: PlateItem, index: number) => {
             Row() {
               Checkbox()
@@ -791,17 +855,19 @@ struct Index {
                 .margin('8.00px')
 
               Text(plate.name)
-                .fontSize(14)
+                .fontSize(this.plateItemFontSize)
                 .margin({ left: 4 })
             }
           })
         }
         .layoutWeight(1)
+        .margin({ top: 8 })
         .alignItems(HorizontalAlign.Start)
       }
       .width('100%')
-      .margin({ top: 8 })
+      .margin({ top: 10 })
     }
     .width('100%')
   }
 }
+//写一篇日记吧！

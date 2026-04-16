@@ -25,9 +25,10 @@ export struct QualityIndex {
   @State timeText: string = '2024/12/30\n12:12:30';
 
   private readonly fontSize: QualityIndexFontSize = new QualityIndexFontSize();
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1024;
-  private readonly designWidth: number = 1024;
-  private readonly designHeight: number = 600;
+  private readonly designWidth: number = 1280;
+  private readonly designHeight: number = 720;
   private readonly headerHeight: number = 70;
   private readonly bottomHeight: number = 70;
   private readonly rowHeight: number = 60;
@@ -136,9 +137,9 @@ export struct QualityIndex {
       const scaleX = defaultDisplay.width / this.designWidth;
       const scaleY = defaultDisplay.height / this.designHeight;
       const scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
   }
 

@@ -159,6 +159,9 @@ export struct CommonSetting_TeleMeasuring_Set {
   private readonly primaryEnergyOptions: string[] = ['一次值', '二次值'];
   private cachedTeleMeasuringNativeModule?: TeleMeasuringNativeModule;
 
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1024;
   private readonly headerHeight: number = 80;
   private readonly footerHeight: number = 80;
@@ -184,12 +187,12 @@ export struct CommonSetting_TeleMeasuring_Set {
   aboutToAppear(): void {
     try {
       let d = display.getDefaultDisplaySync();
-      let sx = d.width / 1024;
-      let sy = d.height / 600;
+      let sx = d.width / this.pageBaseWidth;
+      let sy = d.height / this.pageBaseHeight;
       let scale = Math.min(sx, sy);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     this.loadNativeTeleMeasuringData();
   }

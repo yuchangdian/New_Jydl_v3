@@ -492,5 +492,6 @@ export const updatePowerQualitySetting: (value: CommonSettingPowerQualityWriteVa
 export const getStatisticsSetting: () => CommonSettingStatisticsStructValue;
 export const updateStatisticsSetting: (value: CommonSettingStatisticsWriteValue) => boolean;
 export const getRelaySettingByZone: (zoneCode: number) => RelaySettingZoneValue;
+export const requestRelaySettingByZone: (zoneCode: number) => boolean;
 export const updateRelaySettingByZone: (value: RelaySettingWriteZoneValue) => boolean;
 export const add: (a: number, b: number) => number;

@@ -82,6 +82,9 @@ export struct CommonSetting_PrimarySystem_Set {
   @State submitWaitingMessage: string = '';
 
   private readonly fontSize: CommonSettingPrimarySystemFontSize = new CommonSettingPrimarySystemFontSize();
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly rowHeight: number = 54;
   private readonly separatorSpace: number = 12;
   private readonly separatorStroke: number = 3;
@@ -113,12 +116,12 @@ export struct CommonSetting_PrimarySystem_Set {
   aboutToAppear(): void {
     try {
       let d = display.getDefaultDisplaySync();
-      let sx = d.width / 1024;
-      let sy = d.height / 600;
+      let sx = d.width / this.pageBaseWidth;
+      let sy = d.height / this.pageBaseHeight;
       let val = Math.min(sx, sy);
-      this.uiScale = val > 0 ? val : 1;
+      this.uiScale = (val > 0 ? val : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     if (!this.loadNativePrimarySystemData()) {
       this.loadPersistedData();

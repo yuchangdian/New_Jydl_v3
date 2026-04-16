@@ -229,8 +229,9 @@ export struct CommonSetting_PowerQuality_Set {
   private readonly fontSize: CommonSettingPowerQualityFontSize = new CommonSettingPowerQualityFontSize();
   private readonly enableOptions: string[] = COMMON_SETTING_POWER_QUALITY_ENABLE_OPTIONS;
   private cachedPowerQualityNativeModule?: PowerQualityNativeModule;
-  private readonly pageBaseWidth: number = 1024;
-  private readonly pageBaseHeight: number = 600;
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1024;
   private readonly headerHeight: number = 70;
   private readonly footerHeight: number = 70;
@@ -264,9 +265,9 @@ export struct CommonSetting_PowerQuality_Set {
       let scaleX = currentDisplay.width / this.pageBaseWidth;
       let scaleY = currentDisplay.height / this.pageBaseHeight;
       let scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     if (!this.loadNativePowerQualityData()) {
       this.loadPersistedData();

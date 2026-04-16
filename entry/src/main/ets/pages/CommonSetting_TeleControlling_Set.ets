@@ -224,6 +224,9 @@ export struct CommonSetting_TeleControlling_Set {
   private readonly closeModeOptions: string[] = COMMON_SETTING_TELE_CONTROLLING_CLOSE_MODE_OPTIONS;
   private cachedTeleControllingNativeModule?: TeleControllingNativeModule;
 
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1024;
   private readonly bodyWidth: number = 980;
   private readonly headerHeight: number = 80;
@@ -252,12 +255,12 @@ export struct CommonSetting_TeleControlling_Set {
   aboutToAppear(): void {
     try {
       let d = display.getDefaultDisplaySync();
-      let sx = d.width / 1024;
-      let sy = d.height / 600;
+      let sx = d.width / this.pageBaseWidth;
+      let sy = d.height / this.pageBaseHeight;
       let scale = Math.min(sx, sy);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
     if (!this.loadNativeTeleControllingData()) {
       this.loadPersistedData();

@@ -1,4 +1,5 @@
 import router from '@ohos.router';
+import display from '@ohos.display';
 
 class SubMenuItemModel {
   title: string = '';
@@ -95,6 +96,27 @@ const MENU_DATA: MenuItemModel[] = [
 export struct TopMenu {
   @State menuIndex: number = -1;
   @State subMenuIndex: number = -1;
+  @State uiScale: number = 1;
+
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
+
+  private s(value: number): number {
+    return Math.round(value * this.uiScale);
+  }
+
+  aboutToAppear(): void {
+    try {
+      let currentDisplay = display.getDefaultDisplaySync();
+      let scaleX = currentDisplay.width / this.pageBaseWidth;
+      let scaleY = currentDisplay.height / this.pageBaseHeight;
+      let scale = Math.min(scaleX, scaleY);
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
+    } catch (error) {
+      this.uiScale = this.layoutZoom;
+    }
+  }
 
   private closeMenus(): void {
     this.menuIndex = -1;
@@ -190,18 +212,18 @@ export struct TopMenu {
             Column() {
               Column() {
                 Text(menu.title)
-                  .fontSize(22)
+                  .fontSize(this.s(22))
                   .fontColor('#333333')
                   .fontWeight(FontWeight.Bold)
-                  .padding(8)
+                  .padding(this.s(8))
                   .width('100%')
                   .textAlign(TextAlign.Center);
               }
               .width('100%')
               .height('100%')
               .backgroundColor(this.menuIndex === index ? '#c0c6cc' : '#d6dadc')
-              .borderRadius(5)
-              .margin({ left: 3, right: 3 })
+              .borderRadius(this.s(5))
+              .margin({ left: this.s(4), right: this.s(4) })
               .justifyContent(FlexAlign.Center)
               .onClick(() => {
                 this.menuIndex = this.menuIndex === index ? -1 : index;
@@ -214,14 +236,14 @@ export struct TopMenu {
                     Column() {
                       Row() {
                         Text(item.title)
-                          .fontSize(22)
+                          .fontSize(this.s(22))
                           .fontColor('#333333')
                           .layoutWeight(1)
                           .textAlign(TextAlign.Start);
                       }
                       .backgroundColor(this.subMenuIndex === subIndex ? '#c0c6cc' : '#d6dadc')
                       .width('100%')
-                      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+                      .padding({ left: this.s(14), right: this.s(14), top: this.s(10), bottom: this.s(10) })
                       .onClick(() => {
                         if (item.subItems.length > 0) {
                           this.subMenuIndex = this.subMenuIndex === subIndex ? -1 : subIndex;
@@ -235,24 +257,24 @@ export struct TopMenu {
                           ForEach(item.subItems, (subItem: SubMenuItemModel, leafIndex: number) => {
                             Row() {
                               Text(subItem.title)
-                                .fontSize(22)
+                                .fontSize(this.s(22))
                                 .fontColor('#333333')
                                 .width('100%')
                                 .textAlign(TextAlign.Center);
                             }
                             .width('100%')
-                            .height(35)
+                            .height(this.s(38))
                             .justifyContent(FlexAlign.Center)
-                            .padding({ left: 12, right: 12 })
+                            .padding({ left: this.s(12), right: this.s(12) })
                             .onClick(() => {
                               this.handleLeafClick(item, subItem);
                             });
                           }, (subItem: SubMenuItemModel, leafIndex: number) => leafIndex.toString() + subItem.title);
                         }
                         .backgroundColor('#d6dadc')
-                        .width(100)
-                        .height(item.subItems.length * 35)
-                        .borderRadius(5)
+                        .width(this.s(120))
+                        .height(this.s(item.subItems.length * 38))
+                        .borderRadius(this.s(5))
                         .position({ x: '100%', y: 0 })
                         .zIndex(10001);
                       }
@@ -266,13 +288,13 @@ export struct TopMenu {
               }
             }
             .layoutWeight(1)
-            .height(60);
+            .height(this.s(60));
           }, (menu: MenuItemModel, index: number) => index.toString() + menu.title);
         }
         .width('100%')
         .height('12%')
         .backgroundColor('#e2e6ec')
-        .padding({ left: 20, right: 20 });
+        .padding({ left: this.s(24), right: this.s(24), top: this.s(6), bottom: this.s(6) });
       }
       .width('100%');
     }

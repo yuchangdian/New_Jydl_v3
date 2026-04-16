@@ -115,6 +115,7 @@ interface RelaySettingWriteZoneValue {
 
 interface RelaySettingNativeModule {
   getRelaySettingByZone?: (zoneCode: number) => RelaySettingZoneValue | undefined;
+  requestRelaySettingByZone?: (zoneCode: number) => boolean;
   updateRelaySettingByZone?: (value: RelaySettingWriteZoneValue) => boolean;
 }
 
@@ -536,20 +537,29 @@ struct RelaySettingSet {
   @State submitWaitingMessage: string = '';
 
   private currentProfileData: RelaySettingProfile = new RelaySettingProfile('01');
+  private lastSyncedProfileData?: RelaySettingProfile;
   private loadToken: number = 0;
   private sectionRenderToken: number = 0;
+  private relayRefreshTimer: number = -1;
+  private relayRefreshGeneration: number = 0;
+  private hasPendingLocalEdits: boolean = false;
   private loadStartedAt: number = 0;
+  private readonly relayRefreshIntervalMs: number = 5000;
+  private readonly relayRefreshReadDelayMs: number = 300;
   private readonly checkBoxSize: number = 28;
-  private readonly noticeFontSize: number = 18;
-  private readonly midFontSize: number = 18;
-  private readonly titleFontSize: number = 20;
-  private readonly sectionTitleFontSize: number = 18;
-  private readonly fieldLabelFontSize: number = 18;
-  private readonly fieldValueFontSize: number = 18;
-  private readonly inputValueFontSize: number = 16;
-  private readonly fieldUnitFontSize: number = 18;
-  private readonly fieldMinFontSize: number = 15;
-  private readonly inputBoxHeight: number = 34;
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
+  private readonly noticeFontSize: number = 19;
+  private readonly midFontSize: number = 19;
+  private readonly titleFontSize: number = 21;
+  private readonly sectionTitleFontSize: number = 20;
+  private readonly fieldLabelFontSize: number = 20;
+  private readonly fieldValueFontSize: number = 20;
+  private readonly inputValueFontSize: number = 19;
+  private readonly fieldUnitFontSize: number = 20;
+  private readonly fieldMinFontSize: number = 17;
+  private readonly inputBoxHeight: number = 44;
   private readonly sectionCardRadius: number = 3;
   private readonly fieldBoxRadius: number = 1;
   private readonly bottomButtonHeight: number = 46;
@@ -1024,6 +1034,9 @@ struct RelaySettingSet {
       return;
     }
 
+    this.syncLastSyncedProfile(this.currentProfileData);
+    this.updatePendingLocalEditState();
+    this.startRelayAutoRefreshTimer();
     this.showSubmitWaiting(`当前${this.currentZoneCode}区保护定值已写入结构体，等待装置回应...`);
   }
 
@@ -1034,6 +1047,9 @@ struct RelaySettingSet {
     this.currentProfileData = this.createDefaultCurrentZoneProfile(this.currentZoneCode);
     this.rebuildCurrentZoneCache();
     this.saveValueEntries();
+    this.syncLastSyncedProfile(this.currentProfileData);
+    this.updatePendingLocalEditState();
+    this.startRelayAutoRefreshTimer();
   }
 
   private sameStoredField(left: RelayStoredField | undefined, right: RelayStoredField): boolean {
@@ -1042,6 +1058,51 @@ struct RelaySettingSet {
       left.textValue === right.textValue &&
       left.numberValue === right.numberValue &&
       left.enumValue === right.enumValue;
+  }
+
+  private profilesMatch(
+    leftProfile: RelaySettingProfile | undefined,
+    rightProfile: RelaySettingProfile | undefined
+  ): boolean {
+    if (!leftProfile && !rightProfile) {
+      return true;
+    }
+    if (!leftProfile || !rightProfile) {
+      return false;
+    }
+
+    for (let bindingIndex = 0; bindingIndex < RELAY_FIELD_BINDINGS.length; bindingIndex++) {
+      let binding = RELAY_FIELD_BINDINGS[bindingIndex];
+      let leftField = relayReadProfileField(leftProfile, binding);
+      let rightField = relayReadProfileField(rightProfile, binding);
+      let normalizedLeft = leftField ? leftField : relayDefaultStoredField(binding);
+      let normalizedRight = rightField ? rightField : relayDefaultStoredField(binding);
+      if (!this.sameStoredField(normalizedLeft, normalizedRight) ||
+        !this.sameStoredField(normalizedRight, normalizedLeft)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private syncLastSyncedProfile(profile?: RelaySettingProfile): void {
+    if (!profile) {
+      this.lastSyncedProfileData = undefined;
+      return;
+    }
+    this.lastSyncedProfileData = this.normalizeProfileFromSource(profile, this.currentZoneCode);
+  }
+
+  private updatePendingLocalEditState(): void {
+    this.hasPendingLocalEdits = !this.profilesMatch(this.currentProfileData, this.lastSyncedProfileData);
+  }
+
+  private shouldPauseRelayAutoRefresh(): boolean {
+    return this.isLoading ||
+      this.selectOverlayVisible ||
+      this.submitWaitingDialogVisible ||
+      this.hasPendingLocalEdits;
   }
 
   private bindingAtIndex(bindingIndex: number): RelayFieldBinding | undefined {
@@ -1119,6 +1180,91 @@ struct RelaySettingSet {
     this.currentWidthCache = nextWidthCache;
   }
 
+  private requestCurrentZoneRelaySetting(): boolean {
+    try {
+      let nativeModule = this.loadRelaySettingNativeModule();
+      if (!nativeModule || typeof nativeModule.requestRelaySettingByZone !== 'function') {
+        return false;
+      }
+      return !!nativeModule.requestRelaySettingByZone(Number(relayNormalizeSetZoneCode(this.currentZoneCode)));
+    } catch (error) {
+      console.error(`request relay setting failed: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
+  private applyCurrentZoneNativeRefresh(): void {
+    if (this.shouldPauseRelayAutoRefresh()) {
+      return;
+    }
+
+    let baseProfile = this.lastSyncedProfileData
+      ? this.normalizeProfileFromSource(this.lastSyncedProfileData, this.currentZoneCode)
+      : this.normalizeProfileFromSource(this.currentProfileData, this.currentZoneCode);
+    let nativeProfile = this.loadNativeRelayZoneProfile(this.currentZoneCode, baseProfile);
+    if (!nativeProfile) {
+      return;
+    }
+
+    let normalizedProfile = this.normalizeProfileFromSource(nativeProfile, this.currentZoneCode);
+    if (this.profilesMatch(this.currentProfileData, normalizedProfile) &&
+      this.profilesMatch(this.lastSyncedProfileData, normalizedProfile)) {
+      return;
+    }
+
+    this.currentProfileData = normalizedProfile;
+    this.syncLastSyncedProfile(normalizedProfile);
+    this.rebuildCurrentZoneCache();
+    this.updatePendingLocalEditState();
+  }
+
+  private scheduleRelayAutoRefresh(refreshGeneration: number): void {
+    if (refreshGeneration !== this.relayRefreshGeneration) {
+      return;
+    }
+    if (this.relayRefreshTimer >= 0) {
+      clearTimeout(this.relayRefreshTimer);
+      this.relayRefreshTimer = -1;
+    }
+
+    this.relayRefreshTimer = setTimeout(() => {
+      this.relayRefreshTimer = -1;
+      if (refreshGeneration !== this.relayRefreshGeneration) {
+        return;
+      }
+
+      if (this.shouldPauseRelayAutoRefresh()) {
+        this.scheduleRelayAutoRefresh(refreshGeneration);
+        return;
+      }
+
+      this.requestCurrentZoneRelaySetting();
+      this.relayRefreshTimer = setTimeout(() => {
+        this.relayRefreshTimer = -1;
+        if (refreshGeneration !== this.relayRefreshGeneration) {
+          return;
+        }
+        if (!this.shouldPauseRelayAutoRefresh()) {
+          this.applyCurrentZoneNativeRefresh();
+        }
+        this.scheduleRelayAutoRefresh(refreshGeneration);
+      }, this.relayRefreshReadDelayMs);
+    }, this.relayRefreshIntervalMs);
+  }
+
+  private startRelayAutoRefreshTimer(): void {
+    this.stopRelayAutoRefreshTimer();
+    this.scheduleRelayAutoRefresh(this.relayRefreshGeneration);
+  }
+
+  private stopRelayAutoRefreshTimer(): void {
+    this.relayRefreshGeneration++;
+    if (this.relayRefreshTimer >= 0) {
+      clearTimeout(this.relayRefreshTimer);
+      this.relayRefreshTimer = -1;
+    }
+  }
+
   private updateBindingCache(bindingIndex: number, displayValue: string): void {
     let nextDisplayValues = this.cloneStringArray(this.currentDisplayValues);
     let nextWidthCache = this.cloneNumberArray(this.currentWidthCache);
@@ -1158,6 +1304,7 @@ struct RelaySettingSet {
 
     relayWriteProfileField(profile, binding, nextField);
     this.updateBindingCache(bindingIndex, relayFormatStoredField(nextField, binding));
+    this.updatePendingLocalEditState();
     this.vm.noticeText = '';
   }
 
@@ -1567,6 +1714,8 @@ struct RelaySettingSet {
         this.saveRelayZoneProfile(this.currentZoneCode, this.currentProfileData);
       }
       this.rebuildCurrentZoneCache();
+      this.syncLastSyncedProfile(this.currentProfileData);
+      this.updatePendingLocalEditState();
       this.visibleSectionCount = Math.min(this.initialSectionRenderCount, RELAY_MAIN_SECTIONS.length);
       this.visibleMonitorSectionCount = 0;
       console.info(`RelaySettingSet 首批分组就绪，区号=${this.currentZoneCode}，耗时=${Date.now() - this.loadStartedAt}ms`);
@@ -1576,6 +1725,8 @@ struct RelaySettingSet {
       }
       this.currentProfileData = this.createDefaultCurrentZoneProfile(this.currentZoneCode);
       this.rebuildCurrentZoneCache();
+      this.syncLastSyncedProfile(this.currentProfileData);
+      this.updatePendingLocalEditState();
       this.visibleSectionCount = Math.min(this.initialSectionRenderCount, RELAY_MAIN_SECTIONS.length);
       this.visibleMonitorSectionCount = 0;
       this.vm.noticeText = '';
@@ -1583,10 +1734,12 @@ struct RelaySettingSet {
       if (loadToken === this.loadToken) {
         this.isLoading = false;
         this.scheduleRemainingSectionRender(loadToken);
+        this.startRelayAutoRefreshTimer();
       }
     }
   }
   aboutToAppear(): void {
+    this.stopRelayAutoRefreshTimer();
     this.loadToken++;
     this.sectionRenderToken++;
     this.loadStartedAt = Date.now();
@@ -1597,6 +1750,8 @@ struct RelaySettingSet {
     this.submitWaitingMessage = '';
     this.vm.noticeText = '';
     this.isLoading = true;
+    this.hasPendingLocalEdits = false;
+    this.lastSyncedProfileData = undefined;
     this.currentDisplayValues = [];
     this.currentWidthCache = [];
     this.visibleSectionCount = 0;
@@ -1604,12 +1759,12 @@ struct RelaySettingSet {
     this.syncCurrentZoneState('01');
     try {
       let d = display.getDefaultDisplaySync();
-      let sx = d.width / 1024;
-      let sy = d.height / 600;
+      let sx = d.width / this.pageBaseWidth;
+      let sy = d.height / this.pageBaseHeight;
       let val = Math.min(sx, sy);
-      this.uiScale = val > 0 ? val : 1;
+      this.uiScale = (val > 0 ? val : 1) * this.layoutZoom;
     } catch (e) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
 
     try {
@@ -1626,6 +1781,7 @@ struct RelaySettingSet {
   }
 
   aboutToDisappear(): void {
+    this.stopRelayAutoRefreshTimer();
     this.loadToken++;
     this.sectionRenderToken++;
     this.selectOverlayVisible = false;
@@ -1663,7 +1819,7 @@ struct RelaySettingSet {
           }
           .layoutWeight(1)
           .width('100%')
-          .padding({ left: this.s(10), right: this.s(16), top: this.s(5), bottom: this.s(7) })
+          .padding({ left: this.s(10), right: this.s(16), top: this.s(7), bottom: this.s(10) })
           .backgroundColor('#FFFFFF');
         }
 
@@ -1789,18 +1945,18 @@ struct RelaySettingSet {
         .fontFamily('STKaiti')
         .width('100%')
         .padding({ left: this.s(14), right: this.s(14) })
-        .margin({ bottom: this.s(4) });
+        .margin({ bottom: this.s(6) });
 
       ForEach(section.rows, (row: RelayRowSpec, rowIndex: number) => {
         this.SectionRow(row);
         if (rowIndex !== section.rows.length - 1) {
-          Blank().height(this.s(3));
+          Blank().height(this.s(4));
         }
       }, (row: RelayRowSpec) => row.id)
     }
     .width('100%')
-    .padding({ top: this.s(6), bottom: this.s(6) })
-    .margin({ bottom: this.s(6) })
+    .padding({ top: this.s(8), bottom: this.s(8) })
+    .margin({ bottom: this.s(8) })
     .backgroundColor('#FBFBFB')
     .border({ width: 1, color: '#DCDCDC' })
     .borderRadius(this.s(this.sectionCardRadius));
@@ -1822,7 +1978,7 @@ struct RelaySettingSet {
       }
     }
     .width('100%')
-    .constraintSize({ minHeight: this.s(34) })
+    .constraintSize({ minHeight: this.s(44) })
     .alignItems(VerticalAlign.Center);
   }
 

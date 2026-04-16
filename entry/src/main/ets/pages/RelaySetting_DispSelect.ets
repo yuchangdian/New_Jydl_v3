@@ -25,6 +25,9 @@ export struct RelaySetting_DispSelect {
   @State zoneCode: string = '00';
   @State warningText: string = '';
 
+  private readonly pageBaseWidth: number = 1280;
+  private readonly pageBaseHeight: number = 720;
+  private readonly layoutZoom: number = 1.2;
   private readonly midFontSize: number = 18;
   private readonly titleFontSize: number = 20;
 
@@ -35,12 +38,12 @@ export struct RelaySetting_DispSelect {
   aboutToAppear(): void {
     try {
       let d = display.getDefaultDisplaySync();
-      let sx = d.width / 1024;
-      let sy = d.height / 600;
+      let sx = d.width / this.pageBaseWidth;
+      let sy = d.height / this.pageBaseHeight;
       let val = Math.min(sx, sy);
-      this.uiScale = val > 0 ? val : 1;
+      this.uiScale = (val > 0 ? val : 1) * this.layoutZoom;
     } catch (e) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
   }
 

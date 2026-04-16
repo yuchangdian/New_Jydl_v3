@@ -481,9 +481,10 @@ export struct Broadband_Harmonic {
   private harmonicDisplayRefreshTimer: number = -1;
   private harmonicDisplayRefreshGeneration: number = 0;
   private readonly fontSize: BroadbandHarmonicFontSize = new BroadbandHarmonicFontSize();
+  private readonly layoutZoom: number = 1.2;
   private readonly pageMaxWidth: number = 1024;
-  private readonly designWidth: number = 1024;
-  private readonly designHeight: number = 600;
+  private readonly designWidth: number = 1280;
+  private readonly designHeight: number = 720;
   private readonly headerHeight: number = 70;
   private readonly bottomHeight: number = 70;
   private readonly buttonHeight: number = 55;
@@ -517,9 +518,9 @@ export struct Broadband_Harmonic {
       const scaleX = defaultDisplay.width / this.designWidth;
       const scaleY = defaultDisplay.height / this.designHeight;
       const scale = Math.min(scaleX, scaleY);
-      this.uiScale = scale > 0 ? scale : 1;
+      this.uiScale = (scale > 0 ? scale : 1) * this.layoutZoom;
     } catch (error) {
-      this.uiScale = 1;
+      this.uiScale = this.layoutZoom;
     }
 
     this.requestNativeHarmonicDisplayData();
