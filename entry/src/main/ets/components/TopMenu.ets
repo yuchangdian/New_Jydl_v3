@@ -1,4 +1,7 @@
 import router from '@ohos.router';
+import display from '@ohos.display';
+import hilog from '@ohos.hilog';
+import { common } from '@kit.AbilityKit';
 
 class SubMenuItemModel {
   title: string = '';
@@ -38,8 +41,10 @@ const MENU_DATA: MenuItemModel[] = [
   ]),
   new MenuItemModel('电能质量', [
     new MenuSubItemModel('实时指标'),
-    new MenuSubItemModel('谐波分析'),
-    new MenuSubItemModel('告警定值',['浏览', '整定']),
+    new MenuSubItemModel('表计'),
+    new MenuSubItemModel('波形分析'),
+    new MenuSubItemModel('告警设置'),
+    new MenuSubItemModel('事件'),
 
   ]),
   new MenuItemModel('高级分析', [
@@ -133,6 +138,27 @@ export struct TopMenu {
     }
     if (item.title === '实时指标') {
       this.openPage('pages/quality_index');
+      return;
+    }
+    if (item.title === '表计') {
+      this.openPage('pages/meter/index');
+      return;
+    }
+    if (item.title === '波形分析') {
+      this.openPage('pages/pqInsight/index');
+      return;
+    }
+    if (item.title === '告警设置') {
+      this.openPage('AlarmSettings/index');
+      return;
+    }
+    if (item.title === '事件') {
+      this.openPage('pages/pqInsight/EventCenter');
+      return;
+    }
+    if (item.title === '退出应用') {
+      const context = getContext(this) as common.UIAbilityContext;
+      context.terminateSelf();
       return;
     }
     this.closeMenus();

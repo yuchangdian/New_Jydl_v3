@@ -19,6 +19,10 @@
     "pages/DigitalInput_Test",
     "pages/Password_Set",
     "pages/quality_index",
-    "pages/broadband_harmonic"
+    "pages/broadband_harmonic",
+    "AlarmSettings/index",
+    "pages/meter/index",
+    "pages/pqInsight/index",
+    "pages/pqInsight/EventCenter"
   ]
 }

@@ -10,12 +10,19 @@
 #include <unordered_map>
 #include <vector>
 
+#include <hilog/log.h>
 #include "setting.h"
 #include <string.h>
 #include "tcp_client.h"
 
 
 namespace {
+
+constexpr int SETTING_NAPI_LOG_DOMAIN = 0x0000;
+constexpr const char *SETTING_NAPI_LOG_TAG = "JY_SETTING_NAPI";
+
+#define SETTING_LOGI(format, ...) OH_LOG_Print(LOG_APP, LOG_INFO, SETTING_NAPI_LOG_DOMAIN, SETTING_NAPI_LOG_TAG, format, ##__VA_ARGS__)
+#define SETTING_LOGW(format, ...) OH_LOG_Print(LOG_APP, LOG_WARN, SETTING_NAPI_LOG_DOMAIN, SETTING_NAPI_LOG_TAG, format, ##__VA_ARGS__)
 
 napi_value CreateBoolean(napi_env env, bool value)
 {
@@ -864,6 +871,47 @@ std::uint32_t GetRelayZoneCodeFromInfo(napi_env env, napi_callback_info info)
         return 1;
     }
     return zoneCode;
+}
+
+bool SendRelaySettingAreaCodeRequest(std::uint16_t zoneCode)
+{
+    RemoteAdjust_SettingCode_Struct frame {};
+    frame.Common_addr = Common_Addr_RemoteAdjust;
+    frame.Object_addr = YT_ObjectAddr_RelaySetting_AreaCode;
+    frame.Length = static_cast<std::uint16_t>(sizeof(std::uint16_t) * 2);
+    frame.SettingCode = zoneCode;
+    frame.CodeConfirm = zoneCode;
+
+    const bool sent = TcpClient::GetInstance().Send(
+        reinterpret_cast<const char *>(&frame),
+        static_cast<int>(sizeof(frame))) != 0;
+    SETTING_LOGI(
+        "SendRelaySettingAreaCodeRequest zone=%{public}u object=%{public}u length=%{public}d sent=%{public}s",
+        static_cast<std::uint32_t>(zoneCode),
+        static_cast<std::uint32_t>(frame.Object_addr),
+        static_cast<int>(sizeof(frame)),
+        sent ? "true" : "false");
+    return sent;
+}
+
+bool SendRelaySettingQueryFrame(std::uint16_t zoneCode)
+{
+    std::uint16_t frame[3] = {
+        Common_Addr_RemoteAdjust,
+        YT_ObjectAddr_RelaySetting,
+        0
+    };
+
+    const bool sent = TcpClient::GetInstance().Send(
+        reinterpret_cast<const char *>(frame),
+        static_cast<int>(sizeof(frame))) != 0;
+    SETTING_LOGI(
+        "SendRelaySettingQueryFrame zone=%{public}u object=%{public}u length=%{public}d sent=%{public}s",
+        static_cast<std::uint32_t>(zoneCode),
+        static_cast<std::uint32_t>(YT_ObjectAddr_RelaySetting),
+        static_cast<int>(sizeof(frame)),
+        sent ? "true" : "false");
+    return sent;
 }
 
 struct RelaySettingWriteFieldValue
@@ -2980,6 +3028,37 @@ napi_value GetRelaySettingByZone(napi_env env, napi_callback_info info)
     SetNamedProperty(env, result, "fields", fields);
 
     return result;
+}
+
+napi_value RequestRelaySettingByZone(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args, nullptr, nullptr);
+    if (argc < 1 || args[0] == nullptr) {
+        napi_throw_type_error(env, nullptr, "requestRelaySettingByZone requires one zoneCode argument");
+        return nullptr;
+    }
+
+    std::uint32_t zoneCode = 0;
+    if (napi_get_value_uint32(env, args[0], &zoneCode) != napi_ok) {
+        napi_throw_type_error(env, nullptr, "requestRelaySettingByZone zoneCode must be an unsigned integer");
+        return nullptr;
+    }
+    if (zoneCode < 1 || zoneCode > 20) {
+        napi_throw_range_error(env, nullptr, "relay setting zoneCode must be between 1 and 20");
+        return nullptr;
+    }
+
+    SettingCode_Now = zoneCode;
+    const bool areaCodeSent = SendRelaySettingAreaCodeRequest(static_cast<std::uint16_t>(zoneCode));
+    const bool querySent = SendRelaySettingQueryFrame(static_cast<std::uint16_t>(zoneCode));
+    SETTING_LOGI(
+        "RequestRelaySettingByZone zone=%{public}u areaCodeSent=%{public}s querySent=%{public}s",
+        zoneCode,
+        areaCodeSent ? "true" : "false",
+        querySent ? "true" : "false");
+    return CreateBoolean(env, areaCodeSent && querySent);
 }
 
 napi_value UpdateRelaySettingByZone(napi_env env, napi_callback_info info)

@@ -335,6 +335,10 @@ export const getRelaySettingByZone = (_zoneCode: number) => {
   };
 };
 
+export const requestRelaySettingByZone = (_zoneCode: number): boolean => {
+  return true;
+};
+
 export const updateRelaySettingByZone = (_value: any): boolean => {
   return true;
 };

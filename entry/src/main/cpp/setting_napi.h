@@ -21,6 +21,7 @@ napi_value UpdatePowerQualitySetting(napi_env env, napi_callback_info info);
 napi_value GetStatisticsSetting(napi_env env, napi_callback_info info);
 napi_value UpdateStatisticsSetting(napi_env env, napi_callback_info info);
 napi_value GetRelaySettingByZone(napi_env env, napi_callback_info info);
+napi_value RequestRelaySettingByZone(napi_env env, napi_callback_info info);
 napi_value UpdateRelaySettingByZone(napi_env env, napi_callback_info info);
 
 #endif
