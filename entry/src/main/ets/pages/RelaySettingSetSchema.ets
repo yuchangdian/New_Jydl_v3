@@ -109,35 +109,49 @@ export function createRelayMainSections(): RelaySectionSpec[] {
         new RelayRowItemSpec('section-01-row-01-item-01', 'group', 8, [new RelayCellSpec('section-01-row-01-item-01-cell-01', 'label', '故障指示灯复位：', 1)]),
         new RelayRowItemSpec('section-01-row-01-item-02', 'group', 5, [new RelayCellSpec('section-01-row-01-item-02-cell-01', 'select', '投入', 1)]),
         new RelayRowItemSpec('section-01-row-01-item-03', 'spacer', 2),
-        new RelayRowItemSpec('section-01-row-01-item-04', 'group', 12, [new RelayCellSpec('section-01-row-01-item-04-cell-01', 'label', '故障指示灯复归时间：', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-05', 'group', 3, [new RelayCellSpec('section-01-row-01-item-05-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-06', 'group', 2, [new RelayCellSpec('section-01-row-01-item-06-cell-01', 'unit', 's', 1)]),
+        new RelayRowItemSpec('section-01-row-01-item-05', 'group', 17, [
+            new RelayCellSpec('section-01-row-01-item-05-cell-03', 'label', '故障指示灯复归时间：', 10),
+            new RelayCellSpec('section-01-row-01-item-05-cell-01', 'input', '120.00', 3),
+            new RelayCellSpec('section-01-row-01-item-05-cell-02', 'unit', 's', 2)
+        ]),
         new RelayRowItemSpec('section-01-row-01-item-07', 'spacer', 3),
-        new RelayRowItemSpec('section-01-row-01-item-08', 'group', 11, [new RelayCellSpec('section-01-row-01-item-08-cell-01', 'label', '故障遥信保持时间：', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-09', 'group', 3, [new RelayCellSpec('section-01-row-01-item-09-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-01-item-10', 'group', 2, [new RelayCellSpec('section-01-row-01-item-10-cell-01', 'unit', 's', 1)]),
+        new RelayRowItemSpec('section-01-row-01-item-09', 'group', 16, [
+            new RelayCellSpec('section-01-row-01-item-09-cell-03', 'label', '故障遥信保持时间：', 10),
+            new RelayCellSpec('section-01-row-01-item-09-cell-01', 'input', '120.00', 3),
+            new RelayCellSpec('section-01-row-01-item-09-cell-02', 'unit', 's', 3)
+        ]),
         new RelayRowItemSpec('section-01-row-01-item-11', 'spacer', 1)
     ]),
     new RelayRowSpec('section-01-row-02', 40, 0, [
-        new RelayRowItemSpec('section-01-row-02-item-01', 'group', 8, [new RelayCellSpec('section-01-row-02-item-01-cell-01', 'label', '无压定值：', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-02', 'group', 4, [new RelayCellSpec('section-01-row-02-item-02-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-03', 'group', 2, [new RelayCellSpec('section-01-row-02-item-03-cell-01', 'unit', 'V', 1)]),
+        new RelayRowItemSpec('section-01-row-02-item-02', 'group', 14, [
+            new RelayCellSpec('section-01-row-02-item-02-cell-03', 'label', '无压定值：', 8),
+            new RelayCellSpec('section-01-row-02-item-02-cell-01', 'input', '120.00', 4),
+            new RelayCellSpec('section-01-row-02-item-02-cell-02', 'unit', 'V', 2)
+        ]),
         new RelayRowItemSpec('section-01-row-02-item-04', 'spacer', 1),
-        new RelayRowItemSpec('section-01-row-02-item-05', 'group', 12, [new RelayCellSpec('section-01-row-02-item-05-cell-01', 'label', '无电流定值：', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-06', 'group', 3, [new RelayCellSpec('section-01-row-02-item-06-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-07', 'group', 2, [new RelayCellSpec('section-01-row-02-item-07-cell-01', 'unit', 'A', 1)]),
+        new RelayRowItemSpec('section-01-row-02-item-06', 'group', 17, [
+            new RelayCellSpec('section-01-row-02-item-06-cell-03', 'label', '无电流定值：', 10),
+            new RelayCellSpec('section-01-row-02-item-06-cell-01', 'input', '120.00', 3),
+            new RelayCellSpec('section-01-row-02-item-06-cell-02', 'unit', 'A', 2)
+        ]),
         new RelayRowItemSpec('section-01-row-02-item-08', 'spacer', 3),
-        new RelayRowItemSpec('section-01-row-02-item-09', 'group', 11, [new RelayCellSpec('section-01-row-02-item-09-cell-01', 'label', '有压定值：', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-10', 'group', 3, [new RelayCellSpec('section-01-row-02-item-10-cell-01', 'input', '120.00', 1)]),
-        new RelayRowItemSpec('section-01-row-02-item-11', 'group', 2, [new RelayCellSpec('section-01-row-02-item-11-cell-01', 'unit', 'V', 1)]),
+        new RelayRowItemSpec('section-01-row-02-item-10', 'group', 16, [
+            new RelayCellSpec('section-01-row-02-item-10-cell-03', 'label', '有压定值：', 10),
+            new RelayCellSpec('section-01-row-02-item-10-cell-01', 'input', '120.00', 3),
+            new RelayCellSpec('section-01-row-02-item-10-cell-02', 'unit', 'V', 3)
+        ]),
         new RelayRowItemSpec('section-01-row-02-item-12', 'spacer', 1)
     ]),
     new RelayRowSpec('section-01-row-03', 40, 0, [
-        new RelayRowItemSpec('section-01-row-03-item-01', 'group', 10, [new RelayCellSpec('section-01-row-03-item-01-cell-01', 'label', '过量继电器返回系数：', 1)]),
-        new RelayRowItemSpec('section-01-row-03-item-02', 'group', 5, [new RelayCellSpec('section-01-row-03-item-02-cell-01', 'input', '120.00', 1)]),
+        new RelayRowItemSpec('section-01-row-03-item-02', 'group', 15, [
+            new RelayCellSpec('section-01-row-03-item-02-cell-02', 'label', '过量继电器返回系数：', 10),
+            new RelayCellSpec('section-01-row-03-item-02-cell-01', 'input', '120.00', 5)
+        ]),
         new RelayRowItemSpec('section-01-row-03-item-03', 'spacer', 10),
-        new RelayRowItemSpec('section-01-row-03-item-04', 'group', 10, [new RelayCellSpec('section-01-row-03-item-04-cell-01', 'label', '欠量继电器返回系数：', 1)]),
-        new RelayRowItemSpec('section-01-row-03-item-05', 'group', 5, [new RelayCellSpec('section-01-row-03-item-05-cell-01', 'input', '120.00', 1)]),
+        new RelayRowItemSpec('section-01-row-03-item-05', 'group', 15, [
+            new RelayCellSpec('section-01-row-03-item-05-cell-02', 'label', '欠量继电器返回系数：', 10),
+            new RelayCellSpec('section-01-row-03-item-05-cell-01', 'input', '120.00', 5)
+        ]),
         new RelayRowItemSpec('section-01-row-03-item-06', 'spacer', 10)
     ]),
     new RelayRowSpec('section-01-row-04', 40, 0, [

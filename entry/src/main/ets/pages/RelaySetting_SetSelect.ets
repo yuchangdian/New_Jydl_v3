@@ -29,7 +29,7 @@ export struct RelaySetting_SetSelect {
   private readonly pageBaseHeight: number = 720;
   private readonly layoutZoom: number = 1.2;
   private readonly midFontSize: number = 18;
-  private readonly titleFontSize: number = 20;
+  private readonly titleFontSize: number = 24;
 
   private s(v: number): number {
     return Math.round(v * this.uiScale);

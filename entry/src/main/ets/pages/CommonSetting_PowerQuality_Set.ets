@@ -1211,49 +1211,42 @@ export struct CommonSetting_PowerQuality_Set {
   @Builder
   BottomBar() {
     Row() {
-      Blank().layoutWeight(5);
-
       this.BottomActionButton(this.vm.actions.defaultText, () => {
         this.resetDefaults();
-      }, 20);
+      });
 
-      Blank().layoutWeight(10);
+      Row() {
+        this.BottomActionButton(this.vm.actions.submitText, () => {
+          this.submitCurrentData();
+        });
 
-      this.BottomActionButton(this.vm.actions.submitText, () => {
-        this.submitCurrentData();
-      }, 20);
-
-      Blank().layoutWeight(5);
-
-      this.BottomActionButton(this.vm.actions.closeText, () => {
-        router.back();
-      }, 20);
-
-      Blank().layoutWeight(5);
-
-      this.BottomActionButton(this.vm.actions.backText, () => {
-        router.back();
-      }, 20);
-
-      Blank().layoutWeight(10);
+        this.BottomActionButton(this.vm.actions.backText, () => {
+          router.back();
+        });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .alignItems(VerticalAlign.Center);
 
       Text(this.vm.timeText)
-        .layoutWeight(25)
+        .width(this.s(160))
         .height(this.s(this.footerButtonHeight))
         .fontSize(this.s(this.fontSize.timeText))
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .lineHeight(this.s(this.fontSize.timeLineHeight))
-        .textAlign(TextAlign.Center);
+        .textAlign(TextAlign.End);
     }
     .width('100%')
     .height(this.s(this.footerHeight))
+    .padding({ left: this.s(24), right: this.s(24) })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D3D3D3');
   }
 
   @Builder
-  BottomActionButton(text: string, onClickEvent: () => void, weight: number) {
+  BottomActionButton(text: string, onClickEvent: () => void) {
     Button() {
       Text(text)
         .fontSize(this.s(this.fontSize.button))
@@ -1261,7 +1254,7 @@ export struct CommonSetting_PowerQuality_Set {
         .fontFamily(text === '默认值' ? 'sans-serif-condensed' : 'Ubuntu')
         .fontWeight(text === '默认值' ? FontWeight.Bold : FontWeight.Medium);
     }
-    .layoutWeight(weight)
+    .width(this.s(150))
     .height(this.s(this.footerButtonHeight))
     .padding(0)
     .backgroundColor('#BEBEBE')

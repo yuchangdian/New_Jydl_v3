@@ -214,13 +214,6 @@ function relayUnitMinWidthForCell(cell: RelayCellSpec): number {
 }
 
 function relayUnitLeftMarginForCell(cell: RelayCellSpec): number {
-  if (cell.id.indexOf('section-01-row-01-item-06-cell-01') === 0 ||
-    cell.id.indexOf('section-01-row-01-item-10-cell-01') === 0 ||
-    cell.id.indexOf('section-01-row-02-item-03-cell-01') === 0 ||
-    cell.id.indexOf('section-01-row-02-item-07-cell-01') === 0 ||
-    cell.id.indexOf('section-01-row-02-item-11-cell-01') === 0) {
-    return 18;
-  }
   if (cell.id.indexOf('section-05-row-01-item-05-cell-03') === 0 ||
     cell.id.indexOf('section-05-row-01-item-07-cell-03') === 0 ||
     cell.id.indexOf('section-06-row-01-item-05-cell-03') === 0 ||
@@ -228,7 +221,7 @@ function relayUnitLeftMarginForCell(cell: RelayCellSpec): number {
     return 0;
   }
   if (cell.id.indexOf('section-01-row-') === 0) {
-    return 8;
+    return 6;
   }
   if (relayIsRightEdgeTimeCell(cell.id)) {
     return 0;
@@ -275,11 +268,11 @@ function relayValueCellMinWidth(text: string): number {
 }
 
 function relayLabelMinWidthForCell(cell: RelayCellSpec): number {
-  if (cell.id.indexOf('section-01-row-01-item-04-cell-01') === 0) {
-    return 164;
+  if (cell.id.indexOf('section-01-row-01-item-05-cell-03') === 0) {
+    return 180;
   }
-  if (cell.id.indexOf('section-01-row-01-item-08-cell-01') === 0) {
-    return 154;
+  if (cell.id.indexOf('section-01-row-01-item-09-cell-03') === 0) {
+    return 160;
   }
   if (cell.id.indexOf('section-05-row-01-item-05-cell-01') === 0 || cell.id.indexOf('section-06-row-01-item-05-cell-01') === 0) {
     return 82;
@@ -340,14 +333,8 @@ function relaySelectMinWidthForCell(cell: RelayCellSpec): number {
 }
 
 function relayValueMinWidthForCell(cell: RelayCellSpec): number {
-  if (cell.id.indexOf('section-01-row-01-item-05-cell-01') === 0 ||
-    cell.id.indexOf('section-01-row-01-item-09-cell-01') === 0 ||
-    cell.id.indexOf('section-01-row-02-item-06-cell-01') === 0 ||
-    cell.id.indexOf('section-01-row-02-item-10-cell-01') === 0) {
-    return 76;
-  }
-  if (cell.id.indexOf('section-01-row-02-item-02-cell-01') === 0) {
-    return 80;
+  if (cell.id.indexOf('section-01-row-') === 0) {
+    return 100;
   }
   if (cell.id.indexOf('section-07-row-01-item-01-cell-03') === 0 || cell.id.indexOf('section-07-row-01-item-03-cell-03') === 0) {
     return 72;
@@ -552,7 +539,7 @@ struct RelaySettingSet {
   private readonly layoutZoom: number = 1.2;
   private readonly noticeFontSize: number = 19;
   private readonly midFontSize: number = 19;
-  private readonly titleFontSize: number = 21;
+  private readonly titleFontSize: number = 28;
   private readonly sectionTitleFontSize: number = 20;
   private readonly fieldLabelFontSize: number = 20;
   private readonly fieldValueFontSize: number = 20;
@@ -1478,13 +1465,6 @@ struct RelaySettingSet {
   }
 
   private unitLeftMarginForCell(cell: RelayCellSpec): number {
-    if (cell.id.indexOf('section-01-row-01-item-06-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-01-item-10-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-03-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-07-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-11-cell-01') === 0) {
-      return 18;
-    }
     if (cell.id.indexOf('section-05-row-01-item-05-cell-03') === 0 ||
       cell.id.indexOf('section-05-row-01-item-07-cell-03') === 0 ||
       cell.id.indexOf('section-06-row-01-item-05-cell-03') === 0 ||
@@ -1492,7 +1472,7 @@ struct RelaySettingSet {
       return 0;
     }
     if (cell.id.indexOf('section-01-row-') === 0) {
-      return 8;
+      return 6;
     }
     if (this.isRightEdgeTimeCell(cell.id)) {
       return 0;
@@ -1539,11 +1519,11 @@ struct RelaySettingSet {
   }
 
   private labelMinWidthForCell(cell: RelayCellSpec): number {
-    if (cell.id.indexOf('section-01-row-01-item-04-cell-01') === 0) {
-      return 164;
+    if (cell.id.indexOf('section-01-row-01-item-05-cell-03') === 0) {
+      return 178;
     }
-    if (cell.id.indexOf('section-01-row-01-item-08-cell-01') === 0) {
-      return 154;
+    if (cell.id.indexOf('section-01-row-01-item-09-cell-03') === 0) {
+      return 158;
     }
     if (cell.id.indexOf('section-05-row-01-item-05-cell-01') === 0 || cell.id.indexOf('section-06-row-01-item-05-cell-01') === 0) {
       return 82;
@@ -1604,14 +1584,8 @@ struct RelaySettingSet {
   }
 
   private valueMinWidthForCell(cell: RelayCellSpec): number {
-    if (cell.id.indexOf('section-01-row-01-item-05-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-01-item-09-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-06-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-10-cell-01') === 0) {
-      return 76;
-    }
-    if (cell.id.indexOf('section-01-row-02-item-02-cell-01') === 0) {
-      return 80;
+    if (cell.id.indexOf('section-01-row-') === 0) {
+      return 100;
     }
     if (cell.id.indexOf('section-07-row-01-item-01-cell-03') === 0 || cell.id.indexOf('section-07-row-01-item-03-cell-03') === 0) {
       return 72;
@@ -1804,6 +1778,8 @@ struct RelaySettingSet {
         if (this.isLoading) {
           this.LoadingBody();
         } else {
+          Text(`visibleSectionCount = ${this.visibleSectionCount}`)
+          Text(`visibleMonitorSectionCount = ${this.visibleMonitorSectionCount}`)
           List() {
             ForEach(RELAY_MAIN_SECTIONS.slice(0, this.visibleSectionCount), (section: RelaySectionSpec) => {
               ListItem() {

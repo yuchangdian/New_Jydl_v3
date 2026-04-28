@@ -1,6 +1,5 @@
 import { TopMenu } from '../components/TopMenu'
 import * as telemetryNativeModule from 'libentry.so';
-import { LengthMetrics } from '@kit.ArkUI'
 
 interface PlateItem {
   name: string;
@@ -125,10 +124,11 @@ struct Index {
   private readonly paramsValueWidth: number = 122;
   private readonly rightSectionTitleFontSize: number = 30;
   private readonly rightSectionValueFontSize: number = 24;
-  private readonly rightSectionSubscriptFontSize: number = 12;
   private readonly rightSectionLabelWidth: number = 150;
   private readonly rightSectionValueWidth: number = 280;
-  private readonly rightSectionValueFontFamily: string = 'monospace';
+  private readonly rightSectionPrefixWidth: number = 44;
+  private readonly rightSectionContentWidth: number = 236;
+  private readonly rightSectionValueFontFamily: string = 'HarmonyOS Sans';
   private readonly plateSectionTitleFontSize: number = 30;
   private readonly plateItemFontSize: number = 24;
   private readonly softPlateVerticalSpace: number = 8;
@@ -238,8 +238,8 @@ struct Index {
     this.ic = createPreviewPhasorText('005.31', '250.00', 'A');
     this.i0 = createPreviewPhasorText('000.18', '015.00', 'A');
     this.iia = createPreviewPhasorText('005.12', '012.00', 'A');
-    this.iib = createPreviewPhasorText('005.07', '132.00', 'A');
-    this.iic = createPreviewPhasorText('005.20', '252.00', 'A');
+    this.iib = createPreviewPhasorText('5.07', '132.00', 'A');
+    this.iic = createPreviewPhasorText('5.20', '252.00', 'A');
   }
 
   private resetBaseFreqDisplay(): void {
@@ -542,6 +542,29 @@ struct Index {
   }
 
   @Builder
+  RightSectionValueCell(prefix: string, value: string, topMargin: number = 0) {
+    Row() {
+      Text(prefix)
+        .fontSize(this.rightSectionValueFontSize)
+        .fontWeight(FontWeight.Regular)
+        .width(this.rightSectionPrefixWidth)
+        .fontFamily(this.rightSectionValueFontFamily)
+        .textAlign(TextAlign.Start)
+
+      Text(value)
+        .fontSize(this.rightSectionValueFontSize)
+        .fontWeight(FontWeight.Regular)
+        .width(this.rightSectionContentWidth)
+        .maxLines(1)
+        .fontFamily(this.rightSectionValueFontFamily)
+        .textAlign(TextAlign.Start)
+    }
+    .width(this.rightSectionValueWidth)
+    .alignItems(VerticalAlign.Center)
+    .margin({ top: topMargin })
+  }
+
+  @Builder
   // 右侧主内容区：显示三相量测值以及软压板、硬压板区域。
   RightPanel() {
     Column() {
@@ -552,57 +575,15 @@ struct Index {
             .fontWeight(FontWeight.Bold)
             .width(this.rightSectionLabelWidth)
 
-          Text(`Uₐ ${this.ua}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-
-          Text() {
-            Span('U')
-              .fontSize(this.rightSectionValueFontSize)
-            Span('b')
-              .fontSize(this.rightSectionSubscriptFontSize)
-              .baselineOffset(LengthMetrics.vp(-4))
-            Span(` ${this.ub}`)
-          }.fontSize(this.rightSectionValueFontSize)
-          .width(this.rightSectionValueWidth)
-          .maxLines(1)
-          .fontWeight(FontWeight.Regular)
-          .fontFamily(this.rightSectionValueFontFamily)
-          .textAlign(TextAlign.Start)
-
-
-          Text(`U꜀ ${this.uc}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
+          this.RightSectionValueCell('Ua', this.ua)
+          this.RightSectionValueCell('Ub', this.ub)
+          this.RightSectionValueCell('Uc', this.uc)
         }
         .width('100%')
 
         Row(){
-          Text(`U₀ ${this.u0} `)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-            .margin({ top: 8 })
-
-          Text(`Uₓ ${this.ux}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-            .margin({ top: 8 })
+          this.RightSectionValueCell('U0', this.u0, 8)
+          this.RightSectionValueCell('Ux', this.ux, 8)
         }
         .width('100%')
         .padding({ left: this.rightSectionLabelWidth })
@@ -614,49 +595,13 @@ struct Index {
             .margin({ top: 14 })
             .width(this.rightSectionLabelWidth)
 
-          Text(`Iₐ ${this.ia}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-            .margin({ top: 14 })
-
-          Text() {
-            Span('I')
-              .fontSize(this.rightSectionValueFontSize)
-            Span('b')
-              .fontSize(this.rightSectionSubscriptFontSize)
-              .baselineOffset(LengthMetrics.vp(-4))
-            Span(` ${this.ib} `)
-          }.fontSize(this.rightSectionValueFontSize)
-          .width(this.rightSectionValueWidth)
-          .maxLines(1)
-          .fontWeight(FontWeight.Regular)
-          .fontFamily(this.rightSectionValueFontFamily)
-          .textAlign(TextAlign.Start)
-          .margin({ top: 14 })
-
-          Text(`I꜀ ${this.ic}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-            .margin({ top: 14 })
+          this.RightSectionValueCell('Ia', this.ia, 14)
+          this.RightSectionValueCell('Ib', this.ib, 14)
+          this.RightSectionValueCell('Ic', this.ic, 14)
         }
         .width('100%')
         Row(){
-          Text(`3I₀ ${this.i0}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-
+          this.RightSectionValueCell('3I0', this.i0)
         }
         .width('100%')
         .margin({ top: 8 })
@@ -670,39 +615,9 @@ struct Index {
             .margin({ top: 14 })
             .width(this.rightSectionLabelWidth)
 
-          Text(`Iₐ ${this.iia}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-            .margin({ top: 14 })
-
-          Text() {
-            Span('I')
-              .fontSize(this.rightSectionValueFontSize)
-            Span('b')
-              .fontSize(this.rightSectionSubscriptFontSize)
-              .baselineOffset(LengthMetrics.vp(-4))
-            Span(` ${this.iib} `)
-          }.fontSize(this.rightSectionValueFontSize)
-          .width(this.rightSectionValueWidth)
-          .maxLines(1)
-          .fontWeight(FontWeight.Regular)
-          .fontFamily(this.rightSectionValueFontFamily)
-          .textAlign(TextAlign.Start)
-          .margin({ top: 14 })
-
-
-          Text(`I꜀ ${this.iic}`)
-            .fontSize(this.rightSectionValueFontSize)
-            .fontWeight(FontWeight.Regular)
-            .width(this.rightSectionValueWidth)
-            .maxLines(1)
-            .fontFamily(this.rightSectionValueFontFamily)
-            .textAlign(TextAlign.Start)
-            .margin({ top: 14 })
+          this.RightSectionValueCell('Ia', this.iia, 14)
+          this.RightSectionValueCell('Ib', this.iib, 14)
+          this.RightSectionValueCell('Ic', this.iic, 14)
         }
         .width('100%')
 

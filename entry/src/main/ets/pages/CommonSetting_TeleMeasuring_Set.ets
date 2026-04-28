@@ -126,9 +126,9 @@ class CommonSettingTeleMeasuringVM {
 
 class CommonSettingTeleMeasuringFontSize {
   notice: number = 18;
-  title: number = 20;
-  fieldLabel: number = 18;
-  inputValue: number = 18;
+  title: number = 28;
+  fieldLabel: number = 24;
+  inputValue: number = 24;
   button: number = 18;
   timeText: number = 17;
   dialogTitle: number = 18;
@@ -162,7 +162,7 @@ export struct CommonSetting_TeleMeasuring_Set {
   private readonly pageBaseWidth: number = 1280;
   private readonly pageBaseHeight: number = 720;
   private readonly layoutZoom: number = 1.2;
-  private readonly pageMaxWidth: number = 1024;
+  private readonly pageMaxWidth: number = 1280;
   private readonly headerHeight: number = 80;
   private readonly footerHeight: number = 80;
   private readonly bodyRowHeight: number = 70;
@@ -914,31 +914,23 @@ export struct CommonSetting_TeleMeasuring_Set {
   @Builder
   BottomBar() {
     Row() {
-      Blank().width(this.s(37));
-
       this.BottomActionButton(this.vm.actions.defaultText, () => {
         this.resetDefaults();
       });
 
-      Blank().width(this.s(117));
+      Row() {
+        this.BottomActionButton(this.vm.actions.submitText, () => {
+          this.submitCurrentData();
+        });
 
-      this.BottomActionButton(this.vm.actions.submitText, () => {
-        this.submitCurrentData();
-      });
-
-      Blank().width(this.s(78));
-
-      this.BottomActionButton(this.vm.actions.closeText, () => {
-        router.back();
-      });
-
-      Blank().width(this.s(78));
-
-      this.BottomActionButton(this.vm.actions.backText, () => {
-        router.back();
-      });
-
-      Blank().width(this.s(97));
+        this.BottomActionButton(this.vm.actions.backText, () => {
+          router.back();
+        });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .alignItems(VerticalAlign.Center);
 
       Text(this.vm.timeText)
         .width(this.s(160))
@@ -947,10 +939,11 @@ export struct CommonSetting_TeleMeasuring_Set {
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .lineHeight(this.s(this.fontSize.timeLineHeight))
-        .textAlign(TextAlign.Center);
+        .textAlign(TextAlign.End);
     }
     .width('100%')
     .height(this.s(this.footerHeight))
+    .padding({ left: this.s(24), right: this.s(24) })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D3D3D3');
   }
@@ -958,7 +951,7 @@ export struct CommonSetting_TeleMeasuring_Set {
   @Builder
   BottomActionButton(text: string, onClickEvent: () => void) {
     Button(text)
-      .width(this.s(110))
+      .width(this.s(150))
       .height(this.s(60))
       .fontSize(this.s(this.fontSize.button))
       .fontColor('#000000')
@@ -971,6 +964,3 @@ export struct CommonSetting_TeleMeasuring_Set {
       });
   }
 }
-
-
-

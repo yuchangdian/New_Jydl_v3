@@ -392,12 +392,12 @@ class CommonSettingAnalogQuantityVM {
 
 class CommonSettingAnalogQuantityFontSize {
   notice: number = 15;
-  title: number = 20;
+  title: number = 28;
   subtitle: number = 18;
-  columnHeader: number = 19;
-  fieldLabel: number = 17;
-  inputValue: number = 17;
-  unit: number = 17;
+  columnHeader: number = 22;
+  fieldLabel: number = 22;
+  inputValue: number = 22;
+  unit: number = 22;
   button: number = 18;
   time: number = 18;
   titleMin: number = 14;
@@ -418,22 +418,23 @@ export struct CommonSetting_AnalogQuantity_Set {
   private cachedAnalogQuantityNativeModule?: AnalogQuantityNativeModule;
 
   private readonly fontSize: CommonSettingAnalogQuantityFontSize = new CommonSettingAnalogQuantityFontSize();
-  private readonly pageMaxWidth: number = 1042;
+  private readonly pageMaxWidth: number = 1280;
   private readonly pageBaseWidth: number = 1280;
   private readonly pageBaseHeight: number = 720;
   private readonly layoutZoom: number = 1.2;
   private readonly headerHeight: number = 70;
   private readonly bottomBarHeight: number = 70;
   private readonly contentMinHeight: number = 450;
+  private readonly contentHorizontalPadding: number = 18;
   private readonly contentBottomPadding: number = 10;
-  private readonly columnHeaderHeight: number = 40;
-  private readonly rowHeight: number = 50;
+  private readonly columnHeaderHeight: number = 48;
+  private readonly rowHeight: number = 58;
   private readonly signalLabelWidth: number = 150;
-  private readonly fieldInputWidth: number = 80;
-  private readonly fieldHeight: number = 36;
-  private readonly fieldUnitWidth: number = 18;
-  private readonly fieldSpacing: number = 3;
-  private readonly fieldGroupWidth: number = 101;
+  private readonly fieldInputWidth: number = 88;
+  private readonly fieldHeight: number = 44;
+  private readonly fieldUnitWidth: number = 24;
+  private readonly fieldSpacing: number = 4;
+  private readonly fieldGroupWidth: number = 118;
   private readonly labelColumnWeight: number = 15;
   private readonly fieldColumnWeight: number = 10;
   private readonly gapColumnWeight: number = 1;
@@ -937,7 +938,11 @@ export struct CommonSetting_AnalogQuantity_Set {
             }
             .width('100%')
             .constraintSize({ minHeight: this.s(this.contentMinHeight) })
-            .padding({ bottom: this.s(this.contentBottomPadding) });
+            .padding({
+              left: this.s(this.contentHorizontalPadding),
+              right: this.s(this.contentHorizontalPadding),
+              bottom: this.s(this.contentBottomPadding)
+            });
           }
           .layoutWeight(1)
           .width('100%')
@@ -991,7 +996,7 @@ export struct CommonSetting_AnalogQuantity_Set {
 
       Text(this.vm.titleRight)
         .layoutWeight(8)
-        .minFontSize(this.s(this.fontSize.titleMin))
+        .minFontSize(this.s(this.fontSize.title))
         .fontSize(this.s(this.fontSize.subtitle))
         .fontColor('#000000')
         .fontFamily('STKaiti')
@@ -1162,10 +1167,8 @@ export struct CommonSetting_AnalogQuantity_Set {
   @Builder
   BottomBar() {
     Row() {
-      Blank().layoutWeight(5);
-
       Button(this.vm.defaultText)
-        .layoutWeight(20)
+        .width(this.s(150))
         .height(this.s(this.buttonHeight))
         .fontSize(this.s(this.fontSize.button))
         .fontColor('#000000')
@@ -1179,51 +1182,52 @@ export struct CommonSetting_AnalogQuantity_Set {
           this.resetDefaults();
         });
 
-      Blank().layoutWeight(15);
+      Row() {
+        Button(this.vm.submitText)
+          .width(this.s(150))
+          .height(this.s(this.buttonHeight))
+          .fontSize(this.s(this.fontSize.button))
+          .fontColor('#000000')
+          .fontFamily('Ubuntu')
+          .backgroundColor('#BEBEBE')
+          .border({ width: 0 })
+          .borderRadius(this.s(this.buttonRadius))
+          .padding(0)
+          .onClick(() => {
+            this.submitCurrentData();
+          });
 
-      Button(this.vm.submitText)
-        .layoutWeight(20)
-        .height(this.s(this.buttonHeight))
-        .fontSize(this.s(this.fontSize.button))
-        .fontColor('#000000')
-        .fontFamily('Ubuntu')
-        .backgroundColor('#BEBEBE')
-        .border({ width: 0 })
-        .borderRadius(this.s(this.buttonRadius))
-        .padding(0)
-        .onClick(() => {
-          this.submitCurrentData();
-        });
-
-      Blank().layoutWeight(10);
-
-      Button(this.vm.backText)
-        .layoutWeight(20)
-        .height(this.s(this.buttonHeight))
-        .fontSize(this.s(this.fontSize.button))
-        .fontColor('#000000')
-        .fontFamily('Ubuntu')
-        .backgroundColor('#BEBEBE')
-        .border({ width: 0 })
-        .borderRadius(this.s(this.buttonRadius))
-        .padding(0)
-        .onClick(() => {
-          router.back();
-        });
-
-      Blank().layoutWeight(20);
+        Button(this.vm.backText)
+          .width(this.s(150))
+          .height(this.s(this.buttonHeight))
+          .fontSize(this.s(this.fontSize.button))
+          .fontColor('#000000')
+          .fontFamily('Ubuntu')
+          .backgroundColor('#BEBEBE')
+          .border({ width: 0 })
+          .borderRadius(this.s(this.buttonRadius))
+          .padding(0)
+          .onClick(() => {
+            router.back();
+          });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .alignItems(VerticalAlign.Center);
 
       Text(this.vm.timeText)
-        .layoutWeight(20)
+        .width(this.s(160))
         .height(this.s(this.buttonHeight))
         .fontSize(this.s(this.fontSize.time))
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .lineHeight(this.s(this.fontSize.timeLineHeight))
-        .textAlign(TextAlign.Center);
+        .textAlign(TextAlign.End);
     }
     .width('100%')
     .height(this.s(this.bottomBarHeight))
+    .padding({ left: this.s(24), right: this.s(24) })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D3D3D3');
   }

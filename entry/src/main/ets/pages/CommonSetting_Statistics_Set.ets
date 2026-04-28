@@ -548,9 +548,9 @@ class CommonSettingStatisticsVM {
 class CommonSettingStatisticsFontSize {
   notice: number = 16;
   title: number = 20;
-  sectionTitle: number = 18;
-  fieldLabel: number = 18;
-  inputValue: number = 18;
+  sectionTitle: number = 22;
+  fieldLabel: number = 22;
+  inputValue: number = 22;
   button: number = 18;
   timeText: number = 17;
   dialogTitle: number = 18;
@@ -582,7 +582,7 @@ export struct CommonSetting_Statistics_Set {
   private readonly periodTypeOptions: string[] = COMMON_SETTING_STATISTICS_PERIOD_TYPE_OPTIONS;
   private cachedStatisticsNativeModule?: StatisticsNativeModule;
 
-  private readonly pageMaxWidth: number = 1024;
+  private readonly pageMaxWidth: number = 1280;
   private readonly pageBaseWidth: number = 1280;
   private readonly pageBaseHeight: number = 720;
   private readonly layoutZoom: number = 1.2;
@@ -604,7 +604,7 @@ export struct CommonSetting_Statistics_Set {
   private readonly periodLengthFieldWidth: number = 80;
   private readonly fieldHeight: number = 40;
   private readonly gapWidth: number = 20;
-  private readonly bottomButtonWidth: number = 110;
+  private readonly bottomButtonWidth: number = 150;
   private readonly bottomButtonHeight: number = 60;
   private readonly bottomButtonRadius: number = 24;
   private readonly fieldBorderColor: string = '#B8B8B8';
@@ -1528,8 +1528,6 @@ export struct CommonSetting_Statistics_Set {
   @Builder
   BottomBar() {
     Row() {
-      Blank().width(this.s(40));
-
       Button(this.vm.actions.defaultText)
         .width(this.s(this.bottomButtonWidth))
         .height(this.s(this.bottomButtonHeight))
@@ -1545,55 +1543,39 @@ export struct CommonSetting_Statistics_Set {
           this.resetDefaults();
         });
 
-      Blank().width(this.s(117));
+      Row() {
+        Button(this.vm.actions.submitText)
+          .width(this.s(this.bottomButtonWidth))
+          .height(this.s(this.bottomButtonHeight))
+          .fontSize(this.s(this.fontSize.button))
+          .fontColor('#000000')
+          .fontFamily('Ubuntu')
+          .backgroundColor('#BEBEBE')
+          .border({ width: 0 })
+          .borderRadius(this.s(this.bottomButtonRadius))
+          .padding(0)
+          .onClick(() => {
+            this.submitCurrentData();
+          });
 
-      Button(this.vm.actions.submitText)
-        .width(this.s(this.bottomButtonWidth))
-        .height(this.s(this.bottomButtonHeight))
-        .fontSize(this.s(this.fontSize.button))
-        .fontColor('#000000')
-        .fontFamily('Ubuntu')
-        .backgroundColor('#BEBEBE')
-        .border({ width: 0 })
-        .borderRadius(this.s(this.bottomButtonRadius))
-        .padding(0)
-        .onClick(() => {
-          this.submitCurrentData();
-        });
-
-      Blank().width(this.s(78));
-
-      Button(this.vm.actions.closeText)
-        .width(this.s(this.bottomButtonWidth))
-        .height(this.s(this.bottomButtonHeight))
-        .fontSize(this.s(this.fontSize.button))
-        .fontColor('#000000')
-        .fontFamily('Ubuntu')
-        .backgroundColor('#BEBEBE')
-        .border({ width: 0 })
-        .borderRadius(this.s(this.bottomButtonRadius))
-        .padding(0)
-        .onClick(() => {
-          router.back();
-        });
-
-      Blank().width(this.s(78));
-
-      Button(this.vm.actions.backText)
-        .width(this.s(this.bottomButtonWidth))
-        .height(this.s(this.bottomButtonHeight))
-        .fontSize(this.s(this.fontSize.button))
-        .fontColor('#000000')
-        .fontFamily('Ubuntu')
-        .backgroundColor('#BEBEBE')
-        .border({ width: 0 })
-        .borderRadius(this.s(this.bottomButtonRadius))
-        .padding(0)
-        .onClick(() => {
-          router.back();
-        });
-
-      Blank().width(this.s(97));
+        Button(this.vm.actions.backText)
+          .width(this.s(this.bottomButtonWidth))
+          .height(this.s(this.bottomButtonHeight))
+          .fontSize(this.s(this.fontSize.button))
+          .fontColor('#000000')
+          .fontFamily('Ubuntu')
+          .backgroundColor('#BEBEBE')
+          .border({ width: 0 })
+          .borderRadius(this.s(this.bottomButtonRadius))
+          .padding(0)
+          .onClick(() => {
+            router.back();
+          });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .alignItems(VerticalAlign.Center);
 
       Text(this.vm.timeText)
         .width(this.s(160))
@@ -1602,12 +1584,12 @@ export struct CommonSetting_Statistics_Set {
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .lineHeight(this.s(this.fontSize.timeLineHeight))
-        .textAlign(TextAlign.Center);
+        .textAlign(TextAlign.End);
     }
     .width('100%')
     .height(this.s(this.footerHeight))
+    .padding({ left: this.s(24), right: this.s(24), top: this.s(10), bottom: this.s(10) })
     .alignItems(VerticalAlign.Center)
-    .padding({ top: this.s(10), bottom: this.s(10) })
     .backgroundColor('#D3D3D3');
   }
 }

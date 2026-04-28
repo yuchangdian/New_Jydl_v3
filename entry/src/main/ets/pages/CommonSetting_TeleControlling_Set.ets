@@ -189,18 +189,18 @@ class CommonSettingTeleControllingVM {
 
 class CommonSettingTeleControllingFontSize {
   notice: number = 18;
-  title: number = 20;
-  sectionTitle: number = 18;
-  fieldLabel: number = 18;
-  inputValue: number = 18;
-  unit: number = 18;
+  title: number = 28;
+  sectionTitle: number = 24;
+  fieldLabel: number = 24;
+  inputValue: number = 24;
+  unit: number = 24;
   button: number = 18;
   timeText: number = 17;
   dialogTitle: number = 18;
   dialogBody: number = 18;
   titleMin: number = 14;
   noticeMin: number = 12;
-  arrow: number = 11;
+  arrow: number = 12;
   timeLineHeight: number = 20;
 }
 
@@ -227,17 +227,17 @@ export struct CommonSetting_TeleControlling_Set {
   private readonly pageBaseWidth: number = 1280;
   private readonly pageBaseHeight: number = 720;
   private readonly layoutZoom: number = 1.2;
-  private readonly pageMaxWidth: number = 1024;
+  private readonly pageMaxWidth: number = 1280;
   private readonly bodyWidth: number = 980;
   private readonly headerHeight: number = 80;
   private readonly footerHeight: number = 80;
-  private readonly sectionTitleHeight: number = 40;
-  private readonly inputRowHeight: number = 40;
+  private readonly sectionTitleHeight: number = 44;
+  private readonly inputRowHeight: number = 44;
   private readonly inputRowGap: number = 10;
-  private readonly inputHeight: number = 40;
+  private readonly inputHeight: number = 42;
   private readonly inputWidth: number = 90;
   private readonly closeModeWidth: number = 220;
-  private readonly footerButtonWidth: number = 110;
+  private readonly footerButtonWidth: number = 150;
   private readonly footerButtonHeight: number = 60;
   private readonly footerButtonRadius: number = 18;
   private readonly fieldRadius: number = 0;
@@ -1170,31 +1170,23 @@ export struct CommonSetting_TeleControlling_Set {
   @Builder
   BottomBar() {
     Row() {
-      Blank().width(this.s(37));
-
       this.BottomActionButton(this.vm.actions.defaultText, 'sans-serif-condensed', FontWeight.Bold, () => {
         this.resetDefaults();
       });
 
-      Blank().width(this.s(117));
+      Row() {
+        this.BottomActionButton(this.vm.actions.submitText, 'Ubuntu', FontWeight.Normal, () => {
+          this.submitCurrentData();
+        });
 
-      this.BottomActionButton(this.vm.actions.submitText, 'Ubuntu', FontWeight.Normal, () => {
-        this.submitCurrentData();
-      });
-
-      Blank().width(this.s(78));
-
-      this.BottomActionButton(this.vm.actions.closeText, 'Ubuntu', FontWeight.Normal, () => {
-        router.back();
-      });
-
-      Blank().width(this.s(78));
-
-      this.BottomActionButton(this.vm.actions.backText, 'Ubuntu', FontWeight.Normal, () => {
-        router.back();
-      });
-
-      Blank().width(this.s(97));
+        this.BottomActionButton(this.vm.actions.backText, 'Ubuntu', FontWeight.Normal, () => {
+          router.back();
+        });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .alignItems(VerticalAlign.Center);
 
       Text(this.vm.timeText)
         .width(this.s(160))
@@ -1203,10 +1195,11 @@ export struct CommonSetting_TeleControlling_Set {
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .lineHeight(this.s(this.fontSize.timeLineHeight))
-        .textAlign(TextAlign.Center);
+        .textAlign(TextAlign.End);
     }
     .width('100%')
     .height(this.s(this.footerHeight))
+    .padding({ left: this.s(24), right: this.s(24) })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D3D3D3');
   }
@@ -1234,5 +1227,3 @@ export struct CommonSetting_TeleControlling_Set {
       });
   }
 }
-
-

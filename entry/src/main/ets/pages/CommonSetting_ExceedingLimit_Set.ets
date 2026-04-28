@@ -268,7 +268,7 @@ const COMMON_SETTING_EXCEEDING_LIMIT_ROWS: ExceedingLimitRowConfig[] = [
 class BottomActionState {
   defaultText: string = '默认值';
   submitText: string = '提交';
-  closeText: string = '关闭';
+  //closeText: string = '关闭';
   backText: string = '返回';
 }
 
@@ -283,16 +283,16 @@ class CommonSettingExceedingLimitVM {
 
 class CommonSettingExceedingLimitFontSize {
   notice: number = 18;
-  title: number = 20;
-  fieldLabel: number = 18;
-  inputValue: number = 18;
+  title: number = 28;
+  fieldLabel: number = 24;
+  inputValue: number = 24;
   button: number = 18;
   timeText: number = 17;
   dialogTitle: number = 18;
   dialogBody: number = 18;
   titleMin: number = 14;
   noticeMin: number = 12;
-  arrow: number = 11;
+  arrow: number = 12;
   timeLineHeight: number = 20;
 }
 
@@ -323,11 +323,11 @@ export struct CommonSetting_ExceedingLimit_Set {
   private readonly contentBottomSpace: number = 200;
   private readonly headerHeight: number = 80;
   private readonly footerHeight: number = 80;
-  private readonly rowHeight: number = 40;
-  private readonly rowContentHeight: number = 30;
+  private readonly rowHeight: number = 44;
+  private readonly rowContentHeight: number = 34;
   private readonly rowSeparatorHeight: number = 10;
   private readonly inputWidth: number = 90;
-  private readonly inputHeight: number = 30;
+  private readonly inputHeight: number = 34;
   private readonly comboWidth: number = 90;
   private readonly actionLabelWidth: number = 80;
   private readonly limitLabelWidth: number = 90;
@@ -337,7 +337,7 @@ export struct CommonSetting_ExceedingLimit_Set {
   private readonly delayLeadingGap: number = 20;
   private readonly delayLabelWidth: number = 210;
   private readonly delayTrailingGap: number = 630;
-  private readonly footerButtonWidth: number = 110;
+  private readonly footerButtonWidth: number = 150;
   private readonly footerButtonHeight: number = 60;
   private readonly footerButtonRadius: number = 22;
   private readonly fieldBorderColor: string = '#B8B8B8';
@@ -1220,31 +1220,23 @@ export struct CommonSetting_ExceedingLimit_Set {
   @Builder
   BottomBar() {
     Row() {
-      Blank().width(this.s(37));
-
       this.BottomActionButton(this.vm.actions.defaultText, () => {
         this.resetDefaults();
       });
 
-      Blank().width(this.s(117));
+      Row() {
+        this.BottomActionButton(this.vm.actions.submitText, () => {
+          this.submitCurrentData();
+        });
 
-      this.BottomActionButton(this.vm.actions.submitText, () => {
-        this.submitCurrentData();
-      });
-
-      Blank().width(this.s(78));
-
-      this.BottomActionButton(this.vm.actions.closeText, () => {
-        router.back();
-      });
-
-      Blank().width(this.s(78));
-
-      this.BottomActionButton(this.vm.actions.backText, () => {
-        router.back();
-      });
-
-      Blank().width(this.s(97));
+        this.BottomActionButton(this.vm.actions.backText, () => {
+          router.back();
+        });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .alignItems(VerticalAlign.Center);
 
       Text(this.vm.timeText)
         .width(this.s(160))
@@ -1253,10 +1245,11 @@ export struct CommonSetting_ExceedingLimit_Set {
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .lineHeight(this.s(this.fontSize.timeLineHeight))
-        .textAlign(TextAlign.Center);
+        .textAlign(TextAlign.End);
     }
     .width('100%')
     .height(this.s(this.footerHeight))
+    .padding({ left: this.s(24), right: this.s(24) })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D3D3D3');
   }

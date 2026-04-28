@@ -49,20 +49,20 @@ class CommonSettingPrimarySystemVM {
 }
 
 class CommonSettingPrimarySystemFontSize {
-  notice: number = 18;
-  title: number = 20;
-  sectionTitle: number = 18;
-  fieldLabel: number = 18;
-  inputValue: number = 16;
-  fieldUnit: number = 18;
-  dialogTitle: number = 18;
-  dialogBody: number = 18;
-  bottomButton: number = 18;
-  timeText: number = 18;
-  titleMin: number = 14;
-  noticeMin: number = 12;
-  arrow: number = 11;
-  timeLineHeight: number = 20;
+  notice: number = 20;
+  title: number = 28;
+  sectionTitle: number = 22;
+  fieldLabel: number = 22;
+  inputValue: number = 18;
+  fieldUnit: number = 22;
+  dialogTitle: number = 20;
+  dialogBody: number = 20;
+  bottomButton: number = 20;
+  timeText: number = 20;
+  titleMin: number = 16;
+  noticeMin: number = 14;
+  arrow: number = 12;
+  timeLineHeight: number = 22;
 }
 
 @Entry
@@ -85,12 +85,12 @@ export struct CommonSetting_PrimarySystem_Set {
   private readonly pageBaseWidth: number = 1280;
   private readonly pageBaseHeight: number = 720;
   private readonly layoutZoom: number = 1.2;
-  private readonly rowHeight: number = 54;
+  private readonly rowHeight: number = 58;
   private readonly separatorSpace: number = 12;
   private readonly separatorStroke: number = 3;
-  private readonly inputHeight: number = 35;
+  private readonly inputHeight: number = 39;
   private readonly inputWidth: number = 117;
-  private readonly bottomButtonHeight: number = 55;
+  private readonly bottomButtonHeight: number = 58;
   private readonly bottomButtonRadius: number = 12;
   private readonly pageMaxWidth: number = 1155;
   private readonly titleIconSize: number = 24;
@@ -533,7 +533,7 @@ export struct CommonSetting_PrimarySystem_Set {
   HeaderBar() {
     Row() {
       Text(this.vm.noticeText)
-        .layoutWeight(8)
+        .layoutWeight(6)
         .minFontSize(this.s(this.fontSize.noticeMin))
         .maxLines(1)
         .fontSize(this.s(this.fontSize.notice))
@@ -970,10 +970,8 @@ export struct CommonSetting_PrimarySystem_Set {
   @Builder
   BottomBar() {
     Row() {
-      Blank().layoutWeight(5);
-
       Button(this.vm.actions.defaultText)
-        .layoutWeight(20)
+        .width(this.s(150))
         .height(this.s(this.bottomButtonHeight))
         .fontSize(this.s(this.fontSize.bottomButton))
         .fontColor('#000000')
@@ -987,51 +985,52 @@ export struct CommonSetting_PrimarySystem_Set {
           this.resetDefaults();
         });
 
-      Blank().layoutWeight(15);
+      Row() {
+        Button(this.vm.actions.submitText)
+          .width(this.s(150))
+          .height(this.s(this.bottomButtonHeight))
+          .fontSize(this.s(this.fontSize.bottomButton))
+          .fontColor('#000000')
+          .fontFamily('Ubuntu')
+          .backgroundColor('#BEBEBE')
+          .border({ width: 0 })
+          .borderRadius(this.s(this.bottomButtonRadius))
+          .padding(0)
+          .onClick(() => {
+            this.submitCurrentData();
+          });
 
-      Button(this.vm.actions.submitText)
-        .layoutWeight(20)
-        .height(this.s(this.bottomButtonHeight))
-        .fontSize(this.s(this.fontSize.bottomButton))
-        .fontColor('#000000')
-        .fontFamily('Ubuntu')
-        .backgroundColor('#BEBEBE')
-        .border({ width: 0 })
-        .borderRadius(this.s(this.bottomButtonRadius))
-        .padding(0)
-        .onClick(() => {
-          this.submitCurrentData();
-        });
-
-      Blank().layoutWeight(10);
-
-      Button(this.vm.actions.backText)
-        .layoutWeight(20)
-        .height(this.s(this.bottomButtonHeight))
-        .fontSize(this.s(this.fontSize.bottomButton))
-        .fontColor('#000000')
-        .fontFamily('Ubuntu')
-        .backgroundColor('#BEBEBE')
-        .border({ width: 0 })
-        .borderRadius(this.s(this.bottomButtonRadius))
-        .padding(0)
-        .onClick(() => {
-          router.back();
-        });
-
-      Blank().layoutWeight(20);
+        Button(this.vm.actions.backText)
+          .width(this.s(150))
+          .height(this.s(this.bottomButtonHeight))
+          .fontSize(this.s(this.fontSize.bottomButton))
+          .fontColor('#000000')
+          .fontFamily('Ubuntu')
+          .backgroundColor('#BEBEBE')
+          .border({ width: 0 })
+          .borderRadius(this.s(this.bottomButtonRadius))
+          .padding(0)
+          .onClick(() => {
+            router.back();
+          });
+      }
+      .layoutWeight(1)
+      .height('100%')
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .alignItems(VerticalAlign.Center);
 
       Text(this.vm.timeText)
-        .layoutWeight(20)
+        .width(this.s(160))
         .height(this.s(this.bottomButtonHeight))
         .fontSize(this.s(this.fontSize.timeText))
         .fontColor('#000000')
         .fontFamily('STKaiti')
         .lineHeight(this.s(this.fontSize.timeLineHeight))
-        .textAlign(TextAlign.Center);
+        .textAlign(TextAlign.End);
     }
     .width('100%')
     .height(this.s(70))
+    .padding({ left: this.s(24), right: this.s(24) })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D3D3D3');
   }

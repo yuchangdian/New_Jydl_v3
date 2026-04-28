@@ -199,6 +199,8 @@ export default class EntryAbility extends UIAbility {
     const nativeModule = this.loadTcpClientModule();
     if (nativeModule && typeof nativeModule.add === 'function') {
       hilog.info(DOMAIN, 'testTag', 'Test NAPI 2 + 3 = %{public}d', nativeModule.add(2, 3));
+
+
     } else {
       hilog.error(DOMAIN, 'testTag', 'add 测试函数不可用');
     }

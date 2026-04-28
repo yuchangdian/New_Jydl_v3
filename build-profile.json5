@@ -4,13 +4,13 @@
       {
         "name": "default",
         "material": {
-          "certpath": "C:/Users/Lenovo/.ohos/config/openharmony/default_New_Jydl_v3_KiKfqIjshuRUB-mF_6YhBHr-vpv-QibvUxuvbRh1wmA=.cer",
+          "certpath": "C:/Users/Lenovo/.ohos/config/openharmony/default_New_Jydl_v3_5size__-9hG-gP7ucN9Q7yZwcrMQHSJQXYeN1arvbxcgPBG0E=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001BBDD6E6FFDFF7ACE2730EB90751CE38939B71FCB4C85C911BB1F2AE52FD85318DCA8C21FE472D93",
-          "profile": "C:/Users/Lenovo/.ohos/config/openharmony/default_New_Jydl_v3_KiKfqIjshuRUB-mF_6YhBHr-vpv-QibvUxuvbRh1wmA=.p7b",
+          "keyPassword": "0000001AC16839594CA6E561E18674A4D8F5A61E819854FFD73507BC2B29DD9280CE553F037A09F5EF3E",
+          "profile": "C:/Users/Lenovo/.ohos/config/openharmony/default_New_Jydl_v3_5size__-9hG-gP7ucN9Q7yZwcrMQHSJQXYeN1arvbxcgPBG0E=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:/Users/Lenovo/.ohos/config/openharmony/default_New_Jydl_v3_KiKfqIjshuRUB-mF_6YhBHr-vpv-QibvUxuvbRh1wmA=.p12",
-          "storePassword": "0000001B66F52B293B9FB354F75B9618F16256D2D5F1E9471C3EAFBA5AC02BCBD8548FC94264813B7C6C54"
+          "storeFile": "C:/Users/Lenovo/.ohos/config/openharmony/default_New_Jydl_v3_5size__-9hG-gP7ucN9Q7yZwcrMQHSJQXYeN1arvbxcgPBG0E=.p12",
+          "storePassword": "0000001A778B406CA3F1E517BF57584806D587892AE730C784CB1B8E84604974E3CFE7901326E7BBE609"
         }
       },
       {
@@ -18,11 +18,11 @@
         "material": {
           "certpath": "C:/Users/Lenovo/.ohos/config/openharmony/openharmony_New_Jydl_v3_KiKfqIjshuRUB-mF_6YhBHr-vpv-QibvUxuvbRh1wmA=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B0C63353D49A34641B0F97FD17A68BDC30E2C81C340A9EF90382C80424037E518A409762BAB9CD3",
+          "keyPassword": "0000001BE7162B75B553FC55A23EF087911E0A90E14F5CD3DA58F572C57DBBC77EE95342CFC4DBEFCA0F09",
           "profile": "C:/Users/Lenovo/.ohos/config/openharmony/openharmony_New_Jydl_v3_KiKfqIjshuRUB-mF_6YhBHr-vpv-QibvUxuvbRh1wmA=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "C:/Users/Lenovo/.ohos/config/openharmony/openharmony_New_Jydl_v3_KiKfqIjshuRUB-mF_6YhBHr-vpv-QibvUxuvbRh1wmA=.p12",
-          "storePassword": "0000001B073C124AE6FB4AD4A3DBA65625A079330B4CE8ED9BFE58FA7175B785C79844A7A3B29B43DBE9A2"
+          "storePassword": "0000001B9EB3C147AD1922D4DF9388FF77E839829B6BCF8831FA3FEAF8FBB314FAD3499AB604828A94677F"
         }
       }
     ],
