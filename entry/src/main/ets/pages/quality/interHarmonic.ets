@@ -17,8 +17,7 @@ import {
   Description,
   Legend,
   JArrayList
-} from '../../components/ChartStub'
-} from '../../components/ChartStub'
+} from '@ohos/mpchart'
 
 const DOMAIN = 0x0001;
 const TAG = 'interHarmonicContent';
@@ -28,7 +27,6 @@ function colorToNumber(hexColor: string): number {
   const color = hexColor.replace('#', '')
   return parseInt(color, 16)
 }
-
 // 类型定义（更新为8列完整字段）
 interface HarmonicItem {
   order: string          // 次数
@@ -312,7 +310,7 @@ struct interHarmonicContent {
       if (response.success && response.data && response.data.data) {
         hilog.info(DOMAIN, TAG, '电能质量数据获取成功');
         hilog.info(DOMAIN, TAG, '电能质量数据: %{public}s', response.data.data);
-        
+
         // 解析电能质量数据
         try {
           const apiResponse: PowerQualityApiResponse = JSON.parse(response.data.data) as PowerQualityApiResponse;
@@ -396,7 +394,7 @@ struct interHarmonicContent {
     let qaLineData: number[] | undefined;
     let saLineData: number[] | undefined;
     let faLineData: number[] | undefined;
-    
+
     if (phase === 'A') {
       paLineData = harmonicData.Pa?.[lineIndex];
       qaLineData = harmonicData.Qa?.[lineIndex];
@@ -477,7 +475,7 @@ struct interHarmonicContent {
       const response: IpcResponse<StringResponse> = await IpcUtil.sendRequest<StringResponse>(config);
       if (response.success && response.data && response.data.data) {
         hilog.info(DOMAIN, TAG, `${deviceName === 'iHarmonicDistortionU' ? '电压' : '电流'}谐波数据获取成功`);
-        
+
         // 只有电压数据显示在请求结果中
         if (deviceName === 'iHarmonicDistortionU') {
           this.requestResult = response.data.data;
@@ -489,7 +487,7 @@ struct interHarmonicContent {
           if (apiResponse && apiResponse.data) {
             const harmonicData = apiResponse.data;
             const isVoltage = deviceName === 'iHarmonicDistortionU';
-            
+
             // 处理线路1和线路2的数据
             for (let lineIndex = 0; lineIndex < 2; lineIndex++) {
               // A相数据
@@ -556,7 +554,7 @@ struct interHarmonicContent {
 
     // 获取当前选中的数据
     const currentData = this.harmonicListData[this.selectedIndex] || [];
-    
+
     currentData.forEach((item, index) => {
       const order = parseInt(item.order);
       if (order % 2 === 1) {

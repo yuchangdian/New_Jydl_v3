@@ -40,11 +40,13 @@ const MENU_DATA: MenuItemModel[] = [
     new MenuSubItemModel('遥控操作'),
   ]),
   new MenuItemModel('电能质量', [
-    new MenuSubItemModel('实时指标'),
+    new MenuSubItemModel('实时指标', ['指标', '波形']),
+    new MenuSubItemModel('历史数据'),
+    new MenuSubItemModel('PQDIF设置'),
+    new MenuSubItemModel('录波分析'),
     new MenuSubItemModel('表计'),
-    new MenuSubItemModel('波形分析'),
-    new MenuSubItemModel('告警设置'),
-    new MenuSubItemModel('事件'),
+    new MenuSubItemModel('事件报告'),
+    new MenuSubItemModel('告警定值', ['浏览', '整定'])
 
   ]),
   new MenuItemModel('高级分析', [
@@ -136,23 +138,12 @@ export struct TopMenu {
       this.openPage('pages/Password_Set');
       return;
     }
-    if (item.title === '实时指标') {
-      this.openPage('pages/quality_index');
-      return;
-    }
     if (item.title === '表计') {
       this.openPage('pages/meter/index');
       return;
     }
-    if (item.title === '波形分析') {
-      this.openPage('pages/pqInsight/index');
-      return;
-    }
-    if (item.title === '告警设置') {
-      this.openPage('AlarmSettings/index');
-      return;
-    }
-    if (item.title === '事件') {
+
+    if (item.title === '事件报告') {
       this.openPage('pages/pqInsight/EventCenter');
       return;
     }
@@ -165,6 +156,22 @@ export struct TopMenu {
   }
 
   private handleLeafClick(item: MenuSubItemModel, subItem: SubMenuItemModel): void {
+    if (item.title === '实时指标' && subItem.title === '指标') {
+      this.openPage('pages/quality/broadband');
+      return;
+    }
+    if (item.title === '实时指标' && subItem.title === '波形') {
+      this.openPage('pages/pqInsight/index');
+      return;
+    }
+    if (item.title === '告警定值' && subItem.title === '浏览') {
+      this.openPage('AlarmSettings/index');
+      return;
+    }
+    if (item.title === '告警定值' && subItem.title === '整定') {
+      this.openPage('AlarmSettings/index');
+      return;
+    }
     if (item.title === '告警定值' && subItem.title === '整定') {
       this.openPage('pages/CommonSetting_PowerQuality_Set');
       return;
@@ -276,7 +283,7 @@ export struct TopMenu {
                           }, (subItem: SubMenuItemModel, leafIndex: number) => leafIndex.toString() + subItem.title);
                         }
                         .backgroundColor('#d6dadc')
-                        .width(100)
+                        .width(120)
                         .height(item.subItems.length * 35)
                         .borderRadius(5)
                         .position({ x: '100%', y: 0 })

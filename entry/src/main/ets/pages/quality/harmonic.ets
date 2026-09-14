@@ -18,7 +18,7 @@ import {
   Legend,
   JArrayList
 } from '../../components/ChartStub'
-} from '../../components/ChartStub'
+
 
 const DOMAIN = 0x0001;
 const TAG = 'harmonicContent';

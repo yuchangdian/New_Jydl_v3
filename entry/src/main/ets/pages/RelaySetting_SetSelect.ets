@@ -129,7 +129,8 @@ export struct RelaySetting_SetSelect {
             .margin({ top: this.s(40) });
         }
         .width(this.s(1001))
-        .alignItems(HorizontalAlign.Center);
+        .alignItems(HorizontalAlign.Center)
+        .backgroundColor('#FFFFFF');
       }
       .layoutWeight(1)
       .width('100%')

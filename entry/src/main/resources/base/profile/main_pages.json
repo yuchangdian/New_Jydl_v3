@@ -23,6 +23,7 @@
     "AlarmSettings/index",
     "pages/meter/index",
     "pages/pqInsight/index",
-    "pages/pqInsight/EventCenter"
+    "pages/pqInsight/EventCenter",
+    "pages/quality/broadband"
   ]
 }

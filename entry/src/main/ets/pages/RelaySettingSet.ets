@@ -2,6 +2,7 @@
 import display from '@ohos.display';
 import fs from '@ohos.file.fs';
 import * as relaySettingNativeModule from 'libentry.so';
+import { CustomKeyboard } from '../utils/CustomKeyboard';
 import {
   RELAY_SETTING_PROFILES_STORE_KEY,
   RelayFieldBinding,
@@ -42,27 +43,6 @@ const RELAY_SETTING_STORE_KEY: string = 'relay_setting_set_store';
 
 PersistentStorage.persistProp(RELAY_SETTING_STORE_KEY, '');
 PersistentStorage.persistProp(RELAY_SETTING_PROFILES_STORE_KEY, '');
-
-@Observed
-class StrapFlag {
-  id: string;
-  label: string;
-  checked: boolean;
-  enabled: boolean;
-
-  constructor(id: string, label: string, checked: boolean = false, enabled: boolean = true) {
-    this.id = id;
-    this.label = label;
-    this.checked = checked;
-    this.enabled = enabled;
-  }
-}
-
-@Observed
-class HeaderModeState {
-  inMode: StrapFlag = new StrapFlag('checkBox', '投入', true, true);
-  outMode: StrapFlag = new StrapFlag('checkBox_2', '退出', false, true);
-}
 
 @Observed
 class BottomActionState {
@@ -459,58 +439,11 @@ function relayEnsureSchemaReady(): void {
 
 @Observed
 class RelaySettingVM {
-  headerMode: HeaderModeState = new HeaderModeState();
   noticeText: string = '';
   titleLeft: string = '定值管理';
   titleRight: string = '—整定 01 区保护定值';
   actions: BottomActionState = new BottomActionState();
   timeText: string = '2024/12/30\n12:12:30';
-}
-
-@Component
-struct QtStaticCheck {
-  @Prop checked: boolean = false;
-  @Prop label: string = '';
-  @Prop boxSize: number = 30;
-  @Prop fontSize: number = 16;
-  @Prop fontColor: string = '#000000';
-  @Prop fontFamilyName: string = 'STKaiti';
-
-  build() {
-    Row() {
-      Stack() {
-        Row()
-          .width(this.boxSize)
-          .height(this.boxSize)
-          .backgroundColor('#FFFFFF')
-          .border({ width: 1.4, color: '#000000' })
-          .borderRadius(1);
-
-        if (this.checked) {
-          Text('√')
-            .fontSize(this.boxSize * 0.82)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#000000')
-            .width(this.boxSize)
-            .height(this.boxSize)
-            .textAlign(TextAlign.Center);
-        }
-      }
-      .width(this.boxSize)
-      .height(this.boxSize)
-      .margin({ right: 6 });
-
-      Text(this.label)
-        .fontSize(this.fontSize)
-        .fontColor(this.fontColor)
-        .fontFamily(this.fontFamilyName)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Clip });
-    }
-    .height('100%')
-    .alignItems(VerticalAlign.Center)
-    .justifyContent(FlexAlign.Start);
-  }
 }
 
 @Entry
@@ -521,9 +454,7 @@ struct RelaySettingSet {
   @State isLoading: boolean = true;
   @State vm: RelaySettingVM = new RelaySettingVM();
   @State uiScale: number = 1;
-  @State modeInSelected: boolean = true;
   @State currentZoneCode: string = '01';
-  @State currentProfileIndex: number = 0;
   @State currentDisplayValues: string[] = [];
   @State currentWidthCache: number[] = [];
   @State visibleSectionCount: number = 0;
@@ -533,6 +464,10 @@ struct RelaySettingSet {
   @State selectOverlayOptions: string[] = [];
   @State selectOverlayValue: string = '';
   @State selectOverlayTargetBindingIndex: number = -1;
+  @State customKeyboardVisible: boolean = false;
+  @State customKeyboardValue: string = '';
+  @State customKeyboardTargetBindingIndex: number = -1;
+  @State customKeyboardPosition: 'bottom' | 'top' = 'bottom';
   @State submitWaitingDialogVisible: boolean = false;
   @State submitWaitingMessage: string = '';
 
@@ -546,13 +481,11 @@ struct RelaySettingSet {
   private loadStartedAt: number = 0;
   private readonly relayRefreshIntervalMs: number = 5000;
   private readonly relayRefreshReadDelayMs: number = 300;
-  private readonly checkBoxSize: number = 28;
   private readonly noticeFontSize: number = 18;
   private readonly midFontSize: number = 18;
   private readonly titleFontSize: number = 20;
   private readonly sectionTitleFontSize: number = 18;
   private readonly fieldLabelFontSize: number = 18;
-  private readonly fieldValueFontSize: number = 18;
   private readonly inputValueFontSize: number = 16;
   private readonly fieldUnitFontSize: number = 18;
   private readonly fieldMinFontSize: number = 15;
@@ -567,15 +500,10 @@ struct RelaySettingSet {
   private readonly progressiveRenderStartDelayMs: number = 320;
   private readonly progressiveRenderBatchDelayMs: number = 48;
   private readonly zoneStoreDirectoryName: string = 'relay_setting';
-  private readonly zoneMigrationFlagFileName: string = 'migration_01_20.done';
   private cachedRelaySettingNativeModule?: RelaySettingNativeModule;
 
   private s(v: number): number {
     return Math.round(v * this.uiScale);
-  }
-
-  private scopedValueKeyForZone(zoneCode: string, id: string): string {
-    return zoneCode + '|' + id;
   }
 
   private findValueIndex(entries: RelayValueEntry[], key: string): number {
@@ -623,22 +551,68 @@ struct RelaySettingSet {
     return this.currentProfileData;
   }
 
+  private resolveKeyboardPositionForFieldId(fieldId: string, fallback: 'bottom' | 'top' = 'bottom'): 'bottom' | 'top' {
+    let matched = /section-(\d+)/.exec(fieldId);
+    if (!matched || matched.length < 2) {
+      return fallback;
+    }
+    let sectionIndex = Number(matched[1]);
+    if (Number.isNaN(sectionIndex)) {
+      return fallback;
+    }
+    return sectionIndex >= 15 ? 'top' : 'bottom';
+  }
+
+  private openCustomKeyboard(
+    bindingIndex: number,
+    currentValue: string,
+    keyboardPosition: 'bottom' | 'top' = 'bottom'
+  ): void {
+    if (this.isLoading) {
+      return;
+    }
+
+    this.closeSelectOverlay();
+    this.customKeyboardTargetBindingIndex = bindingIndex;
+    this.customKeyboardValue = currentValue;
+    this.customKeyboardPosition = keyboardPosition;
+
+    if (this.customKeyboardVisible) {
+      this.customKeyboardVisible = false;
+      let reopenBindingIndex = bindingIndex;
+      setTimeout(() => {
+        if (this.isLoading || this.customKeyboardTargetBindingIndex !== reopenBindingIndex) {
+          return;
+        }
+        this.customKeyboardVisible = true;
+      }, 0);
+      return;
+    }
+
+    this.customKeyboardVisible = true;
+  }
+
+  private closeCustomKeyboard(): void {
+    this.customKeyboardVisible = false;
+    this.customKeyboardValue = '';
+    this.customKeyboardTargetBindingIndex = -1;
+  }
+
+  private applyCustomKeyboardValue(value: string): void {
+    if (this.customKeyboardTargetBindingIndex < 0) {
+      return;
+    }
+    this.customKeyboardValue = value;
+    this.writeBindingValue(this.customKeyboardTargetBindingIndex, value);
+  }
+
   private syncCurrentZoneState(zoneCode?: string): void {
     this.currentZoneCode = relayNormalizeSetZoneCode(zoneCode ? zoneCode : this.currentZoneCode);
-    this.currentProfileIndex = relaySetZoneCodeToIndex(this.currentZoneCode);
     this.syncCurrentZoneTitle();
   }
 
   private syncCurrentZoneTitle(): void {
     this.vm.titleRight = '—整定 ' + this.currentZoneCode + ' 区保护定值';
-  }
-
-  private findLegacyValue(entries: RelayValueEntry[], key: string): string | undefined {
-    let index = this.findValueIndex(entries, key);
-    if (index === -1) {
-      return undefined;
-    }
-    return entries[index].value;
   }
 
   private createDefaultCurrentZoneProfile(zoneCode: string = this.currentZoneCode): RelaySettingProfile {
@@ -660,28 +634,6 @@ struct RelaySettingSet {
 
   private relayZoneProfileFilePath(zoneCode: string): string {
     return `${this.ensureRelaySettingStoreDirectory()}/zone_${relayNormalizeSetZoneCode(zoneCode)}.json`;
-  }
-
-  private relayMigrationFlagFilePath(): string {
-    return `${this.ensureRelaySettingStoreDirectory()}/${this.zoneMigrationFlagFileName}`;
-  }
-
-  private hasRelayMigrationFlag(): boolean {
-    try {
-      return fs.accessSync(this.relayMigrationFlagFilePath());
-    } catch (error) {
-      return false;
-    }
-  }
-
-  private markRelayMigrationCompleted(): void {
-    let flagFilePath = this.relayMigrationFlagFilePath();
-    let file = fs.openSync(flagFilePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
-    try {
-      fs.writeSync(file.fd, 'done', { encoding: 'utf-8' });
-    } finally {
-      fs.closeSync(file);
-    }
   }
 
   private normalizeProfileFromSource(
@@ -933,22 +885,6 @@ struct RelaySettingSet {
     relayRememberProfilesStoreInSession(serializedStore, mirrorStore);
   }
 
-  private migrateLegacyRelayProfilesIfNeeded(): void {
-    if (this.hasRelayMigrationFlag()) {
-      return;
-    }
-
-    this.ensureRelaySettingStoreDirectory();
-    for (let profileIndex = 0; profileIndex < RELAY_PROFILE_COUNT; profileIndex++) {
-      let setZoneCode = relaySetZoneCodeForIndex(profileIndex);
-      let existingProfile = this.loadRelayZoneProfileFromFile(setZoneCode);
-      let profileToSave = existingProfile ? existingProfile : this.loadRelayZoneProfile(setZoneCode);
-      this.saveRelayZoneProfile(setZoneCode, profileToSave);
-    }
-    this.markRelayMigrationCompleted();
-    this.syncLegacyMirrorStore();
-  }
-
   private saveValueEntries(noticeText: string = ''): void {
     if (this.isLoading) {
       return;
@@ -963,6 +899,7 @@ struct RelaySettingSet {
   }
 
   private showSubmitWaiting(message: string): void {
+    this.closeCustomKeyboard();
     this.submitWaitingMessage = message;
     this.submitWaitingDialogVisible = true;
   }
@@ -1016,6 +953,7 @@ struct RelaySettingSet {
       return;
     }
 
+    this.closeCustomKeyboard();
     this.closeSelectOverlay();
     this.closeSubmitWaiting();
 
@@ -1041,6 +979,7 @@ struct RelaySettingSet {
     if (this.isLoading) {
       return;
     }
+    this.closeCustomKeyboard();
     this.currentProfileData = this.createDefaultCurrentZoneProfile(this.currentZoneCode);
     this.rebuildCurrentZoneCache();
     this.saveValueEntries();
@@ -1300,7 +1239,11 @@ struct RelaySettingSet {
     }
 
     relayWriteProfileField(profile, binding, nextField);
-    this.updateBindingCache(bindingIndex, relayFormatStoredField(nextField, binding));
+    let nextDisplayValue = relayFormatStoredField(nextField, binding);
+    this.updateBindingCache(bindingIndex, nextDisplayValue);
+    if (this.customKeyboardTargetBindingIndex === bindingIndex) {
+      this.customKeyboardValue = nextDisplayValue;
+    }
     this.updatePendingLocalEditState();
     this.vm.noticeText = '';
   }
@@ -1373,6 +1316,7 @@ struct RelaySettingSet {
   }
 
   private openCellSelect(cell: RelayCellSpec): void {
+    this.closeCustomKeyboard();
     let currentValue = this.getCellValue(cell);
     this.selectOverlayTargetBindingIndex = cell.bindingIndex;
     this.selectOverlayTitle = cell.labelText;
@@ -1382,6 +1326,7 @@ struct RelaySettingSet {
   }
 
   private openMonitorSelect(field: RelayMonitorFieldSpec): void {
+    this.closeCustomKeyboard();
     let currentValue = this.getMonitorFieldValue(field);
     this.selectOverlayTargetBindingIndex = field.bindingIndex;
     this.selectOverlayTitle = field.label;
@@ -1399,105 +1344,6 @@ struct RelaySettingSet {
     this.writeBindingValue(this.selectOverlayTargetBindingIndex, value);
     this.selectOverlayValue = value;
     this.closeSelectOverlay();
-  }
-
-  private labelCellMinWidth(text: string): number {
-    if (text.length >= 18) {
-      return 248;
-    }
-    if (text.length >= 14) {
-      return 210;
-    }
-    if (text.length >= 10) {
-      return 178;
-    }
-    if (text.length >= 8) {
-      return 158;
-    }
-    if (text.length >= 6) {
-      return 126;
-    }
-    if (text.length >= 4) {
-      return 104;
-    }
-    return 76;
-  }
-
-  private isRightEdgeTimeCell(cellId: string): boolean {
-    return cellId.indexOf('section-10-row-02-item-03-cell-') === 0 ||
-      cellId.indexOf('section-11-row-02-item-05-cell-') === 0 ||
-      cellId.indexOf('section-12-row-01-item-07-cell-') === 0 ||
-      cellId.indexOf('section-13-row-03-item-05-cell-') === 0 ||
-      cellId.indexOf('section-14-row-02-item-03-cell-') === 0 ||
-      cellId.indexOf('section-15-row-02-item-03-cell-') === 0 ||
-      cellId.indexOf('section-16-row-02-item-03-cell-') === 0 ||
-      cellId.indexOf('section-17-row-02-item-05-cell-') === 0 ||
-      cellId.indexOf('section-18-row-03-item-03-cell-') === 0 ||
-      cellId.indexOf('section-21-row-02-item-03-cell-') === 0 ||
-      cellId.indexOf('section-22-row-01-item-07-cell-') === 0 ||
-      cellId.indexOf('section-23-row-01-item-07-cell-') === 0 ||
-      cellId.indexOf('section-24-row-01-item-07-cell-') === 0 ||
-      cellId.indexOf('section-25-row-01-item-07-cell-') === 0 ||
-      cellId.indexOf('section-26-row-01-item-07-cell-') === 0 ||
-      cellId.indexOf('section-27-row-01-item-07-cell-') === 0 ||
-      cellId.indexOf('section-28-row-01-item-07-cell-') === 0;
-  }
-
-  private isRightEdgeWideUnitCell(cellId: string): boolean {
-    return cellId.indexOf('section-20-row-03-item-03-cell-') === 0 ||
-      cellId.indexOf('section-20-row-03-item-05-cell-') === 0 ||
-      cellId.indexOf('section-22-row-02-item-05-cell-') === 0 ||
-      cellId.indexOf('section-22-row-03-item-05-cell-') === 0 ||
-      cellId.indexOf('section-24-row-02-item-05-cell-') === 0 ||
-      cellId.indexOf('section-24-row-03-item-05-cell-') === 0;
-  }
-
-  private unitMinWidthForCell(cell: RelayCellSpec): number {
-    if (this.isRightEdgeTimeCell(cell.id)) {
-      return cell.text.length >= 2 ? 12 : 10;
-    }
-    if (this.isRightEdgeWideUnitCell(cell.id)) {
-      return cell.text.length >= 4 ? 28 : 20;
-    }
-    if (cell.id.indexOf('section-01-row-') === 0) {
-      return 28;
-    }
-    if (cell.text.length >= 4) {
-      return 30;
-    }
-    if (cell.text.length >= 3) {
-      return 26;
-    }
-    if (cell.text.length >= 2) {
-      return 20;
-    }
-    return 16;
-  }
-
-  private unitLeftMarginForCell(cell: RelayCellSpec): number {
-    if (cell.id.indexOf('section-01-row-01-item-06-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-01-item-10-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-03-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-07-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-11-cell-01') === 0) {
-      return 18;
-    }
-    if (cell.id.indexOf('section-05-row-01-item-05-cell-03') === 0 ||
-      cell.id.indexOf('section-05-row-01-item-07-cell-03') === 0 ||
-      cell.id.indexOf('section-06-row-01-item-05-cell-03') === 0 ||
-      cell.id.indexOf('section-06-row-01-item-07-cell-03') === 0) {
-      return 0;
-    }
-    if (cell.id.indexOf('section-01-row-') === 0) {
-      return 8;
-    }
-    if (this.isRightEdgeTimeCell(cell.id)) {
-      return 0;
-    }
-    if (this.isRightEdgeWideUnitCell(cell.id)) {
-      return 1;
-    }
-    return 2;
   }
 
   private selectCellMinWidth(text: string): number {
@@ -1533,121 +1379,6 @@ struct RelaySettingSet {
       return 116;
     }
     return 92;
-  }
-
-  private labelMinWidthForCell(cell: RelayCellSpec): number {
-    if (cell.id.indexOf('section-01-row-01-item-04-cell-01') === 0) {
-      return 164;
-    }
-    if (cell.id.indexOf('section-01-row-01-item-08-cell-01') === 0) {
-      return 154;
-    }
-    if (cell.id.indexOf('section-05-row-01-item-05-cell-01') === 0 || cell.id.indexOf('section-06-row-01-item-05-cell-01') === 0) {
-      return 82;
-    }
-    if (cell.id.indexOf('section-05-row-01-item-07-cell-01') === 0 || cell.id.indexOf('section-06-row-01-item-07-cell-01') === 0) {
-      return 110;
-    }
-    if (cell.id.indexOf('section-07-row-01-item-01-cell-01') === 0) {
-      return 124;
-    }
-    if (cell.id.indexOf('section-07-row-01-item-03-cell-01') === 0) {
-      return 152;
-    }
-    if (cell.id.indexOf('section-11-row-02-item-05-cell-01') === 0 || cell.id.indexOf('section-17-row-02-item-05-cell-01') === 0) {
-      return 122;
-    }
-    if (cell.id.indexOf('section-13-row-03-item-05-cell-01') === 0) {
-      return 90;
-    }
-    if (cell.id.indexOf('section-21-row-02-item-03-cell-01') === 0) {
-      return 96;
-    }
-    if (cell.id.indexOf('section-20-row-03-item-03-cell-01') === 0 || cell.id.indexOf('section-20-row-03-item-05-cell-01') === 0) {
-      return 126;
-    }
-    if (cell.id.indexOf('section-22-row-02-item-05-cell-01') === 0 || cell.id.indexOf('section-24-row-02-item-05-cell-01') === 0) {
-      return 128;
-    }
-    if (cell.id.indexOf('section-22-row-03-item-05-cell-01') === 0 || cell.id.indexOf('section-24-row-03-item-05-cell-01') === 0) {
-      return 118;
-    }
-    if (this.isRightEdgeTimeCell(cell.id)) {
-      return 86;
-    }
-    if (cell.id.indexOf('section-19-row-01-item-03-cell-01') === 0 || cell.id.indexOf('section-19-row-01-item-05-cell-01') === 0) {
-      return 98;
-    }
-    if (cell.id.indexOf('section-19-row-02-') === 0) {
-      return cell.text.length >= 8 ? 104 : 88;
-    }
-    if (cell.id.indexOf('section-19-row-03-item-01-cell-01') === 0) {
-      return 150;
-    }
-    if (cell.id.indexOf('section-19-row-03-item-03-cell-01') === 0) {
-      return 192;
-    }
-    if (cell.id.indexOf('section-19-row-03-') === 0) {
-      return 116;
-    }
-    return this.labelCellMinWidth(cell.text);
-  }
-
-  private selectMinWidthForCell(cell: RelayCellSpec): number {
-    if (cell.id.indexOf('section-19-row-02-') === 0 || cell.id.indexOf('section-19-row-03-') === 0) {
-      return 64;
-    }
-    return this.selectCellMinWidth(cell.text);
-  }
-
-  private valueMinWidthForCell(cell: RelayCellSpec): number {
-    if (cell.id.indexOf('section-01-row-01-item-05-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-01-item-09-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-06-cell-01') === 0 ||
-      cell.id.indexOf('section-01-row-02-item-10-cell-01') === 0) {
-      return 76;
-    }
-    if (cell.id.indexOf('section-01-row-02-item-02-cell-01') === 0) {
-      return 80;
-    }
-    if (cell.id.indexOf('section-07-row-01-item-01-cell-03') === 0 || cell.id.indexOf('section-07-row-01-item-03-cell-03') === 0) {
-      return 72;
-    }
-    if (cell.id.indexOf('section-05-row-01-item-05-cell-02') === 0 ||
-      cell.id.indexOf('section-05-row-01-item-07-cell-02') === 0 ||
-      cell.id.indexOf('section-06-row-01-item-05-cell-02') === 0 ||
-      cell.id.indexOf('section-06-row-01-item-07-cell-02') === 0) {
-      return 74;
-    }
-    if (cell.id.indexOf('section-11-row-02-item-05-cell-02') === 0 || cell.id.indexOf('section-17-row-02-item-05-cell-02') === 0) {
-      return 74;
-    }
-    if (cell.id.indexOf('section-13-row-03-item-05-cell-02') === 0) {
-      return 72;
-    }
-    if (cell.id.indexOf('section-20-row-03-item-03-cell-02') === 0 || cell.id.indexOf('section-20-row-03-item-05-cell-02') === 0) {
-      return 78;
-    }
-    if (cell.id.indexOf('section-21-row-02-item-03-cell-02') === 0) {
-      return 82;
-    }
-    if (cell.id.indexOf('section-22-row-02-item-05-cell-02') === 0 || cell.id.indexOf('section-24-row-02-item-05-cell-02') === 0) {
-      return 74;
-    }
-    if (cell.id.indexOf('section-22-row-03-item-05-cell-02') === 0 || cell.id.indexOf('section-24-row-03-item-05-cell-02') === 0) {
-      return 78;
-    }
-    if (this.isRightEdgeTimeCell(cell.id)) {
-      return 78;
-    }
-    if (cell.id.indexOf('section-19-row-01-item-01-cell-02') === 0 ||
-      cell.id.indexOf('section-19-row-01-item-03-cell-02') === 0 ||
-      cell.id.indexOf('section-19-row-01-item-03-cell-04') === 0 ||
-      cell.id.indexOf('section-19-row-01-item-05-cell-02') === 0 ||
-      cell.id.indexOf('section-19-row-01-item-05-cell-04') === 0) {
-      return 76;
-    }
-    return this.valueCellMinWidth(cell.text);
   }
 
   private monitorFieldBoxWidth(field: RelayMonitorFieldSpec): number {
@@ -1740,9 +1471,12 @@ struct RelaySettingSet {
     this.loadToken++;
     this.sectionRenderToken++;
     this.loadStartedAt = Date.now();
-    this.modeInSelected = this.vm.headerMode.inMode.checked;
     this.selectOverlayVisible = false;
     this.selectOverlayTargetBindingIndex = -1;
+    this.customKeyboardVisible = false;
+    this.customKeyboardValue = '';
+    this.customKeyboardTargetBindingIndex = -1;
+    this.customKeyboardPosition = 'bottom';
     this.submitWaitingDialogVisible = false;
     this.submitWaitingMessage = '';
     this.vm.noticeText = '';
@@ -1753,7 +1487,7 @@ struct RelaySettingSet {
     this.currentWidthCache = [];
     this.visibleSectionCount = 0;
     this.visibleMonitorSectionCount = 0;
-    this.syncCurrentZoneState('01');
+    //this.syncCurrentZoneState('01');
     try {
       let d = display.getDefaultDisplaySync();
       let sx = d.width / 1024;
@@ -1783,14 +1517,18 @@ struct RelaySettingSet {
     this.sectionRenderToken++;
     this.selectOverlayVisible = false;
     this.selectOverlayTargetBindingIndex = -1;
+    this.customKeyboardVisible = false;
+    this.customKeyboardValue = '';
+    this.customKeyboardTargetBindingIndex = -1;
     this.submitWaitingDialogVisible = false;
     this.submitWaitingMessage = '';
   }
 
-  private setMode(isIn: boolean): void {
-    this.modeInSelected = isIn;
-    this.vm.headerMode.inMode.checked = isIn;
-    this.vm.headerMode.outMode.checked = !isIn;
+  @Builder
+  EmptyKeyboardBuilder() {
+    Column()
+      .width(0)
+      .height(0)
   }
 
   build() {
@@ -1825,6 +1563,19 @@ struct RelaySettingSet {
 
       if (this.selectOverlayVisible && !this.isLoading) {
         this.SelectOverlay();
+      }
+
+      if (this.customKeyboardVisible && !this.isLoading) {
+        CustomKeyboard({
+          currentValue: () => this.customKeyboardValue,
+          onChange: (value: string) => {
+            this.applyCustomKeyboardValue(value);
+          },
+          onClose: () => {
+            this.closeCustomKeyboard();
+          },
+          keyboardPosition: this.customKeyboardPosition
+        })
       }
 
       if (this.submitWaitingDialogVisible) {
@@ -2059,6 +1810,14 @@ struct RelaySettingSet {
         .borderRadius(this.s(this.fieldBoxRadius))
         .padding({ left: this.s(5), right: this.s(5), top: this.s(1), bottom: this.s(1) })
         .textAlign(TextAlign.Start)
+        .customKeyboard(this.EmptyKeyboardBuilder())
+        .onFocus(() => {
+          this.openCustomKeyboard(
+            cell.bindingIndex,
+            this.getCellValue(cell),
+            this.resolveKeyboardPositionForFieldId(cell.id)
+          );
+        })
         .onChange((value: string) => {
           this.setCellValue(cell, value);
         });
@@ -2146,6 +1905,14 @@ struct RelaySettingSet {
             .border({ width: 0 })
             .padding({ left: 0, right: 0, top: this.s(1), bottom: this.s(1) })
             .textAlign(TextAlign.Start)
+            .customKeyboard(this.EmptyKeyboardBuilder())
+            .onFocus(() => {
+              this.openCustomKeyboard(
+                field.bindingIndex,
+                this.getMonitorFieldValue(field),
+                this.resolveKeyboardPositionForFieldId(field.id, 'top')
+              );
+            })
             .onChange((value: string) => {
               this.setMonitorFieldValue(field, value);
             });

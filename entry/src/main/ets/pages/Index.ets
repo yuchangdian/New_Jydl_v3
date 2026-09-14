@@ -49,7 +49,7 @@ const ANGLE_SYMBOL: string = String.fromCharCode(8736);
 const DEGREE_SYMBOL: string = String.fromCharCode(176);
 
 function createPhasorPlaceholder(unit: string): string {
-  return '**.**' + unit + ANGLE_SYMBOL + '**.**' + DEGREE_SYMBOL;
+  return '00.00' + unit + ANGLE_SYMBOL + '00.00' + DEGREE_SYMBOL;
 }
 
 function formatBaseFreqPhasorText(rms: number, phase: number, unit: string): string {
@@ -89,29 +89,29 @@ function isUsableBaseFreqDisplayValue(value: BaseFreqDisplayValue | undefined): 
 @Entry
 @Component
 struct Index {
-  @State frequency: string = '**.**Hz';
-  @State voltage: string = '10.7kV';
-  @State current: string = '**.**A';
-  @State power: string = '**.**kW';
-  @State reactivePower: string = '**.**kVar';
-  @State powerFactor: string = '*.***';
-  @State forwardActiveEnergy: string = '**.**kW.h';
-  @State forwardReactiveEnergy: string = '**.**kVar.h';
-  @State reverseActiveEnergy: string = '**.**kW.h';
-  @State reverseReactiveEnergy: string = '**.**kVar.h';
+  @State frequency: string = '50.00Hz';
+  @State voltage: string = '57.1V';
+  @State current: string = '0.00A';
+  @State power: string = '0.00kW';
+  @State reactivePower: string = '0.00kVar';
+  @State powerFactor: string = '0.001';
+  @State forwardActiveEnergy: string = '0.00kW.h';
+  @State forwardReactiveEnergy: string = '0.00kVar.h';
+  @State reverseActiveEnergy: string = '0.00kW.h';
+  @State reverseReactiveEnergy: string = '0.00kVar.h';
 
-  @State ua: string = '**.**V∠**.**°';
-  @State ub: string = '**.**V∠**.**°';
-  @State uc: string = '**.**V∠**.**°';
-  @State u0: string = '**.**V∠**.**°';
-  @State ux: string = '**.**V∠**.**°';
-  @State ia: string = '**.**V∠**.**°';
-  @State ib: string = '**.**V∠**.**°';
-  @State ic: string = '**.**V∠**.**°';
-  @State i0: string = '**.**V∠**.**°';
-  @State iia: string = '**.**V∠**.**°';
-  @State iib: string = '**.**V∠**.**°';
-  @State iic: string = '**.**V∠**.**°';
+  @State ua: string = '00.00V∠00.00°';
+  @State ub: string = '00.00V∠00.00°';
+  @State uc: string = '00.00V∠00.00°';
+  @State u0: string = '00.00V∠00.00°';
+  @State ux: string = '00.00V∠00.00°';
+  @State ia: string = '00.00V∠00.00°';
+  @State ib: string = '00.00V∠00.00°';
+  @State ic: string = '00.00V∠00.00°';
+  @State i0: string = '00.00V∠00.00°';
+  @State iia: string = '00.00V∠00.00°';
+  @State iib: string = '00.00V∠00.00°';
+  @State iic: string = '00.00V∠00.00°';
 
   private baseFreqRefreshTimer: number = -1;
   private cachedBaseFreqNativeModule?: BaseFreqNativeModule;
@@ -315,7 +315,7 @@ struct Index {
         .width('100%')
         .textAlign(TextAlign.Center)
         .margin({ top: 10,bottom:10 })
-      Text('2024/7/7 12:12:12')
+      Text('2026/6/5 18:00:00')
         .fontSize(16)
         .width('100%')
         .textAlign(TextAlign.Center)
