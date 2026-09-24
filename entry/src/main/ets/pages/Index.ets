@@ -9,6 +9,8 @@ interface PlateItem {
 
 interface BaseFreqDisplayValue {
   ready: boolean;
+  protocolVersion?: string;
+  Ua_Frequency?: number;
   Ua_Rms: number;
   Ua_Phase: number;
   Ub_Rms: number;
@@ -54,7 +56,7 @@ function createPhasorPlaceholder(unit: string): string {
 
 function formatBaseFreqPhasorText(rms: number, phase: number, unit: string): string {
   if (!isValidBaseFreqNumber(rms) || !isValidBaseFreqNumber(phase)) {
-    return createPhasorPlaceholder(unit);
+    return '--' + unit + ANGLE_SYMBOL + '--' + DEGREE_SYMBOL;
   }
   return rms.toFixed(2) + unit + ANGLE_SYMBOL + phase.toFixed(2) + DEGREE_SYMBOL;
 }
@@ -66,6 +68,15 @@ function isValidBaseFreqNumber(value: number): boolean {
 function isUsableBaseFreqDisplayValue(value: BaseFreqDisplayValue | undefined): boolean {
   if (!value || !value.ready) {
     return false;
+  }
+
+  if (value.protocolVersion === 'jybsmr131') {
+    // 新版没有 Ux 和独立测量 CT，缺少这些通道不影响已有通道显示。
+    return [value.Ua_Rms, value.Ua_Phase, value.Ub_Rms, value.Ub_Phase,
+      value.Uc_Rms, value.Uc_Phase, value.Uo_Rms, value.Uo_Phase,
+      value.IA_Rms, value.IA_Phase, value.IB_Rms, value.IB_Phase,
+      value.IC_Rms, value.IC_Phase, value.Io_Rms, value.Io_Phase]
+      .every((item: number) => isValidBaseFreqNumber(item));
   }
 
   return [
@@ -240,6 +251,9 @@ struct Index {
       }
 
       let baseFreqValue = value as BaseFreqDisplayValue;
+      if (baseFreqValue.Ua_Frequency !== undefined && isValidBaseFreqNumber(baseFreqValue.Ua_Frequency)) {
+        this.frequency = baseFreqValue.Ua_Frequency.toFixed(2) + 'Hz';
+      }
       this.ua = formatBaseFreqPhasorText(baseFreqValue.Ua_Rms, baseFreqValue.Ua_Phase, 'V');
       this.ub = formatBaseFreqPhasorText(baseFreqValue.Ub_Rms, baseFreqValue.Ub_Phase, 'V');
       this.uc = formatBaseFreqPhasorText(baseFreqValue.Uc_Rms, baseFreqValue.Uc_Phase, 'V');

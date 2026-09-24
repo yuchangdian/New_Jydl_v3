@@ -1,0 +1,1570 @@
+{
+  "headerFrame": {
+    "x": 0,
+    "y": 0,
+    "width": 854,
+    "height": 44,
+    "text": "",
+    "visible": true
+  },
+  "titleIcon": {
+    "x": 18,
+    "y": 10,
+    "width": 24,
+    "height": 27,
+    "text": "",
+    "visible": true
+  },
+  "iconBar1": {
+    "x": 18,
+    "y": 18,
+    "width": 5,
+    "height": 19,
+    "text": "",
+    "visible": true
+  },
+  "iconBar2": {
+    "x": 26,
+    "y": 24,
+    "width": 5,
+    "height": 13,
+    "text": "",
+    "visible": true
+  },
+  "iconBar3": {
+    "x": 34,
+    "y": 30,
+    "width": 5,
+    "height": 7,
+    "text": "",
+    "visible": true
+  },
+  "titleLabel": {
+    "x": 357,
+    "y": 10,
+    "width": 140,
+    "height": 24,
+    "text": "告警定值　整定",
+    "visible": true
+  },
+  "titleBalance": {
+    "x": 812,
+    "y": 10,
+    "width": 24,
+    "height": 24,
+    "text": "",
+    "visible": true
+  },
+  "scrollArea": {
+    "x": 0,
+    "y": 44,
+    "width": 854,
+    "height": 387,
+    "text": "",
+    "visible": true
+  },
+  "qt_scrollarea_viewport": {
+    "x": 303,
+    "y": 1301,
+    "width": 98,
+    "height": 76,
+    "text": "",
+    "visible": false
+  },
+  "scrollAreaWidgetContents_2": {
+    "x": 0,
+    "y": 44,
+    "width": 846,
+    "height": 1424,
+    "text": "",
+    "visible": true
+  },
+  "row_VoltageRef": {
+    "x": 0,
+    "y": 44,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageRef": {
+    "x": 4,
+    "y": 50,
+    "width": 220,
+    "height": 37,
+    "text": "【电压暂降/暂升参考值】",
+    "visible": true
+  },
+  "C_Box_PQual_VoltageRef": {
+    "x": 232,
+    "y": 50,
+    "width": 200,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "qt_scrollarea_hcontainer": {
+    "x": 0,
+    "y": 414,
+    "width": 846,
+    "height": 17,
+    "text": "",
+    "visible": false
+  },
+  "qt_scrollarea_vcontainer": {
+    "x": 846,
+    "y": 44,
+    "width": 8,
+    "height": 387,
+    "text": "",
+    "visible": true
+  },
+  "row_RecordFrequency": {
+    "x": 0,
+    "y": 94,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_RecordFrequency": {
+    "x": 4,
+    "y": 100,
+    "width": 220,
+    "height": 37,
+    "text": "【录波频率】",
+    "visible": true
+  },
+  "C_Box_PQual_RecordFrequency": {
+    "x": 232,
+    "y": 100,
+    "width": 200,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "row_RecordLength": {
+    "x": 0,
+    "y": 144,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_RecordLength": {
+    "x": 4,
+    "y": 150,
+    "width": 220,
+    "height": 37,
+    "text": "【录波长度】",
+    "visible": true
+  },
+  "label_RecordLengthNormal": {
+    "x": 232,
+    "y": 150,
+    "width": 126,
+    "height": 37,
+    "text": "正常状态时间：",
+    "visible": true
+  },
+  "L_Edit_PQual_RecoedSize_Normal": {
+    "x": 366,
+    "y": 150,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "recordLengthNormalUnit": {
+    "x": 444,
+    "y": 150,
+    "width": 80,
+    "height": 37,
+    "text": "毫秒",
+    "visible": true
+  },
+  "label_RecordLengthViolation": {
+    "x": 550,
+    "y": 150,
+    "width": 126,
+    "height": 37,
+    "text": "越限状态时间：",
+    "visible": true
+  },
+  "L_Edit_PQual_RecoedSize_Violation": {
+    "x": 684,
+    "y": 150,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "recordLengthViolationUnit": {
+    "x": 762,
+    "y": 150,
+    "width": 80,
+    "height": 37,
+    "text": "毫秒",
+    "visible": true
+  },
+  "row_VoltageUnbalance": {
+    "x": 0,
+    "y": 194,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageUnbalance": {
+    "x": 4,
+    "y": 200,
+    "width": 220,
+    "height": 37,
+    "text": "【电压不平衡】",
+    "visible": true
+  },
+  "label_Enable_VoltageUnbalance": {
+    "x": 232,
+    "y": 200,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageUnbalance": {
+    "x": 302,
+    "y": 200,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageUnbalance": {
+    "x": 555,
+    "y": 200,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageUnbalance": {
+    "x": 664,
+    "y": 200,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageUnbalance": {
+    "x": 742,
+    "y": 200,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageDeviation": {
+    "x": 0,
+    "y": 244,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageDeviation": {
+    "x": 4,
+    "y": 250,
+    "width": 220,
+    "height": 37,
+    "text": "【电压偏差】",
+    "visible": true
+  },
+  "label_Enable_VoltageDeviation": {
+    "x": 232,
+    "y": 250,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageDeviation": {
+    "x": 302,
+    "y": 250,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageDeviation": {
+    "x": 555,
+    "y": 250,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageDeviation": {
+    "x": 664,
+    "y": 250,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageDeviation": {
+    "x": 742,
+    "y": 250,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_FreqDeviation": {
+    "x": 0,
+    "y": 294,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_FreqDeviation": {
+    "x": 4,
+    "y": 300,
+    "width": 220,
+    "height": 37,
+    "text": "【频率偏差】",
+    "visible": true
+  },
+  "label_Enable_FreqDeviation": {
+    "x": 232,
+    "y": 300,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_FreqDeviation": {
+    "x": 302,
+    "y": 300,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_FreqDeviation": {
+    "x": 555,
+    "y": 300,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_FreqDeviation": {
+    "x": 664,
+    "y": 300,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_FreqDeviation": {
+    "x": 742,
+    "y": 300,
+    "width": 100,
+    "height": 37,
+    "text": "Hz",
+    "visible": true
+  },
+  "row_VoltageShortFlicke": {
+    "x": 0,
+    "y": 344,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageShortFlicke": {
+    "x": 4,
+    "y": 350,
+    "width": 220,
+    "height": 37,
+    "text": "【电压短闪变】",
+    "visible": true
+  },
+  "label_Enable_VoltageShortFlicke": {
+    "x": 232,
+    "y": 350,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageShortFlicke": {
+    "x": 302,
+    "y": 350,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageShortFlicke": {
+    "x": 555,
+    "y": 350,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageShortFlicke": {
+    "x": 664,
+    "y": 350,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageShortFlicke": {
+    "x": 742,
+    "y": 350,
+    "width": 100,
+    "height": 37,
+    "text": "",
+    "visible": true
+  },
+  "row_VoltageLongFlicke": {
+    "x": 0,
+    "y": 394,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageLongFlicke": {
+    "x": 4,
+    "y": 400,
+    "width": 220,
+    "height": 37,
+    "text": "【电压长闪变】",
+    "visible": true
+  },
+  "label_Enable_VoltageLongFlicke": {
+    "x": 232,
+    "y": 400,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageLongFlicke": {
+    "x": 302,
+    "y": 400,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageLongFlicke": {
+    "x": 555,
+    "y": 400,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageLongFlicke": {
+    "x": 664,
+    "y": 400,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageLongFlicke": {
+    "x": 742,
+    "y": 400,
+    "width": 100,
+    "height": 37,
+    "text": "",
+    "visible": true
+  },
+  "row_VoltageFluct": {
+    "x": 0,
+    "y": 444,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageFluct": {
+    "x": 4,
+    "y": 450,
+    "width": 220,
+    "height": 37,
+    "text": "【电压波动】",
+    "visible": true
+  },
+  "label_Enable_VoltageFluct": {
+    "x": 232,
+    "y": 450,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageFluct": {
+    "x": 302,
+    "y": 450,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageFluct": {
+    "x": 555,
+    "y": 450,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageFluct": {
+    "x": 664,
+    "y": 450,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageFluct": {
+    "x": 742,
+    "y": 450,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageSeg": {
+    "x": 0,
+    "y": 494,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageSeg": {
+    "x": 4,
+    "y": 500,
+    "width": 220,
+    "height": 37,
+    "text": "【电压暂降】",
+    "visible": true
+  },
+  "label_Enable_VoltageSeg": {
+    "x": 232,
+    "y": 500,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageSeg": {
+    "x": 302,
+    "y": 500,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageSeg": {
+    "x": 555,
+    "y": 500,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageSeg": {
+    "x": 664,
+    "y": 500,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageSeg": {
+    "x": 742,
+    "y": 500,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageSwell": {
+    "x": 0,
+    "y": 544,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageSwell": {
+    "x": 4,
+    "y": 550,
+    "width": 220,
+    "height": 37,
+    "text": "【电压暂升】",
+    "visible": true
+  },
+  "label_Enable_VoltageSwell": {
+    "x": 232,
+    "y": 550,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageSwell": {
+    "x": 302,
+    "y": 550,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageSwell": {
+    "x": 555,
+    "y": 550,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageSwell": {
+    "x": 664,
+    "y": 550,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageSwell": {
+    "x": 742,
+    "y": 550,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageTHD": {
+    "x": 0,
+    "y": 594,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageTHD": {
+    "x": 4,
+    "y": 600,
+    "width": 220,
+    "height": 37,
+    "text": "【电压总谐波含量】",
+    "visible": true
+  },
+  "label_Enable_VoltageTHD": {
+    "x": 232,
+    "y": 600,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageTHD": {
+    "x": 302,
+    "y": 600,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageTHD": {
+    "x": 555,
+    "y": 600,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageTHD": {
+    "x": 664,
+    "y": 600,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageTHD": {
+    "x": 742,
+    "y": 600,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageOddTHD": {
+    "x": 0,
+    "y": 644,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageOddTHD": {
+    "x": 4,
+    "y": 650,
+    "width": 220,
+    "height": 37,
+    "text": "【电压总奇次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_VoltageOddTHD": {
+    "x": 232,
+    "y": 650,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageOddTHD": {
+    "x": 302,
+    "y": 650,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageOddTHD": {
+    "x": 555,
+    "y": 650,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageOddTHD": {
+    "x": 664,
+    "y": 650,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageOddTHD": {
+    "x": 742,
+    "y": 650,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageEvenTHD": {
+    "x": 0,
+    "y": 694,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageEvenTHD": {
+    "x": 4,
+    "y": 700,
+    "width": 220,
+    "height": 37,
+    "text": "【电压总偶次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_VoltageEvenTHD": {
+    "x": 232,
+    "y": 700,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageEvenTHD": {
+    "x": 302,
+    "y": 700,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageEvenTHD": {
+    "x": 555,
+    "y": 700,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageEvenTHD": {
+    "x": 664,
+    "y": 700,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageEvenTHD": {
+    "x": 742,
+    "y": 700,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageOddHAR": {
+    "x": 0,
+    "y": 744,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageOddHAR": {
+    "x": 4,
+    "y": 750,
+    "width": 220,
+    "height": 37,
+    "text": "【电压单一奇次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_VoltageOddHAR": {
+    "x": 232,
+    "y": 750,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageOddHAR": {
+    "x": 302,
+    "y": 750,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageOddHAR": {
+    "x": 555,
+    "y": 750,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageOddHAR": {
+    "x": 664,
+    "y": 750,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageOddHAR": {
+    "x": 742,
+    "y": 750,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageEvenHAR": {
+    "x": 0,
+    "y": 794,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageEvenHAR": {
+    "x": 4,
+    "y": 800,
+    "width": 220,
+    "height": 37,
+    "text": "【电压单一偶次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_VoltageEvenHAR": {
+    "x": 232,
+    "y": 800,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageEvenHAR": {
+    "x": 302,
+    "y": 800,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageEvenHAR": {
+    "x": 555,
+    "y": 800,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageEvenHAR": {
+    "x": 664,
+    "y": 800,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageEvenHAR": {
+    "x": 742,
+    "y": 800,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageInterTHD": {
+    "x": 0,
+    "y": 844,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageInterTHD": {
+    "x": 4,
+    "y": 850,
+    "width": 220,
+    "height": 37,
+    "text": "【电压总间谐波含量】",
+    "visible": true
+  },
+  "label_Enable_VoltageInterTHD": {
+    "x": 232,
+    "y": 850,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageInterTHD": {
+    "x": 302,
+    "y": 850,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageInterTHD": {
+    "x": 555,
+    "y": 850,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageInterTHD": {
+    "x": 664,
+    "y": 850,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageInterTHD": {
+    "x": 742,
+    "y": 850,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_VoltageInterHAR": {
+    "x": 0,
+    "y": 894,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_VoltageInterHAR": {
+    "x": 4,
+    "y": 900,
+    "width": 220,
+    "height": 37,
+    "text": "【电压单一间谐波含量】",
+    "visible": true
+  },
+  "label_Enable_VoltageInterHAR": {
+    "x": 232,
+    "y": 900,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_VoltageInterHAR": {
+    "x": 302,
+    "y": 900,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_VoltageInterHAR": {
+    "x": 555,
+    "y": 900,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_VoltageInterHAR": {
+    "x": 664,
+    "y": 900,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_VoltageInterHAR": {
+    "x": 742,
+    "y": 900,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentUnbalance": {
+    "x": 0,
+    "y": 944,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentUnbalance": {
+    "x": 4,
+    "y": 950,
+    "width": 220,
+    "height": 37,
+    "text": "【电流不平衡】",
+    "visible": true
+  },
+  "label_Enable_CurrentUnbalance": {
+    "x": 232,
+    "y": 950,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentUnbalance": {
+    "x": 302,
+    "y": 950,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentUnbalance": {
+    "x": 555,
+    "y": 950,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentUnbalance": {
+    "x": 664,
+    "y": 950,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentUnbalance": {
+    "x": 742,
+    "y": 950,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentTHD": {
+    "x": 0,
+    "y": 994,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentTHD": {
+    "x": 4,
+    "y": 1000,
+    "width": 220,
+    "height": 37,
+    "text": "【电流总谐波含量】",
+    "visible": true
+  },
+  "label_Enable_CurrentTHD": {
+    "x": 232,
+    "y": 1000,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentTHD": {
+    "x": 302,
+    "y": 1000,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentTHD": {
+    "x": 555,
+    "y": 1000,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentTHD": {
+    "x": 664,
+    "y": 1000,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentTHD": {
+    "x": 742,
+    "y": 1000,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentOddTHD": {
+    "x": 0,
+    "y": 1044,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentOddTHD": {
+    "x": 4,
+    "y": 1050,
+    "width": 220,
+    "height": 37,
+    "text": "【电流总奇次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_CurrentOddTHD": {
+    "x": 232,
+    "y": 1050,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentOddTHD": {
+    "x": 302,
+    "y": 1050,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentOddTHD": {
+    "x": 555,
+    "y": 1050,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentOddTHD": {
+    "x": 664,
+    "y": 1050,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentOddTHD": {
+    "x": 742,
+    "y": 1050,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentEvenTHD": {
+    "x": 0,
+    "y": 1094,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentEvenTHD": {
+    "x": 4,
+    "y": 1100,
+    "width": 220,
+    "height": 37,
+    "text": "【电流总偶次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_CurrentEvenTHD": {
+    "x": 232,
+    "y": 1100,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentEvenTHD": {
+    "x": 302,
+    "y": 1100,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentEvenTHD": {
+    "x": 555,
+    "y": 1100,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentEvenTHD": {
+    "x": 664,
+    "y": 1100,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentEvenTHD": {
+    "x": 742,
+    "y": 1100,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentOddHAR": {
+    "x": 0,
+    "y": 1144,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentOddHAR": {
+    "x": 4,
+    "y": 1150,
+    "width": 220,
+    "height": 37,
+    "text": "【电流单一奇次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_CurrentOddHAR": {
+    "x": 232,
+    "y": 1150,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentOddHAR": {
+    "x": 302,
+    "y": 1150,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentOddHAR": {
+    "x": 555,
+    "y": 1150,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentOddHAR": {
+    "x": 664,
+    "y": 1150,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentOddHAR": {
+    "x": 742,
+    "y": 1150,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentEvenHAR": {
+    "x": 0,
+    "y": 1194,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentEvenHAR": {
+    "x": 4,
+    "y": 1200,
+    "width": 220,
+    "height": 37,
+    "text": "【电流单一偶次谐波含量】",
+    "visible": true
+  },
+  "label_Enable_CurrentEvenHAR": {
+    "x": 232,
+    "y": 1200,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentEvenHAR": {
+    "x": 302,
+    "y": 1200,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentEvenHAR": {
+    "x": 555,
+    "y": 1200,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentEvenHAR": {
+    "x": 664,
+    "y": 1200,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentEvenHAR": {
+    "x": 742,
+    "y": 1200,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentInterTHD": {
+    "x": 0,
+    "y": 1244,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentInterTHD": {
+    "x": 4,
+    "y": 1250,
+    "width": 220,
+    "height": 37,
+    "text": "【电流总间谐波含量】",
+    "visible": true
+  },
+  "label_Enable_CurrentInterTHD": {
+    "x": 232,
+    "y": 1250,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentInterTHD": {
+    "x": 302,
+    "y": 1250,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentInterTHD": {
+    "x": 555,
+    "y": 1250,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentInterTHD": {
+    "x": 664,
+    "y": 1250,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentInterTHD": {
+    "x": 742,
+    "y": 1250,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "row_CurrentInterHAR": {
+    "x": 0,
+    "y": 1294,
+    "width": 846,
+    "height": 50,
+    "text": "",
+    "visible": true
+  },
+  "label_CurrentInterHAR": {
+    "x": 4,
+    "y": 1300,
+    "width": 220,
+    "height": 37,
+    "text": "【电流单一间谐波含量】",
+    "visible": true
+  },
+  "label_Enable_CurrentInterHAR": {
+    "x": 232,
+    "y": 1300,
+    "width": 62,
+    "height": 37,
+    "text": "投/退：",
+    "visible": true
+  },
+  "C_Box_PQual_En_CurrentInterHAR": {
+    "x": 302,
+    "y": 1300,
+    "width": 65,
+    "height": 38,
+    "text": "",
+    "visible": true
+  },
+  "label_Value_CurrentInterHAR": {
+    "x": 555,
+    "y": 1300,
+    "width": 101,
+    "height": 37,
+    "text": "动作定值：",
+    "visible": true
+  },
+  "L_Edit_PQual_Val_CurrentInterHAR": {
+    "x": 664,
+    "y": 1300,
+    "width": 70,
+    "height": 38,
+    "text": "88.888",
+    "visible": true
+  },
+  "unit_CurrentInterHAR": {
+    "x": 742,
+    "y": 1300,
+    "width": 100,
+    "height": 37,
+    "text": "%",
+    "visible": true
+  },
+  "footerBar": {
+    "x": 0,
+    "y": 431,
+    "width": 854,
+    "height": 49,
+    "text": "",
+    "visible": true
+  },
+  "label_change": {
+    "x": 31,
+    "y": 432,
+    "width": 155,
+    "height": 47,
+    "text": "",
+    "visible": true
+  },
+  "footerCenterFrame": {
+    "x": 192,
+    "y": 432,
+    "width": 445,
+    "height": 47,
+    "text": "",
+    "visible": true
+  },
+  "pushButton": {
+    "x": 234,
+    "y": 435,
+    "width": 155,
+    "height": 40,
+    "text": "确定",
+    "visible": true
+  },
+  "pushButton_2": {
+    "x": 440,
+    "y": 435,
+    "width": 155,
+    "height": 40,
+    "text": "返回",
+    "visible": true
+  },
+  "pushButton_3": {
+    "x": 192,
+    "y": 432,
+    "width": 155,
+    "height": 40,
+    "text": "返回",
+    "visible": false
+  },
+  "footerTimeFrame": {
+    "x": 643,
+    "y": 432,
+    "width": 170,
+    "height": 47,
+    "text": "",
+    "visible": true
+  },
+  "dateLabel": {
+    "x": 647,
+    "y": 432,
+    "width": 84,
+    "height": 47,
+    "text": "2026/05/27",
+    "visible": true
+  },
+  "timeLabel": {
+    "x": 737,
+    "y": 432,
+    "width": 76,
+    "height": 47,
+    "text": "00:00:00",
+    "visible": true
+  }
+}

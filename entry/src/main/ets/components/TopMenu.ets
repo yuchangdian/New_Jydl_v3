@@ -169,10 +169,6 @@ export struct TopMenu {
       return;
     }
     if (item.title === '告警定值' && subItem.title === '整定') {
-      this.openPage('AlarmSettings/index');
-      return;
-    }
-    if (item.title === '告警定值' && subItem.title === '整定') {
       this.openPage('pages/CommonSetting_PowerQuality_Set');
       return;
     }
@@ -283,7 +279,7 @@ export struct TopMenu {
                           }, (subItem: SubMenuItemModel, leafIndex: number) => leafIndex.toString() + subItem.title);
                         }
                         .backgroundColor('#d6dadc')
-                        .width(120)
+                        .width(100)
                         .height(item.subItems.length * 35)
                         .borderRadius(5)
                         .position({ x: '100%', y: 0 })
@@ -292,7 +288,7 @@ export struct TopMenu {
                     }
                   }, (item: MenuSubItemModel, subIndex: number) => subIndex.toString() + item.title);
                 }
-                .width('100%')
+                .width(135)
                 .borderRadius({ bottomLeft: 5, bottomRight: 5 })
                 .clip(false)
                 .zIndex(9999);

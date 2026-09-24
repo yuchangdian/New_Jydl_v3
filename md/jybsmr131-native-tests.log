@@ -1,0 +1,4 @@
+PASS base layout, bounds, unaligned access and legacy isolation
+PASS harmonic arrays, six signed waveform channels and new signal layout
+PASS both system variants, nested settings, CRC and invalid writes
+PASS query whitelist, missing dependencies, concurrent snapshots and reset

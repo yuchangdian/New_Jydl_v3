@@ -1,4 +1,5 @@
 #include "setting.h"
+#include "quality.h"
 
 #include <deque>
 #include <iomanip>

@@ -1,6 +1,7 @@
 #ifndef QUALITY_H
 #define QUALITY_H
 
+#include <cstdint>
 #include <iostream>
 //#include <QString>
 
@@ -72,24 +73,40 @@ typedef struct
 {
     uint32_t Enable;
     float ActValue;
-}PowerQualitySettingUnit;
+}PQSettingUnit;
+
+// 保留旧名称，避免已有代码在迁移期间失效。
+typedef PQSettingUnit PowerQualitySettingUnit;
 
 typedef struct
 {
-    PowerQualitySettingUnit  FreqDeviation;		//频率偏差定值 （  )Hz
+    uint32_t VoltageRef_SegSwell;       // 暂降/暂升参考值：0 额定电压，1 滑动参考电压
+    uint32_t RecoedSize_Normal;         // 正常状态录波长度，ms
+    uint32_t RecoedSize_Violation;      // 越限状态录波长度，ms
 
-    PowerQualitySettingUnit  VoltageDeviation;	//电压偏差定值 （  )%
-    PowerQualitySettingUnit  VoltageUnbalance;	//电压不平衡定值 （  )%
-    PowerQualitySettingUnit  VoltageFluct;		//电压波动定值 （  )V
-    PowerQualitySettingUnit  VoltageFlicke;		//电压闪变定值 （  )无单位
-    PowerQualitySettingUnit  VoltageSeg;		//电压暂降定值 （  )%
-
-    PowerQualitySettingUnit  VoltageTHD;		//电压总谐波含量定值 （  )%
-    PowerQualitySettingUnit  VoltageHAR;		//电压单次谐波含量定值 （  )%
-
-    PowerQualitySettingUnit  CurrentUnbalance;	//电流不平衡定值 （  )%
-    PowerQualitySettingUnit  CurrentTHD;		//电流总谐波含量定值 （  )%
-    PowerQualitySettingUnit  CurrentHAR;		//电流单次谐波含量定值 （  )%
+    PQSettingUnit VoltageUnbalance;
+    PQSettingUnit VoltageDeviation;
+    PQSettingUnit FreqDeviation;
+    PQSettingUnit VoltageShortFlicke;
+    PQSettingUnit VoltageLongFlicke;
+    PQSettingUnit VoltageFluct;
+    PQSettingUnit VoltageSeg;
+    PQSettingUnit VoltageSwell;
+    PQSettingUnit VoltageTHD;
+    PQSettingUnit VoltageOddTHD;
+    PQSettingUnit VoltageEvenTHD;
+    PQSettingUnit VoltageOddHAR;
+    PQSettingUnit VoltageEvenHAR;
+    PQSettingUnit VoltageInterTHD;
+    PQSettingUnit VoltageInterHAR;
+    PQSettingUnit CurrentUnbalance;
+    PQSettingUnit CurrentTHD;
+    PQSettingUnit CurrentOddTHD;
+    PQSettingUnit CurrentEvenTHD;
+    PQSettingUnit CurrentOddHAR;
+    PQSettingUnit CurrentEvenHAR;
+    PQSettingUnit CurrentInterTHD;
+    PQSettingUnit CurrentInterHAR;
 
     uint32_t CRC;
 }PowerQualitySetting_struct;

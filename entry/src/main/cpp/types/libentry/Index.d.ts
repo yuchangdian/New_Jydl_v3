@@ -45,6 +45,10 @@ export interface CommonSettingPrimarySystemWriteValue {
 
 export interface BaseFreqDisplayValue {
   ready: boolean;
+  protocolVersion?: string;
+  Ua_Frequency?: number;
+  Ub_Frequency?: number;
+  Uc_Frequency?: number;
   Ua_Rms: number;
   Ua_Phase: number;
   Ub_Rms: number;
@@ -467,6 +471,46 @@ export interface RelaySettingWriteZoneValue {
   zoneCode: number;
   fields: RelaySettingWriteFieldEntryValue[];
 }
+
+export interface Jybsmr131NumericField {
+  name: string;
+  values: number[];
+}
+
+export interface Jybsmr131PacketValue {
+  ready: boolean;
+  // 有效回包递增；重复读取缓存不变。sessionId 在连接缓存重置时递增。
+  revision: number;
+  sessionId: number;
+  commonAddress: number;
+  objectAddress: number;
+  payloadLength: number;
+  fields: Jybsmr131NumericField[];
+}
+
+export const getJybsmr131Packet: (commonAddress: number, objectAddress: number) => Jybsmr131PacketValue;
+export interface Jybsmr131DigitalInputValue {
+  ready: boolean;
+  complete: boolean;
+  validMask: number;
+  BreakerState_Now: number;
+  GLKGW?: number;
+  JDKGW?: number;
+  KHBJ?: number;
+  WCN?: number;
+  YFJD?: number;
+  HW?: number;
+  TW?: number;
+  Run?: number;
+  Alarm?: number;
+  SyncErr?: number;
+  SwitchState?: number;
+}
+
+export const getJybsmr131DigitalInputs: () => Jybsmr131DigitalInputValue;
+export const requestJybsmr131Packet: (commonAddress: number, objectAddress: number) => boolean;
+// 必须先收到该对象的有效定值回包。true 表示发送成功，设备确认以回包为准。
+export const updateJybsmr131Setting: (objectAddress: number, fields: Jybsmr131NumericField[]) => boolean;
 
 export const startTcpClient: (host: string, port: number) => boolean;
 export const stopTcpClient: () => void;

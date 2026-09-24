@@ -7,6 +7,7 @@
 #include "setting_napi.h"
 #include "telemetry_napi.h"
 #include "tcp_client.h"
+#include "jybsmr131_napi.h"
 
 
 
@@ -154,6 +155,10 @@ EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports)
 {
     napi_property_descriptor desc[] = {
+        {"getJybsmr131Packet", nullptr, GetJybsmr131Packet, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getJybsmr131DigitalInputs", nullptr, GetJybsmr131DigitalInputs, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"requestJybsmr131Packet", nullptr, RequestJybsmr131Packet, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"updateJybsmr131Setting", nullptr, UpdateJybsmr131Setting, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"startTcpClient", nullptr, StartTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"stopTcpClient", nullptr, StopTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isTcpClientRunning", nullptr, IsTcpClientRunning, nullptr, nullptr, nullptr, napi_default, nullptr},

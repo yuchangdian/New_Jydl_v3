@@ -1,12 +1,10 @@
 import { window } from '@kit.ArkUI'
 import { CommonTitleBar } from '../../components/CommonTitleBar'
 import { WidebandContent } from './WidebandContent';
+import { PowerQualityRealtimeMonitoringPage } from './PowerQualityRealtimeMonitoringPage';
 import { harmonicContent } from './harmonic';
 import { interHarmonicContent } from './interHarmonic';
-import { VoltageMonitoring } from './VoltageMonitoring';
-import { SequenceMonitoring } from './SequenceMonitoring';
-import { VoltageFlickerMonitoring } from './VoltageFlickerMonitoring';
-import { PowerQualityReport } from './PowerQualityReport';
+import { PowerQualityReportPage } from './PowerQualityReportPage';
 import display from '@ohos.display';
 
 @Entry
@@ -17,7 +15,7 @@ struct WidebandPhasorPage {
   @State uiScale: number = 1;
   readonly designWidth: number = 720;
 
-  @State selectedMenuItem: string = "宽频相量";
+  @State selectedMenuItem: string = "实时指标";
   @State showContent: boolean = false;
 
   async initUIScale() {
@@ -60,12 +58,10 @@ struct WidebandPhasorPage {
           .justifyContent(FlexAlign.Center)
 
           Column() {
+            this.menuItem("实时指标")
             this.menuItem("宽频相量")
             this.menuItem("谐波")
             this.menuItem("间谐波")
-            this.menuItem("偏差")
-            this.menuItem("不平衡")
-            this.menuItem("波动与闪变")
             this.menuItem("合格率")
           }
           .width(100 * this.uiScale)
@@ -110,20 +106,16 @@ struct WidebandPhasorPage {
   getContent() {
     Column() {
       if (this.showContent) {
-        if (this.selectedMenuItem === "宽频相量") {
+        if (this.selectedMenuItem === "实时指标") {
+          PowerQualityRealtimeMonitoringPage()
+        } else if (this.selectedMenuItem === "宽频相量") {
           WidebandContent()
         } else if (this.selectedMenuItem === "谐波") {
           harmonicContent()
         } else if (this.selectedMenuItem === "间谐波") {
           interHarmonicContent()
-        } else if (this.selectedMenuItem === "偏差") {
-          VoltageMonitoring()
-        } else if (this.selectedMenuItem === "不平衡") {
-          SequenceMonitoring()
-        } else if (this.selectedMenuItem === "波动与闪变") {
-          VoltageFlickerMonitoring()
         } else if (this.selectedMenuItem === "合格率") {
-          PowerQualityReport()
+          PowerQualityReportPage()
         }
       }
     }

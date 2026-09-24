@@ -990,38 +990,6 @@ typedef struct
     RelaySetting_Struct Setting;
 }RemoteAdjust_Setting_Struct;	//定值遥调数据结构
 
-/******************************************************************************/
-/*--------------------------  电能质量-告警定值 ------------------------*/
-/******************************************************************************/
-typedef struct
-{
-    uint32_t Enable;
-    float ActValue;
-}PowerQualitySettingUnit;
-
-typedef struct
-{
-    PowerQualitySettingUnit  FreqDeviation;		//频率偏差定值 （  )Hz
-
-    PowerQualitySettingUnit  VoltageDeviation;	//电压偏差定值 （  )%
-    PowerQualitySettingUnit  VoltageUnbalance;	//电压不平衡定值 （  )%
-    PowerQualitySettingUnit  VoltageFluct;		//电压波动定值 （  )V
-    PowerQualitySettingUnit  VoltageFlicke;		//电压闪变定值 （  )无单位
-    PowerQualitySettingUnit  VoltageSeg;		//电压暂降定值 （  )%
-
-    PowerQualitySettingUnit  VoltageTHD;		//电压总谐波含量定值 （  )%
-    PowerQualitySettingUnit  VoltageHAR;		//电压单次谐波含量定值 （  )%
-
-    PowerQualitySettingUnit  CurrentUnbalance;	//电流不平衡定值 （  )%
-    PowerQualitySettingUnit  CurrentTHD;		//电流总谐波含量定值 （  )%
-    PowerQualitySettingUnit  CurrentHAR;		//电流单次谐波含量定值 （  )%
-
-    uint32_t CRC;
-}PowerQualitySetting_struct;
-#define QualitySetting_Length		92
-#define QualitySetting_CRCLength	22
-extern PowerQualitySetting_struct QualitySetting;
-
 //通道系数数据结构
 typedef struct AI_coeff
 {

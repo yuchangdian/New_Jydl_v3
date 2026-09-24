@@ -1,4 +1,5 @@
 #include "tcp_client.h"
+#include "protocol/jybsmr131/codec.h"
 #include "IEC104.h"
 #include "setting.h"
 
@@ -555,10 +556,15 @@ void TcpClient::ThreadMain()
                 close(socketFd);
                 break;
             }
+            jybsmr131::PacketStore::Instance().Reset();
             socketFd_ = socketFd;
         }
 
         TCP_LOGI("connected. host=%{public}s port=%{public}d", host, port);
+        bufferedSize_ = 0;
+        BaseFreqDisplayReady = false;
+        HarmonicVoltageDisplayReady = false;
+        HarmonicCurrentDisplayReady = false;
 
         while (true) {
             const ssize_t receivedSize = recv(socketFd, recvBuffer.data(), recvBuffer.size(), 0);
@@ -577,6 +583,11 @@ void TcpClient::ThreadMain()
         }
 
         bool shouldContinue = false;
+        bufferedSize_ = 0;
+        jybsmr131::PacketStore::Instance().Reset();
+        BaseFreqDisplayReady = false;
+        HarmonicVoltageDisplayReady = false;
+        HarmonicCurrentDisplayReady = false;
         {
             std::lock_guard<std::mutex> lock(stateMutex_);
             if (socketFd_ == socketFd) {
@@ -698,12 +709,25 @@ void TcpClient::DispatchDecodedFrames()
         }
 
         const std::size_t frameLength = frameHeaderLength + static_cast<std::size_t>(dataLength);
+        if (frameLength > decodeBuffer_.size()) {
+            TCP_LOGW("decode rejected oversized frame: %{public}d", static_cast<int>(frameLength));
+            frameOffset = bufferedSize_;
+            break;
+        }
         if (frameOffset + frameLength > bufferedSize_) {
             break;
         }
 
         std::size_t decodeOffset = frameOffset;
         TCP_LOGI("commonAddr = %{public}d  objectAddr=%{public}d", commonAddr, objectAddr);
+        if (jybsmr131::IsCommonAddress(commonAddr)) {
+            const bool decoded = jybsmr131::PacketStore::Instance().Decode(
+                decodeBuffer_.data() + frameOffset, frameLength);
+            if (!decoded) TCP_LOGW("JYBSMR131 unsupported or invalid packet common=%{public}u object=%{public}u length=%{public}u",
+                commonAddr, objectAddr, dataLength);
+            frameOffset += frameLength;
+            continue;
+        }
         switch (commonAddr) {
             case Common_Addr_RemoteMetry:
                 decodeOffset += sizeof(std::uint16_t) * 2;
