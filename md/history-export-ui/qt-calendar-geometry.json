@@ -1,0 +1,126 @@
+{
+  "dialog": {
+    "x": 77,
+    "y": 157,
+    "width": 372,
+    "height": 325
+  },
+  "requested": {
+    "width": 372,
+    "height": 338
+  },
+  "QCalendarWidget": {
+    "x": 13,
+    "y": 13,
+    "width": 346,
+    "height": 244
+  },
+  "qt_calendar_calendarview": {
+    "x": 13,
+    "y": 41,
+    "width": 346,
+    "height": 216
+  },
+  "qt_scrollarea_viewport": {
+    "x": 13,
+    "y": 41,
+    "width": 346,
+    "height": 0
+  },
+  "qt_scrollarea_hcontainer": {
+    "x": 13,
+    "y": 41,
+    "width": 100,
+    "height": 30
+  },
+  "QScrollBar": {
+    "x": 13,
+    "y": 41,
+    "width": 100,
+    "height": 30
+  },
+  "qt_scrollarea_vcontainer": {
+    "x": 13,
+    "y": 41,
+    "width": 100,
+    "height": 30
+  },
+  "QHeaderView": {
+    "x": 13,
+    "y": 41,
+    "width": 346,
+    "height": 0
+  },
+  "QTableCornerButton": {
+    "x": 13,
+    "y": 41,
+    "width": 100,
+    "height": 30
+  },
+  "qt_calendar_navigationbar": {
+    "x": 13,
+    "y": 13,
+    "width": 346,
+    "height": 28
+  },
+  "qt_calendar_prevmonth": {
+    "x": 13,
+    "y": 13,
+    "width": 26,
+    "height": 28
+  },
+  "qt_calendar_nextmonth": {
+    "x": 333,
+    "y": 13,
+    "width": 26,
+    "height": 28
+  },
+  "qt_calendar_monthbutton": {
+    "x": 132,
+    "y": 13,
+    "width": 51,
+    "height": 28
+  },
+  "QMenu": {
+    "x": 132,
+    "y": 13,
+    "width": 100,
+    "height": 30
+  },
+  "QWidget": {
+    "x": 132,
+    "y": 13,
+    "width": 100,
+    "height": 30
+  },
+  "QPushButton": {
+    "x": 189,
+    "y": 264,
+    "width": 98,
+    "height": 48
+  },
+  "qt_calendar_yearbutton": {
+    "x": 183,
+    "y": 13,
+    "width": 57,
+    "height": 28
+  },
+  "qt_calendar_yearedit": {
+    "x": 13,
+    "y": 13,
+    "width": 100,
+    "height": 30
+  },
+  "qt_spinbox_lineedit": {
+    "x": 13,
+    "y": 13,
+    "width": 76,
+    "height": 30
+  },
+  "QDialogButtonBox": {
+    "x": 13,
+    "y": 264,
+    "width": 346,
+    "height": 48
+  }
+}

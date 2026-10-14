@@ -118,6 +118,10 @@ export struct TopMenu {
   }
 
   private handleDirectItemClick(item: MenuSubItemModel): void {
+    if (item.title === '历史数据') {
+      this.openPage('pages/quality/PowerQualityHistoryPage');
+      return;
+    }
     if (item.title === '压板投退') {
       this.openPage('pages/SoftStrapSet');
       return;

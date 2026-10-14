@@ -1,0 +1,34 @@
+{
+  "dialog": {
+    "width": 333,
+    "height": 100
+  },
+  "qt_msgboxex_icon_label": {
+    "x": 11,
+    "y": 11,
+    "width": 32,
+    "height": 32,
+    "text": ""
+  },
+  "qt_msgbox_label": {
+    "x": 62,
+    "y": 11,
+    "width": 260,
+    "height": 26,
+    "text": "结束时间必须晚于开始时间。"
+  },
+  "qt_msgbox_buttonbox": {
+    "x": 11,
+    "y": 49,
+    "width": 311,
+    "height": 40,
+    "text": ""
+  },
+  "QPushButton": {
+    "x": 152,
+    "y": 49,
+    "width": 29,
+    "height": 40,
+    "text": "OK"
+  }
+}

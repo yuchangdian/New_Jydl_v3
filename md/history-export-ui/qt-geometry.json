@@ -1,0 +1,353 @@
+{
+  "headerFrame": {
+    "x": 0,
+    "y": 0,
+    "width": 854,
+    "height": 53,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "documentIcon": {
+    "x": 10,
+    "y": 10,
+    "width": 31,
+    "height": 39,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "iconPaper": {
+    "x": 14,
+    "y": 14,
+    "width": 23,
+    "height": 31,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "iconLine1": {
+    "x": 17,
+    "y": 20,
+    "width": 17,
+    "height": 4,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "iconLine2": {
+    "x": 17,
+    "y": 28,
+    "width": 17,
+    "height": 4,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "iconLine3": {
+    "x": 17,
+    "y": 36,
+    "width": 17,
+    "height": 4,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "titleLabel": {
+    "x": 297,
+    "y": 10,
+    "width": 260,
+    "height": 33,
+    "text": "电能质量历史数据导出",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 25,
+    "fontPointSize": -1.0
+  },
+  "titleBalance": {
+    "x": 813,
+    "y": 10,
+    "width": 31,
+    "height": 33,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "contentFrame": {
+    "x": 0,
+    "y": 53,
+    "width": 854,
+    "height": 366,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "timeLabel": {
+    "x": 105,
+    "y": 95,
+    "width": 69,
+    "height": 52,
+    "text": "时间：",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 22,
+    "fontPointSize": -1.0
+  },
+  "startDateTimeContainer": {
+    "x": 188,
+    "y": 95,
+    "width": 243,
+    "height": 52,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "startDateEdit": {
+    "x": 188,
+    "y": 95,
+    "width": 147,
+    "height": 52,
+    "text": "2026/10/14",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 20,
+    "fontPointSize": -1.0
+  },
+  "qt_spinbox_lineedit": {
+    "x": 673,
+    "y": 97,
+    "width": 70,
+    "height": 48,
+    "text": "12:38",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 20,
+    "fontPointSize": -1.0
+  },
+  "startTimeEdit": {
+    "x": 349,
+    "y": 95,
+    "width": 82,
+    "height": 52,
+    "text": "00:00",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 20,
+    "fontPointSize": -1.0
+  },
+  "toLabel": {
+    "x": 445,
+    "y": 95,
+    "width": 47,
+    "height": 52,
+    "text": "至",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 20,
+    "fontPointSize": -1.0
+  },
+  "endDateTimeContainer": {
+    "x": 506,
+    "y": 95,
+    "width": 243,
+    "height": 52,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "endDateEdit": {
+    "x": 506,
+    "y": 95,
+    "width": 147,
+    "height": 52,
+    "text": "2026/10/14",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 20,
+    "fontPointSize": -1.0
+  },
+  "endTimeEdit": {
+    "x": 667,
+    "y": 95,
+    "width": 82,
+    "height": 52,
+    "text": "12:38",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 20,
+    "fontPointSize": -1.0
+  },
+  "baseValueCheckBox": {
+    "x": 185,
+    "y": 169,
+    "width": 232,
+    "height": 28,
+    "text": "基波数据",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 21,
+    "fontPointSize": -1.0,
+    "indicator": {
+      "x": 0,
+      "y": 1,
+      "width": 26,
+      "height": 26
+    },
+    "label": {
+      "x": 38,
+      "y": 0,
+      "width": 194,
+      "height": 28
+    }
+  },
+  "qualityCheckBox": {
+    "x": 517,
+    "y": 169,
+    "width": 232,
+    "height": 28,
+    "text": "电能质量指标",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 21,
+    "fontPointSize": -1.0,
+    "indicator": {
+      "x": 0,
+      "y": 1,
+      "width": 26,
+      "height": 26
+    },
+    "label": {
+      "x": 38,
+      "y": 0,
+      "width": 194,
+      "height": 28
+    }
+  },
+  "voltageHarmonicCheckBox": {
+    "x": 185,
+    "y": 217,
+    "width": 232,
+    "height": 28,
+    "text": "电压谐波",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 21,
+    "fontPointSize": -1.0,
+    "indicator": {
+      "x": 0,
+      "y": 1,
+      "width": 26,
+      "height": 26
+    },
+    "label": {
+      "x": 38,
+      "y": 0,
+      "width": 194,
+      "height": 28
+    }
+  },
+  "currentHarmonicCheckBox": {
+    "x": 517,
+    "y": 217,
+    "width": 232,
+    "height": 28,
+    "text": "电流谐波",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 21,
+    "fontPointSize": -1.0,
+    "indicator": {
+      "x": 0,
+      "y": 1,
+      "width": 26,
+      "height": 26
+    },
+    "label": {
+      "x": 38,
+      "y": 0,
+      "width": 194,
+      "height": 28
+    }
+  },
+  "voltageInterHarmonicCheckBox": {
+    "x": 185,
+    "y": 265,
+    "width": 232,
+    "height": 28,
+    "text": "电压间谐波",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 21,
+    "fontPointSize": -1.0,
+    "indicator": {
+      "x": 0,
+      "y": 1,
+      "width": 26,
+      "height": 26
+    },
+    "label": {
+      "x": 38,
+      "y": 0,
+      "width": 194,
+      "height": 28
+    }
+  },
+  "currentInterHarmonicCheckBox": {
+    "x": 517,
+    "y": 265,
+    "width": 232,
+    "height": 28,
+    "text": "电流间谐波",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 21,
+    "fontPointSize": -1.0,
+    "indicator": {
+      "x": 0,
+      "y": 1,
+      "width": 26,
+      "height": 26
+    },
+    "label": {
+      "x": 38,
+      "y": 0,
+      "width": 194,
+      "height": 28
+    }
+  },
+  "hintLabel": {
+    "x": 105,
+    "y": 374,
+    "width": 644,
+    "height": 21,
+    "text": "请选择时间范围和数据类型，导出文件格式为 CSV。",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 16,
+    "fontPointSize": -1.0
+  },
+  "footerFrame": {
+    "x": 0,
+    "y": 419,
+    "width": 854,
+    "height": 61,
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": -1,
+    "fontPointSize": 10.0
+  },
+  "exportButton": {
+    "x": 254,
+    "y": 428,
+    "width": 137,
+    "height": 42,
+    "text": "导出",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 22,
+    "fontPointSize": -1.0
+  },
+  "backButton": {
+    "x": 432,
+    "y": 428,
+    "width": 137,
+    "height": 42,
+    "text": "返回",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 22,
+    "fontPointSize": -1.0
+  },
+  "dateTimeLabel": {
+    "x": 650,
+    "y": 420,
+    "width": 188,
+    "height": 59,
+    "text": "2026/10/14 12:38:31",
+    "fontFamily": "Microsoft YaHei",
+    "fontPixelSize": 18,
+    "fontPointSize": -1.0
+  }
+}

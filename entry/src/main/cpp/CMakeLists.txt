@@ -12,6 +12,7 @@ include_directories(${NATIVERENDER_ROOT_PATH}
                     ${NATIVERENDER_ROOT_PATH}/include)
 
 add_library(entry SHARED napi_init.cpp tcp_client.cpp data.cpp setting_napi.cpp telemetry_napi.cpp
+    history_query_napi.cpp third_party/sqlite/sqlite3.c
     jybsmr131_napi.cpp protocol/jybsmr131/codec.cpp protocol/jybsmr131/data.cpp
     protocol/jybsmr131/soe_text.cpp)
 target_link_libraries(entry PUBLIC libace_napi.z.so libhilog_ndk.z.so)

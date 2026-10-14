@@ -8,6 +8,7 @@
 #include "telemetry_napi.h"
 #include "tcp_client.h"
 #include "jybsmr131_napi.h"
+#include "history_query_napi.h"
 
 
 
@@ -155,6 +156,9 @@ EXTERN_C_START
 static napi_value Init(napi_env env, napi_value exports)
 {
     napi_property_descriptor desc[] = {
+        {"openHistoryQuery", nullptr, OpenHistoryQuery, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"nextHistoryBatch", nullptr, NextHistoryBatch, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"closeHistoryQuery", nullptr, CloseHistoryQuery, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getJybsmr131Packet", nullptr, GetJybsmr131Packet, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getJybsmr131DigitalInputs", nullptr, GetJybsmr131DigitalInputs, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"requestJybsmr131Packet", nullptr, RequestJybsmr131Packet, nullptr, nullptr, nullptr, napi_default, nullptr},

@@ -539,3 +539,19 @@ export const getRelaySettingByZone: (zoneCode: number) => RelaySettingZoneValue;
 export const requestRelaySettingByZone: (zoneCode: number) => boolean;
 export const updateRelaySettingByZone: (value: RelaySettingWriteZoneValue) => boolean;
 export const add: (a: number, b: number) => number;
+export interface HistoryNativeRow {
+  timestampMs: number;
+  timeMs: number;
+  payload?: ArrayBuffer;
+  address?: number;
+  rms?: ArrayBuffer;
+  angle?: ArrayBuffer;
+}
+export interface HistoryNativeBatch {
+  rows: HistoryNativeRow[];
+  done: boolean;
+}
+export const openHistoryQuery: (path: string, table: string, startMs: number,
+  endMs: number, address: number, sampleStep: number) => number;
+export const nextHistoryBatch: (handle: number) => HistoryNativeBatch;
+export const closeHistoryQuery: (handle: number) => void;
