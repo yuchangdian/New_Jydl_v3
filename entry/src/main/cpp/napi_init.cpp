@@ -7,6 +7,7 @@
 #include "setting_napi.h"
 #include "telemetry_napi.h"
 #include "tcp_client.h"
+#include "tcp_server_napi.h"
 #include "jybsmr131_napi.h"
 #include "history_query_napi.h"
 
@@ -166,7 +167,12 @@ static napi_value Init(napi_env env, napi_value exports)
         {"startTcpClient", nullptr, StartTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"stopTcpClient", nullptr, StopTcpClient, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"isTcpClientRunning", nullptr, IsTcpClientRunning, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"startTcpServer", nullptr, StartTcpServer, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"stopTcpServer", nullptr, StopTcpServer, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"isTcpServerRunning", nullptr, IsTcpServerRunning, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"isTcpServerClientConnected", nullptr, IsTcpServerClientConnected, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getBaseFreqDisplayData", nullptr, GetBaseFreqDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getPowerQualityDisplayData", nullptr, GetPowerQualityDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"requestHarmonicDisplayData", nullptr, RequestHarmonicDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getHarmonicVoltageDisplayData", nullptr, GetHarmonicVoltageDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"getHarmonicCurrentDisplayData", nullptr, GetHarmonicCurrentDisplayData, nullptr, nullptr, nullptr, napi_default, nullptr},

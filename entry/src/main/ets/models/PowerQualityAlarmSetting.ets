@@ -87,8 +87,45 @@ export function buildPowerQualitySettingFields(reference: number, normalText: st
 }
 
 export function readPacketValue(packet: Jybsmr131PacketValue, name: string): number | undefined {
+  if (!packet.ready) return undefined;
   const field = packet.fields.find((item: Jybsmr131NumericField) => item.name === name);
-  return field && field.values.length === 1 ? field.values[0] : undefined;
+  return field && field.values.length === 1 && Number.isFinite(field.values[0]) ? field.values[0] : undefined;
+}
+
+export interface PowerQualityAlarmSettingValues {
+  voltageReferenceIndex: number;
+  normalRecordLength: string;
+  violationRecordLength: string;
+  rows: PowerQualityAlarmRow[];
+}
+
+// 对应 Qt set_setting：先确认整份定值完整，再一次性赋给控件。
+export function readPowerQualityAlarmSetting(packet: Jybsmr131PacketValue): PowerQualityAlarmSettingValues | undefined {
+  if (!packet.ready || packet.commonAddress !== 0x1344 || packet.objectAddress !== 0x0033 ||
+    packet.payloadLength !== 200 || !Number.isSafeInteger(packet.revision) || packet.revision <= 0 ||
+    !Number.isSafeInteger(packet.sessionId) || packet.sessionId < 0) return undefined;
+  const reference = readPacketValue(packet, 'VoltageRef_SegSwell');
+  const normal = readPacketValue(packet, 'RecoedSize_Normal');
+  const violation = readPacketValue(packet, 'RecoedSize_Violation');
+  if (reference === undefined || normal === undefined || violation === undefined ||
+    !Number.isInteger(reference) || reference < 0 || !Number.isInteger(normal) || normal < 0 ||
+    !Number.isInteger(violation) || violation < 0) return undefined;
+  const rows = createPowerQualityAlarmRows();
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index];
+    const enabled = readPacketValue(packet, `${row.key}.Enable`);
+    const value = readPacketValue(packet, `${row.key}.ActValue`);
+    if ((enabled !== 0 && enabled !== 1) || value === undefined) return undefined;
+    row.enabled = enabled === 1 ? '投入' : '退出';
+    // Qt QString::number 默认六位有效数字，消除二进制 float 的显示尾差。
+    row.value = Number(value.toPrecision(6)).toString();
+  }
+  return {
+    voltageReferenceIndex: Math.min(reference, 1),
+    normalRecordLength: normal.toFixed(2),
+    violationRecordLength: violation.toFixed(2),
+    rows: rows
+  };
 }
 
 export function packetMatchesFields(packet: Jybsmr131PacketValue, fields: Jybsmr131NumericField[]): boolean {

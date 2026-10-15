@@ -1,5 +1,6 @@
 #pragma once
 #include "data.h"
+#include "../../powerquality.h"
 #include <cstring>
 #include <cstddef>
 #include <mutex>
@@ -8,6 +9,7 @@
 #include <map>
 
 namespace jybsmr131 {
+using PowerQualityPacket = Package_YC_PowerQuality_Struct<::PowerQualityIndicator_struct>;
 constexpr std::size_t kHeaderSize = 6;
 struct NumericField {
     std::string name;
@@ -70,6 +72,8 @@ private:
 };
 
 static_assert(sizeof(Package_YC_BaseValue_Struct) == 157, "工频报文布局不匹配");
+static_assert(sizeof(PowerQualityPacket) == 441 && offsetof(PowerQualityPacket, PowerQuality) == 13,
+              "电能质量报文应为 13 字节头部和 107 个浮点指标");
 static_assert(offsetof(Package_YC_BaseValue_Struct, Ua_Frequency) == 17, "工频字段偏移不匹配");
 static_assert(sizeof(YC_HarmonicU_Struct) == 373 && sizeof(YC_HarmonicI_Struct) == 373, "谐波报文布局不匹配");
 static_assert(sizeof(Package_YC_PlotBuf_Struct) == 813, "波形报文布局不匹配");

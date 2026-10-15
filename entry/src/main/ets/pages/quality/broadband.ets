@@ -17,6 +17,7 @@ struct WidebandPhasorPage {
 
   @State selectedMenuItem: string = "实时指标";
   @State showContent: boolean = false;
+  @State private pageActive: boolean = true;
 
   async initUIScale() {
     try {
@@ -36,6 +37,11 @@ struct WidebandPhasorPage {
   }
 
   onPageShow(): void {
+    this.pageActive = true;
+  }
+
+  onPageHide(): void {
+    this.pageActive = false;
   }
 
   build() {
@@ -107,7 +113,7 @@ struct WidebandPhasorPage {
     Column() {
       if (this.showContent) {
         if (this.selectedMenuItem === "实时指标") {
-          PowerQualityRealtimeMonitoringPage()
+          PowerQualityRealtimeMonitoringPage({ pageActive: this.pageActive })
         } else if (this.selectedMenuItem === "宽频相量") {
           WidebandContent()
         } else if (this.selectedMenuItem === "谐波") {

@@ -16,6 +16,7 @@ struct FieldDescriptor {
     double scale;
 };
 #include "fields.inc"
+#include "power_quality_fields.inc"
 struct Schema {
     const FieldDescriptor *fields = nullptr;
     std::size_t count = 0;
@@ -39,6 +40,7 @@ Schema FindSchema(std::uint16_t common, std::uint16_t object, std::size_t payloa
     if (common == kCommon_Addr_RemoteMetry) {
         switch (object) {
             case kRemoteMetry_BaseValue: return Describe<Package_YC_BaseValue_Struct>(fields_Package_YC_BaseValue_Struct, true);
+            case kRemoteMetry_PowerQuality: return Describe<PowerQualityPacket>(fields_PowerQualityPacket, true);
             case kRemoteMetry_HarmonicU: return Describe<YC_HarmonicU_Struct>(fields_YC_HarmonicU_Struct, true);
             case kRemoteMetry_HarmonicI: return Describe<YC_HarmonicI_Struct>(fields_YC_HarmonicI_Struct, true);
             default:

@@ -90,6 +90,7 @@ interface RequestData {
 @Component
 export struct AlarmSettings {
   @State uiScale: number = 1
+  @State layoutReady: boolean = false
   readonly designWidth: number = 720
   @State currentTime: string = ''
   @State currentDate: string = ''
@@ -206,13 +207,6 @@ export struct AlarmSettings {
   }
 
   onPageShow(): void {
-    try {
-      let dis = display.getDefaultDisplaySync();
-      this.uiScale = dis.width / this.designWidth;
-    } catch (e) {
-      this.uiScale = 1;
-    }
-
     const now = new Date();
     this.currentDate = this.formatDate(now);
     this.currentTime = this.formatTime(now);
@@ -590,6 +584,15 @@ export struct AlarmSettings {
     }
     .width('100%')
     .height('100%')
+    // 使用布局实际 vp 宽度，并在缩放确定后显示，消除首帧字号跳变。
+    .opacity(this.layoutReady ? 1 : 0)
+    .onAreaChange((_oldArea: Area, newArea: Area) => {
+      const width = Number(newArea.width);
+      if (width > 0) {
+        this.uiScale = width / this.designWidth;
+        this.layoutReady = true;
+      }
+    })
   }
 
   @Builder

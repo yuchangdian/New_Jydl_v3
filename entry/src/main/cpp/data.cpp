@@ -90,6 +90,17 @@ bool HarmonicVoltageDisplayReady = false;
 YC_HarmonicI_Struct HarmonicI_Dsip;
 bool HarmonicCurrentDisplayReady = false;
 
+Package_YC_PowerQuality_Struct Package_PowerQuality;
+bool PowerQualityDisplayReady = false;
+std::mutex PowerQualityDisplayMutex;
+
+Package_YC_Distortion_Struct Package_HD_Ua1, Package_HD_Ub1, Package_HD_Uc1;
+Package_YC_Distortion_Struct Package_HD_Ia1, Package_HD_Ib1, Package_HD_Ic1;
+Package_YC_Distortion_Struct Package_IHD_Ua1, Package_IHD_Ub1, Package_IHD_Uc1;
+Package_YC_Distortion_Struct Package_IHD_Ia1, Package_IHD_Ib1, Package_IHD_Ic1;
+Package_YC_PlotBuf_Struct Package_PlotBuf_Ua1, Package_PlotBuf_Ub1, Package_PlotBuf_Uc1;
+Package_YC_PlotBuf_Struct Package_PlotBuf_Ia1, Package_PlotBuf_Ib1, Package_PlotBuf_Ic1;
+
 DigitalInputData_Struct DigitalInputData;
 
 

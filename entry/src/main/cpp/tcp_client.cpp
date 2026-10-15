@@ -566,6 +566,11 @@ void TcpClient::ThreadMain()
         HarmonicVoltageDisplayReady = false;
         HarmonicCurrentDisplayReady = false;
 
+        {
+            std::lock_guard<std::mutex> lock(PowerQualityDisplayMutex);
+            PowerQualityDisplayReady = false;
+        }
+
         while (true) {
             const ssize_t receivedSize = recv(socketFd, recvBuffer.data(), recvBuffer.size(), 0);
             if (receivedSize > 0) {
@@ -588,6 +593,10 @@ void TcpClient::ThreadMain()
         BaseFreqDisplayReady = false;
         HarmonicVoltageDisplayReady = false;
         HarmonicCurrentDisplayReady = false;
+        {
+            std::lock_guard<std::mutex> lock(PowerQualityDisplayMutex);
+            PowerQualityDisplayReady = false;
+        }
         {
             std::lock_guard<std::mutex> lock(stateMutex_);
             if (socketFd_ == socketFd) {
@@ -721,6 +730,22 @@ void TcpClient::DispatchDecodedFrames()
         std::size_t decodeOffset = frameOffset;
         TCP_LOGI("commonAddr = %{public}d  objectAddr=%{public}d", commonAddr, objectAddr);
         if (jybsmr131::IsCommonAddress(commonAddr)) {
+            // 电能质量及这 18 路使用 Qt 原名缓冲，交给下面的遥测函数解析完整包。
+            if (commonAddr == jybsmr131::kCommon_Addr_RemoteMetry &&
+                (objectAddr == RemoteMetry_PowerQuality ||
+                 (objectAddr >= RemoteMetry_HD_Ua && objectAddr <= RemoteMetry_HD_Ic) ||
+                 (objectAddr >= RemoteMetry_IHD_Ua && objectAddr <= RemoteMetry_IHD_Ic) ||
+                 (objectAddr >= RemoteMetry_PlotBuf_Ua && objectAddr <= RemoteMetry_PlotBuf_Ic))) {
+                decodeOffset += sizeof(std::uint16_t) * 2;
+                DecodeRemoteMetryPacket(objectAddr, &decodeOffset);
+                // 实时指标和波形页面从带接收版本、连接编号的 PacketStore 读取。
+                if (objectAddr == RemoteMetry_PowerQuality ||
+                    (objectAddr >= RemoteMetry_PlotBuf_Ua && objectAddr <= RemoteMetry_PlotBuf_Ic)) {
+                    jybsmr131::PacketStore::Instance().Decode(decodeBuffer_.data() + frameOffset, frameLength);
+                }
+                frameOffset += frameLength;
+                continue;
+            }
             const bool decoded = jybsmr131::PacketStore::Instance().Decode(
                 decodeBuffer_.data() + frameOffset, frameLength);
             if (!decoded) TCP_LOGW("JYBSMR131 unsupported or invalid packet common=%{public}u object=%{public}u length=%{public}u",
@@ -814,6 +839,11 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
 
     TCP_LOGI("RemoteMetry frame object=%{public}u length=%{public}d", objectAddr, dataLength);
 
+    // Qt 的 DecodeLength = Length_temp + 6；新增结构包含公共地址、对象地址和长度。
+    const std::size_t DecodeLength = payloadLength + sizeof(std::uint16_t) * 3;
+    const char *tempBuf = reinterpret_cast<const char *>(
+        decodeBuffer_.data() + payloadOffset - sizeof(std::uint16_t) * 3);
+
     switch (objectAddr) {
         case RemoteMetry_BaseFreq:
             if (payloadLength == BaseFreq_DataLenth) {
@@ -854,6 +884,160 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
             } else {
                 TCP_LOGW("HarmonicI_Dsip length mismatch. expected=%{public}d actual=%{public}d",
                     static_cast<int>(HarmonicI_DataLenth), dataLength);
+            }
+            break;
+        case RemoteMetry_PowerQuality:
+            if (DecodeLength == sizeof(Package_YC_PowerQuality_Struct)) {
+                std::lock_guard<std::mutex> lock(PowerQualityDisplayMutex);
+                Package_PowerQuality = *(const Package_YC_PowerQuality_Struct *)tempBuf;
+                PowerQualityDisplayReady = true;
+            } else {
+                TCP_LOGW("电能质量包长度不匹配，期望=%{public}d 实际=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_PowerQuality_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_HD_Ua:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_HD_Ua1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_HD_Ua1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_HD_Ub:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_HD_Ub1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_HD_Ub1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_HD_Uc:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_HD_Uc1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_HD_Uc1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_HD_Ia:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_HD_Ia1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_HD_Ia1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_HD_Ib:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_HD_Ib1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_HD_Ib1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_HD_Ic:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_HD_Ic1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_HD_Ic1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_IHD_Ua:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_IHD_Ua1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_IHD_Ua1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_IHD_Ub:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_IHD_Ub1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_IHD_Ub1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_IHD_Uc:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_IHD_Uc1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_IHD_Uc1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_IHD_Ia:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_IHD_Ia1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_IHD_Ia1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_IHD_Ib:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_IHD_Ib1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_IHD_Ib1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_IHD_Ic:
+            if (DecodeLength == sizeof(Package_YC_Distortion_Struct)) {
+                Package_IHD_Ic1 = *(const Package_YC_Distortion_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_IHD_Ic1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_Distortion_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_PlotBuf_Ua:
+            if (DecodeLength == sizeof(Package_YC_PlotBuf_Struct)) {
+                Package_PlotBuf_Ua1 = *(const Package_YC_PlotBuf_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_PlotBuf_Ua1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_PlotBuf_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_PlotBuf_Ub:
+            if (DecodeLength == sizeof(Package_YC_PlotBuf_Struct)) {
+                Package_PlotBuf_Ub1 = *(const Package_YC_PlotBuf_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_PlotBuf_Ub1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_PlotBuf_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_PlotBuf_Uc:
+            if (DecodeLength == sizeof(Package_YC_PlotBuf_Struct)) {
+                Package_PlotBuf_Uc1 = *(const Package_YC_PlotBuf_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_PlotBuf_Uc1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_PlotBuf_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_PlotBuf_Ia:
+            if (DecodeLength == sizeof(Package_YC_PlotBuf_Struct)) {
+                Package_PlotBuf_Ia1 = *(const Package_YC_PlotBuf_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_PlotBuf_Ia1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_PlotBuf_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_PlotBuf_Ib:
+            if (DecodeLength == sizeof(Package_YC_PlotBuf_Struct)) {
+                Package_PlotBuf_Ib1 = *(const Package_YC_PlotBuf_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_PlotBuf_Ib1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_PlotBuf_Struct)), static_cast<int>(DecodeLength));
+            }
+            break;
+        case RemoteMetry_PlotBuf_Ic:
+            if (DecodeLength == sizeof(Package_YC_PlotBuf_Struct)) {
+                Package_PlotBuf_Ic1 = *(const Package_YC_PlotBuf_Struct *)tempBuf;
+            } else {
+                TCP_LOGW("Package_PlotBuf_Ic1 长度不匹配：expected=%{public}d actual=%{public}d",
+                    static_cast<int>(sizeof(Package_YC_PlotBuf_Struct)), static_cast<int>(DecodeLength));
             }
             break;
         default:

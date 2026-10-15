@@ -1,5 +1,106 @@
+import {
+  BaseFreqDisplayValue,
+  CommonSettingAnalogQuantityParameterStructValue,
+  CommonSettingAnalogQuantityStructValue,
+  CommonSettingAnalogQuantityWriteValue,
+  CommonSettingExceedingLimitStructValue,
+  CommonSettingExceedingLimitWriteValue,
+  CommonSettingPowerQualityStructValue,
+  CommonSettingPowerQualityWriteValue,
+  CommonSettingPrimarySystemStructValue,
+  CommonSettingPrimarySystemWriteValue,
+  CommonSettingStatisticsStructValue,
+  CommonSettingStatisticsWriteValue,
+  CommonSettingTeleControllingStructValue,
+  CommonSettingTeleControllingWriteValue,
+  CommonSettingTeleMeasuringStructValue,
+  CommonSettingTeleMeasuringWriteValue,
+  CommonSettingTeleSignalingStructValue,
+  CommonSettingTeleSignalingWriteValue,
+  HarmonicCurrentDisplayValue,
+  HarmonicVoltageDisplayValue,
+  HistoryNativeBatch,
+  Jybsmr131DigitalInputValue,
+  Jybsmr131NumericField,
+  Jybsmr131PacketValue,
+  PowerQualityDisplayValue,
+  RelaySettingWriteZoneValue,
+  RelaySettingZoneValue
+} from '../main/cpp/types/libentry/Index';
+
+
+export const getPowerQualityDisplayData = (): PowerQualityDisplayValue => {
+  return {
+    ready: false,
+    Voltage_Uo_Unbalance: 0,
+    Voltage_U2_Unbalance: 0,
+    VoltageTHD_A: 0,
+    VoltageTHD_B: 0,
+    VoltageTHD_C: 0,
+    Current_In_Unbalance: 0,
+    Current_I2_Unbalance: 0,
+    CurrentTHD_A: 0,
+    CurrentTHD_B: 0,
+    CurrentTHD_C: 0
+  };
+};
+
+export const getJybsmr131Packet = (_commonAddress: number, _objectAddress: number): Jybsmr131PacketValue => {
+  return {
+    ready: false,
+    revision: 0,
+    sessionId: 0,
+    commonAddress: _commonAddress,
+    objectAddress: _objectAddress,
+    payloadLength: 0,
+    fields: []
+  };
+};
+
+export const getJybsmr131DigitalInputs = (): Jybsmr131DigitalInputValue => {
+  return {
+    ready: false,
+    complete: false,
+    validMask: 0,
+    BreakerState_Now: 0
+  };
+};
+
+export const requestJybsmr131Packet = (_commonAddress: number, _objectAddress: number): boolean => {
+  return false;
+};
+
+export const updateJybsmr131Setting = (_objectAddress: number, _fields: Jybsmr131NumericField[]): boolean => {
+  return false;
+};
+
+export const openHistoryQuery = (_path: string, _table: string, _startMs: number,
+  _endMs: number, _address: number, _sampleStep: number): number => {
+  return 0;
+};
+
+export const nextHistoryBatch = (_handle: number): HistoryNativeBatch => {
+  return { rows: [], done: true };
+};
+
+export const closeHistoryQuery = (_handle: number): void => {
+};
+
 export const startTcpClient = (_host: string, _port: number): boolean => {
   return true;
+};
+
+// 预览器不建立监听 socket。
+export const startTcpServer = (_port: number = 2404): boolean => {
+  return false;
+};
+export const stopTcpServer = (): void => {
+};
+export const isTcpServerRunning = (): boolean => {
+  return false;
+};
+export const isTcpServerClientConnected = (): boolean => {
+  return false;
 };
 
 export const stopTcpClient = (): void => {
@@ -9,7 +110,7 @@ export const isTcpClientRunning = (): boolean => {
   return false;
 };
 
-export const getBaseFreqDisplayData = () => {
+export const getBaseFreqDisplayData = (): BaseFreqDisplayValue => {
   return {
     ready: false,
     Ua_Rms: 0,
@@ -43,11 +144,11 @@ export const requestHarmonicDisplayData = (): boolean => {
   return true;
 };
 
-const defaultHarmonicCurrentValues = () => {
+const defaultHarmonicCurrentValues = (): number[] => {
   return new Array<number>(30).fill(0);
 };
 
-export const getHarmonicVoltageDisplayData = () => {
+export const getHarmonicVoltageDisplayData = (): HarmonicVoltageDisplayValue => {
   return {
     ready: false,
     Ua: defaultHarmonicCurrentValues(),
@@ -56,7 +157,7 @@ export const getHarmonicVoltageDisplayData = () => {
   };
 };
 
-export const getHarmonicCurrentDisplayData = () => {
+export const getHarmonicCurrentDisplayData = (): HarmonicCurrentDisplayValue => {
   return {
     ready: false,
     Ia: defaultHarmonicCurrentValues(),
@@ -65,7 +166,7 @@ export const getHarmonicCurrentDisplayData = () => {
   };
 };
 
-export const getPrimarySystemSetting = () => {
+export const getPrimarySystemSetting = (): CommonSettingPrimarySystemStructValue => {
   return {
     ready: false,
     SystemGroundingMode: 0,
@@ -92,11 +193,11 @@ export const getPrimarySystemSetting = () => {
   };
 };
 
-export const updatePrimarySystemSetting = (_value: any): boolean => {
+export const updatePrimarySystemSetting = (_value: CommonSettingPrimarySystemWriteValue): boolean => {
   return true;
 };
 
-const defaultAnalogParameter = () => {
+const defaultAnalogParameter = (): CommonSettingAnalogQuantityParameterStructValue => {
   return {
     Ua: 100.00,
     Ub: 100.00,
@@ -117,7 +218,7 @@ const defaultAnalogParameter = () => {
   };
 };
 
-export const getAnalogQuantitySetting = () => {
+export const getAnalogQuantitySetting = (): CommonSettingAnalogQuantityStructValue => {
   return {
     ready: false,
     Reference: defaultAnalogParameter(),
@@ -127,11 +228,11 @@ export const getAnalogQuantitySetting = () => {
   };
 };
 
-export const updateAnalogQuantitySetting = (_value: any): boolean => {
+export const updateAnalogQuantitySetting = (_value: CommonSettingAnalogQuantityWriteValue): boolean => {
   return true;
 };
 
-export const getTeleMeasuringSetting = () => {
+export const getTeleMeasuringSetting = (): CommonSettingTeleMeasuringStructValue => {
   return {
     ready: false,
     Cycle_Detection: 0,
@@ -146,11 +247,11 @@ export const getTeleMeasuringSetting = () => {
   };
 };
 
-export const updateTeleMeasuringSetting = (_value: any): boolean => {
+export const updateTeleMeasuringSetting = (_value: CommonSettingTeleMeasuringWriteValue): boolean => {
   return true;
 };
 
-export const getTeleSignalingSetting = () => {
+export const getTeleSignalingSetting = (): CommonSettingTeleSignalingStructValue => {
   return {
     ready: false,
     YX01_Time: 0,
@@ -166,11 +267,11 @@ export const getTeleSignalingSetting = () => {
   };
 };
 
-export const updateTeleSignalingSetting = (_value: any): boolean => {
+export const updateTeleSignalingSetting = (_value: CommonSettingTeleSignalingWriteValue): boolean => {
   return true;
 };
 
-export const getTeleControllingSetting = () => {
+export const getTeleControllingSetting = (): CommonSettingTeleControllingStructValue => {
   return {
     ready: false,
     HoldingTime_YK1_XZ: 0,
@@ -191,11 +292,11 @@ export const getTeleControllingSetting = () => {
   };
 };
 
-export const updateTeleControllingSetting = (_value: any): boolean => {
+export const updateTeleControllingSetting = (_value: CommonSettingTeleControllingWriteValue): boolean => {
   return true;
 };
 
-export const getExceedingLimitSetting = () => {
+export const getExceedingLimitSetting = (): CommonSettingExceedingLimitStructValue => {
   return {
     ready: false,
     Enable_LineVoltageExceedingUpperLimit: 0,
@@ -223,11 +324,11 @@ export const getExceedingLimitSetting = () => {
   };
 };
 
-export const updateExceedingLimitSetting = (_value: any): boolean => {
+export const updateExceedingLimitSetting = (_value: CommonSettingExceedingLimitWriteValue): boolean => {
   return true;
 };
 
-export const getPowerQualitySetting = () => {
+export const getPowerQualitySetting = (): CommonSettingPowerQualityStructValue => {
   return {
     ready: false,
     Enable_FrequencyDeviation: 0,
@@ -256,11 +357,11 @@ export const getPowerQualitySetting = () => {
   };
 };
 
-export const updatePowerQualitySetting = (_value: any): boolean => {
+export const updatePowerQualitySetting = (_value: CommonSettingPowerQualityWriteValue): boolean => {
   return true;
 };
 
-export const getStatisticsSetting = () => {
+export const getStatisticsSetting = (): CommonSettingStatisticsStructValue => {
   return {
     ready: false,
     Enable_Bus: 0,
@@ -323,11 +424,11 @@ export const getStatisticsSetting = () => {
   };
 };
 
-export const updateStatisticsSetting = (_value: any): boolean => {
+export const updateStatisticsSetting = (_value: CommonSettingStatisticsWriteValue): boolean => {
   return true;
 };
 
-export const getRelaySettingByZone = (_zoneCode: number) => {
+export const getRelaySettingByZone = (_zoneCode: number): RelaySettingZoneValue => {
   return {
     ready: false,
     zoneCode: 1,
@@ -339,7 +440,7 @@ export const requestRelaySettingByZone = (_zoneCode: number): boolean => {
   return true;
 };
 
-export const updateRelaySettingByZone = (_value: any): boolean => {
+export const updateRelaySettingByZone = (_value: RelaySettingWriteZoneValue): boolean => {
   return true;
 };
 

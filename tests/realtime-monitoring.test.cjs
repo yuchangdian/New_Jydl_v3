@@ -13,11 +13,35 @@ const compiled = ts.transpileModule(source.slice(0, source.indexOf('@Component')
   reportDiagnostics: true
 });
 assert.equal(compiled.diagnostics.length, 0);
-const context = { exports: {} };
+const protocolSource = fs.readFileSync(path.join(__dirname, '../entry/src/main/ets/protocol/Jybsmr131.ets'), 'utf8');
+const protocolContext = { exports: {}, require: () => ({}) };
+vm.runInNewContext(ts.transpileModule(protocolSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021 }
+}).outputText, protocolContext);
+const protocol = protocolContext.exports;
+const timers = new Map();
+let timerCount = 0;
+let now = 1000;
+const context = { exports: {}, require: name => {
+  assert.equal(name, '../../protocol/Jybsmr131');
+  return protocol;
+}, Date: { now: () => now },
+setInterval: (callback, interval) => { timers.set(++timerCount, { callback, interval }); return timerCount; },
+clearInterval: id => timers.delete(id) };
 vm.runInNewContext(compiled.outputText, context);
-const { buildRealtimeRows, formatRealtimeValue, parseRealtimeData, hasRealtimeData } = context.exports;
+const { buildRealtimeRows, formatRealtimeValue, hasRealtimeData, RealtimeMonitoringBuffer } = context.exports;
 const rowById = (rows, id) => rows.find(row => row.id === id);
 const values = row => Array.from(row.cells, cell => cell.value);
+
+function packet(isBase, data = {}, revision = 1, sessionId = 1) {
+  return {
+    ready: true, revision, sessionId, commonAddress: 0x1311, objectAddress: isBase ? 0x11 : 0x55,
+    payloadLength: isBase ? 151 : 435,
+    fields: Object.entries(data).map(([name, value]) => ({
+      name: (isBase ? '' : 'PowerQuality.') + name, values: Array.isArray(value) ? value : [value]
+    }))
+  };
+}
 
 test('Qt 的 14 行保持顺序，续行标题和不平衡度第三格留空', () => {
   const rows = buildRealtimeRows({}, {});
@@ -105,15 +129,7 @@ test('缺失和非法数字显示 --，合法零值保留，小数负零归零',
   assert.equal(formatRealtimeValue(-0.000001, 4), '0.0000');
 });
 
-test('支持带 data 及直接字段响应，失败和错误结构不会覆盖有效数据', () => {
-  const wrapped = parseRealtimeData('{"code":200,"success":true,"data":{"Ua_Frequency":[50]}}');
-  assert.equal(wrapped.Ua_Frequency[0], 50);
-  const direct = parseRealtimeData('{"Ua_Frequency":50}');
-  assert.equal(direct.Ua_Frequency, 50);
-  for (const input of ['null', '[]', '"text"', '{"data":null}', '{"data":[]}', '{"data":5}',
-    '{"code":500,"data":{"Ua_Frequency":50}}', '{"success":false,"data":{"Ua_Frequency":50}}', 'bad json']) {
-    assert.throws(() => parseRealtimeData(input));
-  }
+test('两类指标各自校验有效字段，合法零值不能丢失', () => {
   assert.equal(hasRealtimeData({}, true), false);
   assert.equal(hasRealtimeData({ Ua_Frequency: [0] }, true), true);
   assert.equal(hasRealtimeData({ Ua_Frequency: [50] }, false), false);
@@ -129,4 +145,149 @@ test('两组数据刷新互不混用，单组后续响应能更新已有行', ()
   assert.equal(rowById(first, 'Frequency').cells[0].value, '50.0000Hz');
   assert.equal(rowById(second, 'Frequency').cells[0].value, '49.8000Hz');
   assert.equal(rowById(second, 'FrequencyDeviation').cells[0].value, '0.0100Hz');
+});
+
+test('真实快照字段分组独立刷新，重复缓存不重建行也不延长有效期', () => {
+  const buffer = new RealtimeMonitoringBuffer();
+  const base = packet(true, { Ua_Frequency: 50, Ua_RMS: 230, Ua_Phase: -120, IA_RMS: 5, IA_Phase: 30 });
+  const quality = packet(false, { FreqDeviation_A: 0, Voltage_Uo: 0, Current_In_Unbalance: 0.75 });
+  buffer.accept(base, true, 1000);
+  assert.match(buffer.status(1000, false), /等待电能质量/);
+  buffer.accept(quality, false, 2000);
+  assert.equal(buffer.status(2000, false), '');
+  assert.equal(rowById(buffer.rows, 'Frequency').cells[0].value, '50.0000Hz');
+  assert.equal(rowById(buffer.rows, 'Current').cells[0].value, '5.0000 A∠30.000°');
+  assert.equal(rowById(buffer.rows, 'CurrentUnbalanceRate').cells[1].value, '0.7500%');
+  const rows = buffer.rows;
+  assert.equal(buffer.accept(base, true, 10500), false);
+  assert.equal(buffer.accept(quality, false, 10500), false);
+  assert.equal(buffer.rows, rows);
+  buffer.accept(packet(false, { FreqDeviation_A: 0.1 }, 2), false, 11000);
+  assert.match(buffer.status(11000, false), /^基波数据超过 10 秒/);
+  assert.equal(rowById(buffer.rows, 'Frequency').cells[0].value, '50.0000Hz');
+  assert.equal(rowById(buffer.rows, 'FrequencyDeviation').cells[0].value, '0.1000Hz');
+});
+
+test('Qt 电能质量快照全部 31 个页面字段按 PowerQuality 前缀映射', () => {
+  const names = ['FreqDeviation_A', 'FreqDeviation_B', 'FreqDeviation_C',
+    'FreqQualifiRate_A', 'FreqQualifiRate_B', 'FreqQualifiRate_C',
+    'VoltageDeviation_A', 'VoltageDeviation_B', 'VoltageDeviation_C',
+    'VoltageDeviation_AB', 'VoltageDeviation_BC', 'VoltageDeviation_CA',
+    'VoltageQualifiRate_A', 'VoltageQualifiRate_B', 'VoltageQualifiRate_C',
+    'Voltage_U1', 'Voltage_U2', 'Voltage_Uo', 'Voltage_U2_Unbalance', 'Voltage_Uo_Unbalance',
+    'VoltageShortFlicke_A', 'VoltageShortFlicke_B', 'VoltageShortFlicke_C',
+    'VoltageLongFlicke_A', 'VoltageLongFlicke_B', 'VoltageLongFlicke_C',
+    'Current_I1', 'Current_I2', 'Current_Io', 'Current_I2_Unbalance', 'Current_In_Unbalance'];
+  const data = Object.fromEntries(names.map((name, index) => [name, index + 0.125]));
+  const buffer = new RealtimeMonitoringBuffer();
+  buffer.accept(packet(false, data), false, 1000);
+  assert.equal(JSON.stringify(buffer.rows), JSON.stringify(buildRealtimeRows({}, data)));
+});
+
+test('错误地址、空数据、非有限数和旧版本不会覆盖有效显示', () => {
+  const buffer = new RealtimeMonitoringBuffer();
+  buffer.accept(packet(true, { Ua_Frequency: 50 }, 5), true, 1000);
+  const rows = buffer.rows;
+  const wrong = packet(true, { Ua_Frequency: 99 }, 6);
+  wrong.commonAddress = 0x11;
+  assert.equal(buffer.accept(wrong, true, 2000), false);
+  wrong.commonAddress = 0x1311; wrong.objectAddress = 0x55;
+  assert.equal(buffer.accept(wrong, true, 2000), false);
+  for (const data of [{}, { Ua_Frequency: NaN }, { Ua_Frequency: Infinity }, { Ua_Frequency: [1, 2] }]) {
+    assert.equal(buffer.accept(packet(true, data, 6), true, 2000), false);
+  }
+  assert.equal(buffer.accept(packet(true, { Ua_Frequency: 99 }, 4), true, 2000), false);
+  assert.equal(buffer.rows, rows);
+  assert.equal(buffer.isFresh(true, 11000, 10000), false);
+  assert.equal(buffer.accept(packet(true, { Ua_Frequency: 0 }, 6), true, 11000), true);
+  assert.equal(rowById(buffer.rows, 'Frequency').cells[0].value, '0.0000Hz');
+});
+
+test('重连立即清空上一会话，两组读取横跨重连时不会拼接新旧连接数据', () => {
+  const buffer = new RealtimeMonitoringBuffer();
+  buffer.accept(packet(true, { Ua_Frequency: 50 }, 100, 1), true, 1000);
+  buffer.accept(packet(false, { Voltage_U1: 230 }, 101, 1), false, 1000);
+  const reset = packet(true, {}, 0, 2); reset.ready = false;
+  assert.equal(buffer.accept(reset, true, 2000), true);
+  assert.equal(rowById(buffer.rows, 'Frequency').cells[0].value, '--');
+  assert.equal(rowById(buffer.rows, 'VoltageUnbalance').cells[0].value, '--');
+  buffer.accept(packet(true, { Ua_Frequency: 49 }, 102, 2), true, 2000);
+  assert.equal(buffer.accept(packet(false, { Voltage_U1: 230 }, 101, 1), false, 2000), false);
+  assert.equal(rowById(buffer.rows, 'Frequency').cells[0].value, '49.0000Hz');
+  assert.match(buffer.status(2000, false), /等待电能质量/);
+  buffer.accept(packet(false, { Voltage_U1: 220 }, 103, 2), false, 2200);
+  assert.equal(buffer.status(2200, false), '');
+});
+
+function componentMethod(name) {
+  const match = source.match(new RegExp('^  (?:private )?' + name + '\\([^]*?^  }', 'm'));
+  assert.ok(match, name);
+  return match[0].replace('private ', '');
+}
+Object.assign(context, protocol, { hilog: { error() {} } });
+const controllerSource = `class RealtimeController {
+  buffer = new RealtimeMonitoringBuffer(); rows = this.buffer.rows; statusText = '';
+  pageActive = true; active = false; timerId = -1; nextRequestAt = 0; requestFailed = false;
+  ${['aboutToAppear', 'aboutToDisappear', 'onPageActiveChanged', 'startPolling', 'stopPolling',
+    'readPacket', 'requestPacket', 'pollData'].map(componentMethod).join('\n')}
+}
+exports.RealtimeController = RealtimeController;`;
+vm.runInNewContext(ts.transpileModule(controllerSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2021 }
+}).outputText, context);
+const { RealtimeController } = context.exports;
+
+test('实际组件每 200 毫秒读取新快照，仅对缺失组补发查询，每 2 秒重试', () => {
+  now = 1000; timers.clear();
+  const calls = [];
+  let quality = packet(false); quality.ready = false;
+  let base = packet(true, { Ua_Frequency: 50 });
+  protocol.Jybsmr131Protocol.telemetry = address => address === 0x11 ? base : quality;
+  protocol.Jybsmr131Protocol.requestTelemetry = address => { calls.push(address); return false; };
+  const page = new RealtimeController();
+  page.aboutToAppear(); page.aboutToAppear();
+  assert.equal(timers.size, 1);
+  assert.equal([...timers.values()][0].interval, 200);
+  assert.deepEqual(calls, [0x55]);
+  assert.match(page.statusText, /请求未发送成功/);
+  now = 1200; page.pollData();
+  assert.deepEqual(calls, [0x55]);
+  quality = packet(false, { FreqDeviation_A: 0 }, 2);
+  page.pollData();
+  assert.equal(page.statusText, '');
+  assert.equal(rowById(page.rows, 'FrequencyDeviation').cells[0].value, '0.0000Hz');
+  now = 3000;
+  base = packet(true, { Ua_Frequency: 49.9 }, 3);
+  page.pollData();
+  assert.deepEqual(calls, [0x55]);
+  now = 5000; page.pollData();
+  assert.deepEqual(calls, [0x55, 0x11, 0x55]);
+  page.aboutToDisappear();
+  assert.equal(timers.size, 0);
+});
+
+test('实际组件隐藏和销毁时停止轮询，单组读取异常不阻塞另一组，重新显示可恢复', () => {
+  now = 1000; timers.clear();
+  let reads = 0;
+  protocol.Jybsmr131Protocol.telemetry = address => {
+    reads++;
+    if (address === 0x55) throw new Error('质量读取失败');
+    return packet(true, { Ua_Frequency: 50 });
+  };
+  protocol.Jybsmr131Protocol.requestTelemetry = () => { throw new Error('连接失败'); };
+  const page = new RealtimeController();
+  page.aboutToAppear();
+  assert.equal(rowById(page.rows, 'Frequency').cells[0].value, '50.0000Hz');
+  const callback = [...timers.values()][0].callback;
+  page.pageActive = false; page.onPageActiveChanged();
+  assert.equal(timers.size, 0);
+  const stoppedReads = reads;
+  callback();
+  assert.equal(reads, stoppedReads);
+  now = 11000;
+  page.pageActive = true; page.onPageActiveChanged();
+  assert.equal(timers.size, 1);
+  assert.match(page.statusText, /基波数据超过 10 秒/);
+  page.aboutToDisappear(); page.aboutToDisappear();
+  assert.equal(timers.size, 0);
 });

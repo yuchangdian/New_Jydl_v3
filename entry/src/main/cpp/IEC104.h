@@ -4,6 +4,8 @@
 #include <complex.h>
 #include "data.h"
 #include <string>
+#include <mutex>
+#include "powerquality.h"
 
 #define	Common_Addr_RemoteMetry		0x0011	//遥测
 #define	Common_Addr_RemoteControl	0x0022	//遥控
@@ -37,6 +39,26 @@
 #define RemoteMetry_PowerEnergy		0x0022
 #define RemoteMetry_HarmonicU		0x0033
 #define RemoteMetry_HarmonicI		0x0044
+#define RemoteMetry_PowerQuality     0x0055 //电能质量
+
+#define RemoteMetry_HD_Ua         0x0081 //63次谐波量Ua
+#define RemoteMetry_HD_Ub         0x0082 //63次谐波量Ub
+#define RemoteMetry_HD_Uc         0x0083 //63次谐波量Uc
+#define RemoteMetry_HD_Ia         0x0084 //63次谐波量Ia
+#define RemoteMetry_HD_Ib         0x0085 //63次谐波量Ib
+#define RemoteMetry_HD_Ic         0x0086 //63次谐波量Ic
+#define RemoteMetry_IHD_Ua        0x0091 //63次间谐波量Ua
+#define RemoteMetry_IHD_Ub        0x0092 //63次间谐波量Ub
+#define RemoteMetry_IHD_Uc        0x0093 //63次间谐波量Uc
+#define RemoteMetry_IHD_Ia        0x0094 //63次间谐波量Ia
+#define RemoteMetry_IHD_Ib        0x0095 //63次间谐波量Ib
+#define RemoteMetry_IHD_Ic        0x0096 //63次间谐波量Ic
+#define RemoteMetry_PlotBuf_Ua    0x00B1 //波形图数据缓冲Ua
+#define RemoteMetry_PlotBuf_Ub    0x00B2 //波形图数据缓冲Ub
+#define RemoteMetry_PlotBuf_Uc    0x00B3 //波形图数据缓冲Uc
+#define RemoteMetry_PlotBuf_Ia    0x00B4 //波形图数据缓冲Ia
+#define RemoteMetry_PlotBuf_Ib    0x00B5 //波形图数据缓冲Ib
+#define RemoteMetry_PlotBuf_Ic    0x00B6 //波形图数据缓冲Ic
 
 #define RemoteControl_BHH1			0x0001
 #define RemoteControl_BTJ1			0x0002
@@ -460,6 +482,58 @@ typedef struct
     float Value;
 }__attribute__ ((packed,aligned(1))) SOE_1Value_Struct;
 
+typedef struct	//遥测Package数据结构——电能质量（两条线路）
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteMetry
+    uint16_t Object_addr;	//地址（自定义）
+    uint16_t Length;
+    uint16_t Time_ms;		//0~59999
+    uint8_t Time_min;		//0~59
+    uint8_t Time_hour;		//0~23
+    uint8_t Time_day;		//1~31
+    uint8_t Time_month;		//1~12
+    uint8_t Time_year;		//0~99
+    PowerQualityIndicator_struct PowerQuality;
+}__attribute__ ((packed,aligned(1))) Package_YC_PowerQuality_Struct;
+extern Package_YC_PowerQuality_Struct Package_PowerQuality;
+extern bool PowerQualityDisplayReady;
+// 接收线程和页面读取线程共同使用，保证整包快照一致。
+extern std::mutex PowerQualityDisplayMutex;
+
+typedef struct	//遥测Package数据结构——63次谐波与间谐波（两条线路）
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteMetry
+    uint16_t Object_addr;	//地址（自定义）
+    uint16_t Length;
+    uint16_t Time_ms;		//0~59999
+    uint8_t Time_min;		//0~59
+    uint8_t Time_hour;		//0~23
+    uint8_t Time_day;		//1~31
+    uint8_t Time_month;		//1~12
+    uint8_t Time_year;		//0~99
+    HarmonicDistortion_struct Distortion;
+}__attribute__ ((packed,aligned(1))) Package_YC_Distortion_Struct;
+extern Package_YC_Distortion_Struct Package_HD_Ua1,	 Package_HD_Ub1,  Package_HD_Uc1;	//谐波
+extern Package_YC_Distortion_Struct Package_HD_Ia1,	 Package_HD_Ib1,  Package_HD_Ic1;	//谐波
+extern Package_YC_Distortion_Struct Package_IHD_Ua1, Package_IHD_Ub1, Package_IHD_Uc1;	//间谐波
+extern Package_YC_Distortion_Struct Package_IHD_Ia1, Package_IHD_Ib1, Package_IHD_Ic1;	//间谐波
+
+typedef struct	//遥测Package数据结构——波形图数据缓冲（两条线路）
+{
+    uint16_t Common_addr;	//Common_Addr_RemoteMetry
+    uint16_t Object_addr;	//地址（自定义）
+    uint16_t Length;
+    uint16_t Time_ms;		//0~59999
+    uint8_t Time_min;		//0~59
+    uint8_t Time_hour;		//0~23
+    uint8_t Time_day;		//1~31
+    uint8_t Time_month;		//1~12
+    uint8_t Time_year;		//0~99
+    int16_t Value[400];		//解析时先转浮点然后除100
+}__attribute__ ((packed,aligned(1))) Package_YC_PlotBuf_Struct;
+
+extern Package_YC_PlotBuf_Struct Package_PlotBuf_Ua1, Package_PlotBuf_Ub1, Package_PlotBuf_Uc1;	//波形图数据缓冲
+extern Package_YC_PlotBuf_Struct Package_PlotBuf_Ia1, Package_PlotBuf_Ib1, Package_PlotBuf_Ic1;	//波形图数据缓冲
 
 
 

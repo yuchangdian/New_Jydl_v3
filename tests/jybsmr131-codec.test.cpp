@@ -151,6 +151,56 @@ int main()
     }
     std::cout << "PASS both system variants, nested settings, CRC and invalid writes\n";
 
+    // 与 Qt 告警界面逐项对应：3 个基础参数 + 23 组 Enable / ActValue。
+    PacketStore alarmStore;
+    const char *alarmNames[] = {
+        "VoltageUnbalance", "VoltageDeviation", "FreqDeviation", "VoltageShortFlicke",
+        "VoltageLongFlicke", "VoltageFluct", "VoltageSeg", "VoltageSwell", "VoltageTHD",
+        "VoltageOddTHD", "VoltageEvenTHD", "VoltageOddHAR", "VoltageEvenHAR",
+        "VoltageInterTHD", "VoltageInterHAR", "CurrentUnbalance", "CurrentTHD",
+        "CurrentOddTHD", "CurrentEvenTHD", "CurrentOddHAR", "CurrentEvenHAR",
+        "CurrentInterTHD", "CurrentInterHAR"
+    };
+    auto alarmFrame = Frame(0x1344, 0x33, 200);
+    Put32(alarmFrame, 6, 1);
+    Put32(alarmFrame, 10, 123);
+    Put32(alarmFrame, 14, 456);
+    for (std::size_t i = 0; i < 23; ++i) {
+        Put32(alarmFrame, 18 + i * 8, i % 2);
+        PutFloat(alarmFrame, 22 + i * 8, static_cast<float>(i) + 0.125f);
+    }
+    Seal(alarmFrame);
+    assert(alarmStore.Decode(alarmFrame.data(), alarmFrame.size()));
+    const auto alarmSnapshot = alarmStore.Get(0x1344, 0x33);
+    assert(alarmSnapshot.ready && alarmSnapshot.payloadLength == 200 && alarmSnapshot.fields.size() == 50);
+    assert(Value(alarmSnapshot, "VoltageRef_SegSwell") == 1);
+    assert(Value(alarmSnapshot, "RecoedSize_Normal") == 123);
+    assert(Value(alarmSnapshot, "RecoedSize_Violation") == 456);
+    std::vector<NumericField> alarmChanges = {
+        {"VoltageRef_SegSwell", {0}}, {"RecoedSize_Normal", {250}}, {"RecoedSize_Violation", {500}}
+    };
+    for (std::size_t i = 0; i < 23; ++i) {
+        const std::string name = alarmNames[i];
+        assert(Value(alarmSnapshot, (name + ".Enable").c_str()) == i % 2);
+        assert(Value(alarmSnapshot, (name + ".ActValue").c_str()) == static_cast<double>(i) + 0.125);
+        alarmChanges.push_back({name + ".Enable", {static_cast<double>((i + 1) % 2)}});
+        alarmChanges.push_back({name + ".ActValue", {static_cast<double>(i) + 0.5}});
+    }
+    const auto typedAlarm = alarmStore.GetPowerQualitySetting();
+    assert(typedAlarm.ready && typedAlarm.value.VoltageRef_SegSwell == 1);
+    assert(typedAlarm.value.VoltageUnbalance.ActValue == 0.125f);
+    assert(typedAlarm.value.CurrentInterHAR.ActValue == 22.125f);
+    std::vector<std::uint8_t> alarmOutput;
+    assert(alarmStore.BuildSetting(0x33, alarmChanges, alarmOutput) && alarmOutput.size() == 206);
+    assert(Value(alarmStore.Get(0x1344, 0x33), "RecoedSize_Normal") == 123);
+    assert(alarmStore.Decode(alarmOutput.data(), alarmOutput.size()));
+    for (const auto &change : alarmChanges)
+        assert(Value(alarmStore.Get(0x1344, 0x33), change.name.c_str()) == change.values[0]);
+    alarmOutput[22] ^= 1;
+    assert(!alarmStore.Decode(alarmOutput.data(), alarmOutput.size()));
+    assert(Value(alarmStore.Get(0x1344, 0x33), "VoltageUnbalance.ActValue") == 0.5);
+    std::cout << "PASS alarm setting 49 fields, typed C++ snapshot, write roundtrip and CRC rejection\n";
+
     assert(store.GetFaultRecordSetting().ready && store.GetFaultRecordSetting().value.VoltageMutation.ActValue == 12.5f);
     assert(store.GetBroadbandPhasorSetting().ready && store.GetBroadbandPhasorSetting().value.VoltageSubsynOsc.ActValue == 12.5f);
     assert(store.GetAnalogQuantitySetting().ready && store.GetAnalogQuantitySetting().value.Correction.Ua == 12.5f);
@@ -207,6 +257,7 @@ int main()
 
     std::vector<std::uint8_t> query;
     assert(BuildQuery(0x1311, 0x11, query) && query == std::vector<std::uint8_t>({0x11, 0x13, 0x11, 0, 0, 0}));
+    assert(BuildQuery(0x1311, 0x55, query) && query == std::vector<std::uint8_t>({0x11, 0x13, 0x55, 0, 0, 0}));
     assert(BuildQuery(0x1344, 0x11, query));
     assert(BuildQuery(0x1344, 0x33, query));
     assert(BuildQuery(0x1333, 0x11, query) && query == std::vector<std::uint8_t>({0x33, 0x13, 0x11, 0, 0, 0}));
@@ -214,7 +265,37 @@ int main()
     assert(!BuildQuery(0x1322, 0x0106, query) && query.empty());
     assert(!BuildQuery(0x1344, 0x66, query));
     assert(!BuildQuery(0x1311, 0x81, query));
-    auto unknown = Frame(0x1311, 0x55, 417);
+    // Qt 实际结构为 441 字节，不能沿用旧头文件的 417 字节长度常量。
+    auto quality = Frame(0x1311, 0x55, 435);
+    Put16(quality, 6, 1234);
+    PutFloat(quality, 13, -0.125f); // 频率偏差 A
+    PutFloat(quality, 13 + 4 * 4, 99.75f); // 分相频率合格率 A
+    PutFloat(quality, 13 + 4 * 8, -1.5f); // 相电压偏差 A
+    PutFloat(quality, 13 + 4 * 11, 2.5f); // 线电压偏差 AB
+    PutFloat(quality, 13 + 4 * 18, 230.0f); // 正序电压
+    PutFloat(quality, 13 + 4 * 23, 0.0f); // 零序电流，合法零值
+    PutFloat(quality, 13 + 4 * 27, 0.75f); // 电流零序不平衡度
+    PutFloat(quality, 13 + 4 * 37, 1.25f); // A 相长闪变
+    PutFloat(quality, 13 + 4 * 106, 0.95f); // 最后一个指标
+    assert(store.Decode(quality.data(), quality.size()));
+    const auto qualitySnapshot = store.Get(0x1311, 0x55);
+    assert(qualitySnapshot.ready && qualitySnapshot.payloadLength == 435 && qualitySnapshot.fields.size() == 113);
+    assert(Value(qualitySnapshot, "Time_ms") == 1234);
+    assert(Value(qualitySnapshot, "PowerQuality.FreqDeviation_A") == -0.125);
+    assert(Value(qualitySnapshot, "PowerQuality.FreqQualifiRate_A") == 99.75);
+    assert(Value(qualitySnapshot, "PowerQuality.VoltageDeviation_A") == -1.5);
+    assert(Value(qualitySnapshot, "PowerQuality.VoltageDeviation_AB") == 2.5);
+    assert(Value(qualitySnapshot, "PowerQuality.Voltage_U1") == 230.0);
+    assert(Value(qualitySnapshot, "PowerQuality.Current_Io") == 0.0);
+    assert(Value(qualitySnapshot, "PowerQuality.Current_In_Unbalance") == 0.75);
+    assert(Value(qualitySnapshot, "PowerQuality.VoltageLongFlicke_A") == 1.25);
+    assert(std::abs(Value(qualitySnapshot, "PowerQuality.FullWave_Ft") - 0.95) < 0.00001);
+    auto invalidQuality = Frame(0x1311, 0x55, 417);
+    assert(!store.Decode(invalidQuality.data(), invalidQuality.size()));
+    assert(store.Get(0x1311, 0x55).revision == qualitySnapshot.revision);
+    assert(store.Decode(quality.data(), quality.size()));
+    assert(store.Get(0x1311, 0x55).revision > qualitySnapshot.revision);
+    auto unknown = Frame(0x1311, 0xAA, 417);
     assert(!store.Decode(unknown.data(), unknown.size()));
     std::thread reader([&store]() { for (int i = 0; i < 500; ++i) store.Get(0x1311, 0x11); });
     for (int i = 0; i < 500; ++i) assert(store.Decode(base.data(), base.size()));
@@ -222,6 +303,7 @@ int main()
     const auto beforeReset = store.Get(0x1311, 0x11);
     store.Reset();
     assert(!store.Get(0x1311, 0x11).ready);
+    assert(!store.Get(0x1311, 0x55).ready);
     assert(store.Get(0x1311, 0x11).revision == 0);
     assert(store.Get(0x1311, 0x11).sessionId > beforeReset.sessionId);
     assert(!store.GetFaultRecordSetting().ready && !store.GetBroadbandPhasorSetting().ready &&

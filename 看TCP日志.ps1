@@ -7,8 +7,8 @@ chcp 65001 > $null
 
 $hdc = 'C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe'
 $bundleName = 'com.example.new_jydl_v3'
-$tags = 'JY_TCP_ARK,JY_TCP_NATIVE,JY_ENTRY'
-$tagPattern = 'JY_TCP_ARK|JY_TCP_NATIVE|JY_ENTRY'
+$tags = 'JY_TCP_ARK,JY_TCP_NATIVE,JY_TCP_SERVER,JY_ENTRY'
+$tagPattern = 'JY_TCP_ARK|JY_TCP_NATIVE|JY_TCP_SERVER|JY_ENTRY'
 
 if (-not (Test-Path $hdc)) {
   Write-Error "hdc.exe not found: $hdc"

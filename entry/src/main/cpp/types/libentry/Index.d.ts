@@ -75,6 +75,20 @@ export interface BaseFreqDisplayValue {
   Ic_Phase: number;
 }
 
+export interface PowerQualityDisplayValue {
+  ready: boolean;
+  Voltage_Uo_Unbalance: number;
+  Voltage_U2_Unbalance: number;
+  VoltageTHD_A: number;
+  VoltageTHD_B: number;
+  VoltageTHD_C: number;
+  Current_In_Unbalance: number;
+  Current_I2_Unbalance: number;
+  CurrentTHD_A: number;
+  CurrentTHD_B: number;
+  CurrentTHD_C: number;
+}
+
 export interface HarmonicCurrentDisplayValue {
   ready: boolean;
   Ia: number[];
@@ -515,7 +529,12 @@ export const updateJybsmr131Setting: (objectAddress: number, fields: Jybsmr131Nu
 export const startTcpClient: (host: string, port: number) => boolean;
 export const stopTcpClient: () => void;
 export const isTcpClientRunning: () => boolean;
+export const startTcpServer: (port?: number) => boolean;
+export const stopTcpServer: () => void;
+export const isTcpServerRunning: () => boolean;
+export const isTcpServerClientConnected: () => boolean;
 export const getBaseFreqDisplayData: () => BaseFreqDisplayValue;
+export const getPowerQualityDisplayData: () => PowerQualityDisplayValue;
 export const requestHarmonicDisplayData: () => boolean;
 export const getHarmonicVoltageDisplayData: () => HarmonicVoltageDisplayValue;
 export const getHarmonicCurrentDisplayData: () => HarmonicCurrentDisplayValue;

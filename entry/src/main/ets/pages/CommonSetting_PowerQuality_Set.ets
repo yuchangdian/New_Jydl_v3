@@ -8,7 +8,7 @@ import {
   createPowerQualityAlarmRows,
   packetMatchesFields,
   PowerQualityAlarmRow,
-  readPacketValue,
+  readPowerQualityAlarmSetting,
   validatePowerQualitySetting
 } from '../models/PowerQualityAlarmSetting';
 import { Jybsmr131Protocol, Jybsmr131SettingAddress } from '../protocol/Jybsmr131';
@@ -22,6 +22,7 @@ const RECORD_FREQUENCY_OPTIONS: SelectOption[] = [
 @Component
 export struct CommonSetting_PowerQuality_Set {
   @State uiScale: number = 1;
+  @State layoutReady: boolean = false;
   @State dateText: string = '';
   @State timeText: string = '';
   @State noticeText: string = '';
@@ -47,19 +48,30 @@ export struct CommonSetting_PowerQuality_Set {
   private baselineRevision: number = 0;
   private baselineSessionId: number = 0;
   private settingLoaded: boolean = false;
+  private active: boolean = false;
+  private readGeneration: number = 0;
+  private applyingSetting: boolean = false;
   private confirmPollCount: number = 0;
   private pendingFields: Jybsmr131NumericField[] = [];
 
   aboutToAppear(): void {
+    this.active = true;
     this.updateClock();
+    this.stopTimer(this.clockTimer);
     this.clockTimer = setInterval(() => this.updateClock(), 1000);
     this.requestSetting();
   }
 
   aboutToDisappear(): void {
+    this.active = false;
+    this.readGeneration++;
     this.stopTimer(this.clockTimer);
     this.stopTimer(this.loadTimer);
     this.stopTimer(this.confirmTimer);
+    this.clockTimer = -1;
+    this.loadTimer = -1;
+    this.confirmTimer = -1;
+    this.readingSetting = false;
   }
 
   private s(value: number): number {
@@ -77,52 +89,78 @@ export struct CommonSetting_PowerQuality_Set {
   }
 
   private requestSetting(): void {
-    const previous = Jybsmr131Protocol.setting(Jybsmr131SettingAddress.PowerQuality);
-    if (!Jybsmr131Protocol.requestSetting(Jybsmr131SettingAddress.PowerQuality)) {
-      this.statusText = '读取请求发送失败，请检查设备连接';
-      return;
-    }
-    this.readingSetting = true;
-    let count = 0;
-    this.loadTimer = setInterval(() => {
-      const packet = Jybsmr131Protocol.setting(Jybsmr131SettingAddress.PowerQuality);
-      if (packet.ready && (packet.sessionId !== previous.sessionId || packet.revision > previous.revision)) {
-        this.stopTimer(this.loadTimer);
-        this.loadTimer = -1;
-        this.readingSetting = false;
-        this.applyPacket(packet);
+    this.stopTimer(this.loadTimer);
+    this.loadTimer = -1;
+    this.readingSetting = false;
+    this.settingLoaded = false;
+    const generation = ++this.readGeneration;
+    try {
+      const previous = Jybsmr131Protocol.setting(Jybsmr131SettingAddress.PowerQuality);
+      // 与 Qt 构造函数 set_setting(&PowerQualitySetting) 一致，优先显示底层已有定值。
+      if (this.applyPacket(previous)) {
         this.statusText = '已读取装置定值';
-      } else if (++count >= 10) {
-        this.stopTimer(this.loadTimer);
-        this.loadTimer = -1;
-        this.readingSetting = false;
-        this.statusText = '未收到装置定值，当前内容不可提交';
+        return;
       }
-    }, 200);
+      if (!Jybsmr131Protocol.requestSetting(Jybsmr131SettingAddress.PowerQuality)) {
+        this.statusText = '读取请求发送失败，请检查设备连接';
+        return;
+      }
+      this.readingSetting = true;
+      this.statusText = '正在读取装置定值...';
+      let count = 0;
+      // 缓存为空时只查询一次；最多等待 2 秒，赋值后立即停止，不持续刷新。
+      this.loadTimer = setInterval(() => {
+        if (!this.active || !this.readingSetting || generation !== this.readGeneration) return;
+        try {
+          const packet = Jybsmr131Protocol.setting(Jybsmr131SettingAddress.PowerQuality);
+          if ((packet.sessionId !== previous.sessionId || packet.revision > previous.revision) &&
+            this.applyPacket(packet)) {
+            this.finishReading('已读取装置定值');
+            return;
+          }
+          if (++count >= 10) this.finishReading('未收到完整的装置定值，当前内容不可提交');
+        } catch (error) {
+          this.finishReading('读取装置定值失败，请检查设备连接');
+        }
+      }, 200);
+    } catch (error) {
+      this.finishReading('读取装置定值失败，请检查设备连接');
+    }
   }
 
-  private applyPacket(packet: Jybsmr131PacketValue): void {
-    const reference = readPacketValue(packet, 'VoltageRef_SegSwell');
-    const normal = readPacketValue(packet, 'RecoedSize_Normal');
-    const violation = readPacketValue(packet, 'RecoedSize_Violation');
-    this.voltageReferenceIndex = reference === 1 ? 1 : 0;
-    if (normal !== undefined) this.normalRecordLength = normal.toFixed(2);
-    if (violation !== undefined) this.violationRecordLength = violation.toFixed(2);
-    this.rows.forEach((row: PowerQualityAlarmRow) => {
-      const enabled = readPacketValue(packet, `${row.key}.Enable`);
-      const value = readPacketValue(packet, `${row.key}.ActValue`);
-      if (enabled !== undefined) row.enabled = enabled === 1 ? '投入' : '退出';
-      // 与 Qt QString::number 的默认六位有效数字一致，避免显示 float 尾差。
-      if (value !== undefined) row.value = Number(value.toPrecision(6)).toString();
-    });
-    this.rows = this.rows.slice();
-    this.baselineRevision = packet.revision;
-    this.baselineSessionId = packet.sessionId;
-    this.settingLoaded = true;
-    this.noticeText = '';
+  private finishReading(status: string): void {
+    this.stopTimer(this.loadTimer);
+    this.loadTimer = -1;
+    this.readingSetting = false;
+    this.statusText = status;
+  }
+
+  private applyPacket(packet: Jybsmr131PacketValue): boolean {
+    const value = readPowerQualityAlarmSetting(packet);
+    if (value === undefined) return false;
+    // 对应 Qt QSignalBlocker：程序赋值不标记为用户修改。
+    this.applyingSetting = true;
+    try {
+      this.voltageReferenceIndex = value.voltageReferenceIndex;
+      this.normalRecordLength = value.normalRecordLength;
+      this.violationRecordLength = value.violationRecordLength;
+      this.rows.forEach((row: PowerQualityAlarmRow, index: number) => {
+        row.enabled = value.rows[index].enabled;
+        row.value = value.rows[index].value;
+      });
+      this.rows = this.rows.slice();
+      this.baselineRevision = packet.revision;
+      this.baselineSessionId = packet.sessionId;
+      this.settingLoaded = true;
+      this.noticeText = '';
+    } finally {
+      this.applyingSetting = false;
+    }
+    return true;
   }
 
   private markChanged(): void {
+    if (this.applyingSetting) return;
     this.noticeText = '温馨提醒：定值已被改动！';
   }
 
@@ -219,9 +257,14 @@ export struct CommonSetting_PowerQuality_Set {
     }
     .width('100%')
     .height('100%')
+    // 首次布局先取得实际宽度，避免默认缩放 1 的内容先显示一帧。
+    .opacity(this.layoutReady ? 1 : 0)
     .onAreaChange((_oldArea: Area, newArea: Area) => {
       const width = Number(newArea.width);
-      if (width > 0) this.uiScale = width / this.designWidth;
+      if (width > 0) {
+        this.uiScale = width / this.designWidth;
+        this.layoutReady = true;
+      }
     });
   }
 

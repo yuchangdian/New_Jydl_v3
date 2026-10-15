@@ -1,5 +1,7 @@
 # 电能质量实时指标 Qt 对齐说明
 
+> 2026-10-15 更新：实时数据源已由 IPC 改为本项目的 TCP / JYBSMR131 快照，当前刷新逻辑和验证结果见 [实时指标刷新完善说明](2026-10-15_实时指标刷新完善说明.md)。下文保留首版 UI 和 IPC 实现记录。
+
 ## 本次结果
 
 参考用户提供的 `PowerQualityRealtimeMonitoringPage.cpp`、`.h`、`.ui`，新增 `entry/src/main/ets/pages/quality/PowerQualityRealtimeMonitoringPage.ets`。数据接口、格式化、字段映射、刷新和 UI 均放在这个新文件中。

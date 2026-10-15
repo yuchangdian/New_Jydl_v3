@@ -25,7 +25,7 @@ test('新版缺少旧版独立通道时，已有通道仍可显示', () => {
   const data = sample('jybsmr131');
   for (const phase of ['Ux', 'Ia', 'Ib', 'Ic']) data[phase + '_Rms'] = data[phase + '_Phase'] = NaN;
   assert.equal(context.isUsableBaseFreqDisplayValue(data), true);
-  assert.equal(context.formatBaseFreqPhasorText(data.Ua_Rms, data.Ua_Phase, 'V'), '100.00V∠0.00°');
+  assert.equal(context.formatBaseFreqPhasorText(data.Ua_Rms, data.Ua_Phase, 'V'), '100.000V∠0.000°');
   assert.equal(context.formatBaseFreqPhasorText(data.Ux_Rms, data.Ux_Phase, 'V'), '--V∠--°');
 });
 test('旧协议仍按完整通道校验，新旧协议都拒绝未就绪或核心通道异常', () => {
@@ -36,6 +36,104 @@ test('旧协议仍按完整通道校验，新旧协议都拒绝未就绪或核�
   assert.equal(context.isUsableBaseFreqDisplayValue(latest), false);
   latest.Ua_Rms = 230; latest.ready = false;
   assert.equal(context.isUsableBaseFreqDisplayValue(latest), false);
+});
+
+test('首页格式遵循 Qt 的 RMS 分段精度、角度范围和三位频率/百分比', () => {
+  for (const [value, expected] of [[0, '00.00'], [0.0009, '00.00'], [0.001, '0.001'],
+    [0.125, '0.125'], [1, '1.0000'], [9.25, '9.2500'], [10, '10.000'],
+    [9999, '9999.000'], [10000, '00.00']]) {
+    assert.equal(context.formatRMS(value), expected);
+  }
+  assert.equal(context.formatAngle(-360), '-360.000');
+  assert.equal(context.formatAngle(360), '360.000');
+  assert.equal(context.formatAngle(360.01), '00.00');
+  assert.equal(context.formatAngle(-360.01), '00.00');
+  assert.equal(context.frequencyText(50.1234), '50.123Hz');
+  assert.equal(context.frequencyText(undefined), '--Hz');
+  assert.equal(context.percentText(0), '0.000%');
+  assert.equal(context.percentText(2.1234), '2.123%');
+  assert.equal(context.percentText(Infinity), '--%');
+});
+
+// 执行页面本身的方法，检查 native 快照到状态的真实映射和页面生命周期。
+function homeMethod(name) {
+  const match = indexSource.match(new RegExp('^  (?:private )?' + name + '\\([^]*?^  }', 'm'));
+  assert.ok(match, name);
+  return match[0].replace('private ', '');
+}
+const homeCompiled = ts.transpileModule('class Home {\n' + [
+  'aboutToAppear', 'aboutToDisappear', 'startBaseFreqRefreshTimer', 'stopBaseFreqRefreshTimer',
+  'resetBaseFreqDisplay', 'refreshBaseFreqDisplay', 'update_baseFreq_data',
+  'refreshPowerQualityDisplay', 'updateVoltageMonitoringPage'
+].map(homeMethod).join('\n') + '\n}\nglobalThis.createHome = () => new Home();', {
+  compilerOptions: { target: ts.ScriptTarget.ES2021 }, reportDiagnostics: true
+});
+assert.equal(homeCompiled.diagnostics.length, 0);
+let scheduledRefresh;
+const clearedTimers = [];
+context.setInterval = (callback, delay) => { assert.equal(delay, 500); scheduledRefresh = callback; return 12; };
+context.clearInterval = timer => clearedTimers.push(timer);
+context.console = { error() {} };
+vm.runInNewContext(homeCompiled.outputText, context);
+const qualityMapping = {
+  voltage_unbalance_0: 'Voltage_Uo_Unbalance', voltage_unbalance_2: 'Voltage_U2_Unbalance',
+  THD_Ua: 'VoltageTHD_A', THD_Ub: 'VoltageTHD_B', THD_Uc: 'VoltageTHD_C',
+  current_unbalance_0: 'Current_In_Unbalance', current_unbalance_2: 'Current_I2_Unbalance',
+  THD_Ia: 'CurrentTHD_A', THD_Ib: 'CurrentTHD_B', THD_Ic: 'CurrentTHD_C'
+};
+function qualitySample() {
+  const data = { ready: true };
+  Object.values(qualityMapping).forEach((name, index) => data[name] = index + 0.125);
+  return data;
+}
+test('首页按 Qt 分别刷新三相频率、保护电流和十项电能质量，不混用字段', () => {
+  const home = context.createHome();
+  const base = { ...sample('jybsmr131'), Ua_Frequency: 49.125, Ub_Frequency: 50.25, Uc_Frequency: 51.5,
+    IA_Rms: 5.25, IA_Phase: -120 };
+  home.update_baseFreq_data(base);
+  assert.equal(home.frequency, '49.125Hz');
+  assert.equal(home.frequencyB, '50.250Hz');
+  assert.equal(home.frequencyC, '51.500Hz');
+  assert.equal(home.ia, '5.2500A∠-120.000°');
+  const quality = qualitySample();
+  home.updateVoltageMonitoringPage(quality);
+  for (const [state, field] of Object.entries(qualityMapping)) {
+    assert.equal(home[state], quality[field].toFixed(3) + '%');
+  }
+  quality.VoltageTHD_B = NaN;
+  home.updateVoltageMonitoringPage(quality);
+  assert.equal(home.THD_Ub, '--%');
+  assert.equal(home.THD_Ua, '2.125%');
+});
+test('基波和电能质量独立就绪，断连/接口异常清除旧显示，离开页面清理定时器', () => {
+  const home = context.createHome();
+  const base = { ...sample('jybsmr131'), Ua_Frequency: 50 };
+  const quality = qualitySample();
+  const nativeModule = { getBaseFreqDisplayData: () => base, getPowerQualityDisplayData: () => quality };
+  home.baseFreqRefreshTimer = -1;
+  home.loadBaseFreqNativeModule = () => nativeModule;
+  home.aboutToAppear();
+  assert.equal(home.frequency, '50.000Hz');
+  assert.equal(home.THD_Ic, '9.125%');
+  base.ready = false;
+  scheduledRefresh();
+  assert.equal(home.frequency, '--Hz');
+  assert.equal(home.THD_Ic, '9.125%');
+  base.ready = true;
+  quality.ready = false;
+  scheduledRefresh();
+  assert.equal(home.frequency, '50.000Hz');
+  for (const state of Object.keys(qualityMapping)) assert.equal(home[state], '--%');
+  nativeModule.getPowerQualityDisplayData = () => { throw new Error('读取失败'); };
+  scheduledRefresh();
+  assert.equal(home.frequency, '50.000Hz');
+  assert.equal(home.THD_Ic, '--%');
+  nativeModule.getPowerQualityDisplayData = undefined;
+  scheduledRefresh();
+  assert.equal(home.THD_Ic, '--%');
+  home.aboutToDisappear();
+  assert.equal(home.baseFreqRefreshTimer, -1);
+  assert.equal(clearedTimers.pop(), 12);
 });
 
 const calls = [];

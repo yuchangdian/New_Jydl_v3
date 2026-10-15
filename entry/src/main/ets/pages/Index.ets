@@ -11,6 +11,8 @@ interface BaseFreqDisplayValue {
   ready: boolean;
   protocolVersion?: string;
   Ua_Frequency?: number;
+  Ub_Frequency?: number;
+  Uc_Frequency?: number;
   Ua_Rms: number;
   Ua_Phase: number;
   Ub_Rms: number;
@@ -37,8 +39,23 @@ interface BaseFreqDisplayValue {
   Ic_Phase: number;
 }
 
+interface PowerQualityDisplayValue {
+  ready: boolean;
+  Voltage_Uo_Unbalance: number;
+  Voltage_U2_Unbalance: number;
+  VoltageTHD_A: number;
+  VoltageTHD_B: number;
+  VoltageTHD_C: number;
+  Current_In_Unbalance: number;
+  Current_I2_Unbalance: number;
+  CurrentTHD_A: number;
+  CurrentTHD_B: number;
+  CurrentTHD_C: number;
+}
+
 interface BaseFreqNativeModule {
   getBaseFreqDisplayData?: () => BaseFreqDisplayValue | undefined;
+  getPowerQualityDisplayData?: () => PowerQualityDisplayValue | undefined;
 }
 
 declare function requireNapi(
@@ -47,8 +64,8 @@ declare function requireNapi(
   modulePath?: string
 ): BaseFreqNativeModule | undefined;
 
-const ANGLE_SYMBOL: string = String.fromCharCode(8736);
-const DEGREE_SYMBOL: string = String.fromCharCode(176);
+const ANGLE_SYMBOL: string = '∠';
+const DEGREE_SYMBOL: string = '°';
 
 function createPhasorPlaceholder(unit: string): string {
   return '00.00' + unit + ANGLE_SYMBOL + '00.00' + DEGREE_SYMBOL;
@@ -58,7 +75,36 @@ function formatBaseFreqPhasorText(rms: number, phase: number, unit: string): str
   if (!isValidBaseFreqNumber(rms) || !isValidBaseFreqNumber(phase)) {
     return '--' + unit + ANGLE_SYMBOL + '--' + DEGREE_SYMBOL;
   }
-  return rms.toFixed(2) + unit + ANGLE_SYMBOL + phase.toFixed(2) + DEGREE_SYMBOL;
+  return formatRMS(rms) + unit + ANGLE_SYMBOL + formatAngle(phase) + DEGREE_SYMBOL;
+}
+
+// 与 Qt MainWindow 的 formatRMS、formatAngle 保持相同范围和小数位数。
+function formatRMS(value: number): string {
+  if (value > 9999.0 || value < 0.001) {
+    return '00.00';
+  }
+  if (value >= 10.0) {
+    return value.toFixed(3);
+  } else if (value >= 1.0) {
+    return value.toFixed(4);
+  } else {
+    return value.toFixed(3);
+  }
+}
+
+function formatAngle(value: number): string {
+  if (value > 360.0 || value < -360.0) {
+    return '00.00';
+  }
+  return value.toFixed(3);
+}
+
+function frequencyText(value: number | undefined): string {
+  return value !== undefined && isValidBaseFreqNumber(value) ? value.toFixed(3) + 'Hz' : '--Hz';
+}
+
+function percentText(value: number | undefined): string {
+  return value !== undefined && isValidBaseFreqNumber(value) ? value.toFixed(3) + '%' : '--%';
 }
 
 function isValidBaseFreqNumber(value: number): boolean {
@@ -100,7 +146,9 @@ function isUsableBaseFreqDisplayValue(value: BaseFreqDisplayValue | undefined): 
 @Entry
 @Component
 struct Index {
-  @State frequency: string = '50.00Hz';
+  @State frequency: string = '--Hz';
+  @State frequencyB: string = '--Hz';
+  @State frequencyC: string = '--Hz';
   @State voltage: string = '57.1V';
   @State current: string = '0.00A';
   @State power: string = '0.00kW';
@@ -116,13 +164,24 @@ struct Index {
   @State uc: string = '00.00V∠00.00°';
   @State u0: string = '00.00V∠00.00°';
   @State ux: string = '00.00V∠00.00°';
-  @State ia: string = '00.00V∠00.00°';
-  @State ib: string = '00.00V∠00.00°';
-  @State ic: string = '00.00V∠00.00°';
-  @State i0: string = '00.00V∠00.00°';
-  @State iia: string = '00.00V∠00.00°';
-  @State iib: string = '00.00V∠00.00°';
-  @State iic: string = '00.00V∠00.00°';
+  @State ia: string = '00.00A∠00.00°';
+  @State ib: string = '00.00A∠00.00°';
+  @State ic: string = '00.00A∠00.00°';
+  @State i0: string = '00.00A∠00.00°';
+  @State iia: string = '00.00A∠00.00°';
+  @State iib: string = '00.00A∠00.00°';
+  @State iic: string = '00.00A∠00.00°';
+
+  @State voltage_unbalance_0: string = '--%';
+  @State voltage_unbalance_2: string = '--%';
+  @State THD_Ua: string = '--%';
+  @State THD_Ub: string = '--%';
+  @State THD_Uc: string = '--%';
+  @State current_unbalance_0: string = '--%';
+  @State current_unbalance_2: string = '--%';
+  @State THD_Ia: string = '--%';
+  @State THD_Ib: string = '--%';
+  @State THD_Ic: string = '--%';
 
   private baseFreqRefreshTimer: number = -1;
   private cachedBaseFreqNativeModule?: BaseFreqNativeModule;
@@ -166,6 +225,7 @@ struct Index {
   // build 是页面 UI 树的总入口，所有子区域都从这里组合出来。
   aboutToAppear(): void {
     this.refreshBaseFreqDisplay();
+    this.refreshPowerQualityDisplay();
     this.startBaseFreqRefreshTimer();
   }
 
@@ -177,6 +237,7 @@ struct Index {
     this.stopBaseFreqRefreshTimer();
     this.baseFreqRefreshTimer = setInterval(() => {
       this.refreshBaseFreqDisplay();
+      this.refreshPowerQualityDisplay();
     }, 500);
   }
 
@@ -222,6 +283,9 @@ struct Index {
   }
 
   private resetBaseFreqDisplay(): void {
+    this.frequency = '--Hz';
+    this.frequencyB = '--Hz';
+    this.frequencyC = '--Hz';
     this.ua = createPhasorPlaceholder('V');
     this.ub = createPhasorPlaceholder('V');
     this.uc = createPhasorPlaceholder('V');
@@ -250,26 +314,55 @@ struct Index {
         return;
       }
 
-      let baseFreqValue = value as BaseFreqDisplayValue;
-      if (baseFreqValue.Ua_Frequency !== undefined && isValidBaseFreqNumber(baseFreqValue.Ua_Frequency)) {
-        this.frequency = baseFreqValue.Ua_Frequency.toFixed(2) + 'Hz';
-      }
-      this.ua = formatBaseFreqPhasorText(baseFreqValue.Ua_Rms, baseFreqValue.Ua_Phase, 'V');
-      this.ub = formatBaseFreqPhasorText(baseFreqValue.Ub_Rms, baseFreqValue.Ub_Phase, 'V');
-      this.uc = formatBaseFreqPhasorText(baseFreqValue.Uc_Rms, baseFreqValue.Uc_Phase, 'V');
-      this.u0 = formatBaseFreqPhasorText(baseFreqValue.Uo_Rms, baseFreqValue.Uo_Phase, 'V');
-      this.ux = formatBaseFreqPhasorText(baseFreqValue.Ux_Rms, baseFreqValue.Ux_Phase, 'V');
-      this.ia = formatBaseFreqPhasorText(baseFreqValue.IA_Rms, baseFreqValue.IA_Phase, 'A');
-      this.ib = formatBaseFreqPhasorText(baseFreqValue.IB_Rms, baseFreqValue.IB_Phase, 'A');
-      this.ic = formatBaseFreqPhasorText(baseFreqValue.IC_Rms, baseFreqValue.IC_Phase, 'A');
-      this.i0 = formatBaseFreqPhasorText(baseFreqValue.Io_Rms, baseFreqValue.Io_Phase, 'A');
-      this.iia = formatBaseFreqPhasorText(baseFreqValue.Ia_Rms, baseFreqValue.Ia_Phase, 'A');
-      this.iib = formatBaseFreqPhasorText(baseFreqValue.Ib_Rms, baseFreqValue.Ib_Phase, 'A');
-      this.iic = formatBaseFreqPhasorText(baseFreqValue.Ic_Rms, baseFreqValue.Ic_Phase, 'A');
+      this.update_baseFreq_data(value as BaseFreqDisplayValue);
     } catch (error) {
-      console.error(`refresh base frequency display failed: ${JSON.stringify(error)}`);
+      console.error(`刷新基波数据失败: ${JSON.stringify(error)}`);
       this.resetBaseFreqDisplay();
     }
+  }
+
+  private update_baseFreq_data(data: BaseFreqDisplayValue): void {
+    this.frequency = frequencyText(data.Ua_Frequency);
+    this.frequencyB = frequencyText(data.Ub_Frequency);
+    this.frequencyC = frequencyText(data.Uc_Frequency);
+
+    this.ua = formatBaseFreqPhasorText(data.Ua_Rms, data.Ua_Phase, 'V');
+    this.ub = formatBaseFreqPhasorText(data.Ub_Rms, data.Ub_Phase, 'V');
+    this.uc = formatBaseFreqPhasorText(data.Uc_Rms, data.Uc_Phase, 'V');
+    this.u0 = formatBaseFreqPhasorText(data.Uo_Rms, data.Uo_Phase, 'V');
+    this.ux = formatBaseFreqPhasorText(data.Ux_Rms, data.Ux_Phase, 'V');
+    this.ia = formatBaseFreqPhasorText(data.IA_Rms, data.IA_Phase, 'A');
+    this.ib = formatBaseFreqPhasorText(data.IB_Rms, data.IB_Phase, 'A');
+    this.ic = formatBaseFreqPhasorText(data.IC_Rms, data.IC_Phase, 'A');
+    this.i0 = formatBaseFreqPhasorText(data.Io_Rms, data.Io_Phase, 'A');
+    this.iia = formatBaseFreqPhasorText(data.Ia_Rms, data.Ia_Phase, 'A');
+    this.iib = formatBaseFreqPhasorText(data.Ib_Rms, data.Ib_Phase, 'A');
+    this.iic = formatBaseFreqPhasorText(data.Ic_Rms, data.Ic_Phase, 'A');
+  }
+
+  private refreshPowerQualityDisplay(): void {
+    try {
+      let nativeModule = this.loadBaseFreqNativeModule();
+      let value = nativeModule?.getPowerQualityDisplayData?.();
+      this.updateVoltageMonitoringPage(value);
+    } catch (error) {
+      console.error(`刷新电能质量数据失败: ${JSON.stringify(error)}`);
+      this.updateVoltageMonitoringPage(undefined);
+    }
+  }
+
+  private updateVoltageMonitoringPage(packageValue: PowerQualityDisplayValue | undefined): void {
+    const value = packageValue && packageValue.ready ? packageValue : undefined;
+    this.voltage_unbalance_0 = percentText(value?.Voltage_Uo_Unbalance);
+    this.voltage_unbalance_2 = percentText(value?.Voltage_U2_Unbalance);
+    this.THD_Ua = percentText(value?.VoltageTHD_A);
+    this.THD_Ub = percentText(value?.VoltageTHD_B);
+    this.THD_Uc = percentText(value?.VoltageTHD_C);
+    this.current_unbalance_0 = percentText(value?.Current_In_Unbalance);
+    this.current_unbalance_2 = percentText(value?.Current_I2_Unbalance);
+    this.THD_Ia = percentText(value?.CurrentTHD_A);
+    this.THD_Ib = percentText(value?.CurrentTHD_B);
+    this.THD_Ic = percentText(value?.CurrentTHD_C);
   }
 
   build() {
@@ -293,9 +386,18 @@ struct Index {
   // 左侧信息面板：显示频率、运行状态、版本时间等概览信息。
   LeftPanel() {
     Column() {
-      Text(`频率：${this.frequency}`)
+      Text(`fa: ${this.frequency}`)
         .fontSize(20)
         .fontWeight(FontWeight.Bold)
+        .width('100%')
+        .textAlign(TextAlign.Center)
+
+      Text(`fb: ${this.frequencyB}`)
+        .fontSize(16)
+        .width('100%')
+        .textAlign(TextAlign.Center)
+      Text(`fc: ${this.frequencyC}`)
+        .fontSize(16)
         .width('100%')
         .textAlign(TextAlign.Center)
 
@@ -656,6 +758,26 @@ struct Index {
         }
         .width('100%')
 
+
+        Row() {
+          Text(`εUo:${this.voltage_unbalance_0}`).fontSize(16).width('20%')
+          Text(`εU2:${this.voltage_unbalance_2}`).fontSize(16).width('20%')
+          Text(`THD_Ua:${this.THD_Ua}`).fontSize(16).width('20%')
+          Text(`THD_Ub:${this.THD_Ub}`).fontSize(16).width('20%')
+          Text(`THD_Uc:${this.THD_Uc}`).fontSize(16).width('20%')
+        }
+        .width('100%')
+        .margin({ top: 10 })
+
+        Row() {
+          Text(`εIo:${this.current_unbalance_0}`).fontSize(16).width('20%')
+          Text(`εI2:${this.current_unbalance_2}`).fontSize(16).width('20%')
+          Text(`THD_Ia:${this.THD_Ia}`).fontSize(16).width('20%')
+          Text(`THD_Ib:${this.THD_Ib}`).fontSize(16).width('20%')
+          Text(`THD_Ic:${this.THD_Ic}`).fontSize(16).width('20%')
+        }
+        .width('100%')
+        .margin({ top: 5 })
 
         this.HardPlateSection()
         this.SoftPlateSection()

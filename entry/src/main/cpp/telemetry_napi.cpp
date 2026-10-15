@@ -214,6 +214,33 @@ napi_value GetBaseFreqDisplayData(napi_env env, napi_callback_info info)
     return CreateBaseFreqDisplayObject(env, snapshot, ready);
 }
 
+napi_value GetPowerQualityDisplayData(napi_env env, napi_callback_info info)
+{
+    (void)info;
+    Package_YC_PowerQuality_Struct snapshot = {};
+    bool ready = false;
+    {
+        std::lock_guard<std::mutex> lock(PowerQualityDisplayMutex);
+        snapshot = Package_PowerQuality;
+        ready = PowerQualityDisplayReady;
+    }
+    const PowerQualityIndicator_struct &value = snapshot.PowerQuality;
+    napi_value result = nullptr;
+    napi_create_object(env, &result);
+    napi_set_named_property(env, result, "ready", CreateBoolean(env, ready));
+    napi_set_named_property(env, result, "Voltage_Uo_Unbalance", CreateDouble(env, value.Voltage_Uo_Unbalance));
+    napi_set_named_property(env, result, "Voltage_U2_Unbalance", CreateDouble(env, value.Voltage_U2_Unbalance));
+    napi_set_named_property(env, result, "VoltageTHD_A", CreateDouble(env, value.VoltageTHD_A));
+    napi_set_named_property(env, result, "VoltageTHD_B", CreateDouble(env, value.VoltageTHD_B));
+    napi_set_named_property(env, result, "VoltageTHD_C", CreateDouble(env, value.VoltageTHD_C));
+    napi_set_named_property(env, result, "Current_In_Unbalance", CreateDouble(env, value.Current_In_Unbalance));
+    napi_set_named_property(env, result, "Current_I2_Unbalance", CreateDouble(env, value.Current_I2_Unbalance));
+    napi_set_named_property(env, result, "CurrentTHD_A", CreateDouble(env, value.CurrentTHD_A));
+    napi_set_named_property(env, result, "CurrentTHD_B", CreateDouble(env, value.CurrentTHD_B));
+    napi_set_named_property(env, result, "CurrentTHD_C", CreateDouble(env, value.CurrentTHD_C));
+    return result;
+}
+
 napi_value RequestHarmonicDisplayData(napi_env env, napi_callback_info info)
 {
     (void)info;

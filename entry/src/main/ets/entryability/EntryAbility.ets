@@ -13,6 +13,7 @@ const TCP_ARK_TAG = 'JY_TCP_ARK';
 // EntryAbility 在首屏加载完成后，会把这里的 IP 和端口传给 native TCP 客户端。
 const TCP_SERVER_HOST = '192.168.1.102';
 const TCP_SERVER_PORT = 2404;
+const TCP_LISTEN_PORT = 2404;
 
 // ArkTS 侧对 native 模块能力的类型声明。
 // 只要 so 层返回的对象具备这几个函数，ArkTS 就能统一调用它。
@@ -20,6 +21,8 @@ interface TcpClientModule {
   startTcpClient: (host: string, port: number) => boolean;
   stopTcpClient: () => void;
   isTcpClientRunning: () => boolean;
+  startTcpServer?: (port: number) => boolean;
+  stopTcpServer?: () => void;
   add?: (a: number, b: number) => number;
 }
 
@@ -189,6 +192,31 @@ export default class EntryAbility extends UIAbility {
     }
   }
 
+  private startNativeTcpServer(): void {
+    const nativeModule = this.loadTcpClientModule();
+    if (!nativeModule || typeof nativeModule.startTcpServer !== 'function') {
+      hilog.error(DOMAIN, 'JY_TCP_SERVER', 'TCP 服务端接口不可用');
+      return;
+    }
+    try {
+      const started = nativeModule.startTcpServer(TCP_LISTEN_PORT);
+      hilog.info(DOMAIN, 'JY_TCP_SERVER', '本机 TCP 服务端监听端口 %{public}d：%{public}s',
+        TCP_LISTEN_PORT, started ? '成功' : '失败');
+    } catch (error) {
+      hilog.error(DOMAIN, 'JY_TCP_SERVER', '启动 TCP 服务端失败：%{public}s', String(error));
+    }
+  }
+
+  private stopNativeTcpServer(): void {
+    const nativeModule = this.loadTcpClientModule();
+    if (!nativeModule || typeof nativeModule.stopTcpServer !== 'function') return;
+    try {
+      nativeModule.stopTcpServer();
+    } catch (error) {
+      hilog.error(DOMAIN, 'JY_TCP_SERVER', '停止 TCP 服务端失败：%{public}s', String(error));
+    }
+  }
+
   // onCreate 是 Ability 生命周期里最早执行的初始化入口。
   // 当前这里主要做两件事：
   // 1. 检查 native 模块是否可用
@@ -213,8 +241,9 @@ export default class EntryAbility extends UIAbility {
   }
 
   // onDestroy 对应 Ability 销毁阶段。
-  // 这里只做一件关键事：确保 native TCP 客户端被停掉，避免后台线程泄漏。
+  // 停止 native TCP 服务端和客户端，回收后台线程及 socket。
   onDestroy(): void {
+    this.stopNativeTcpServer();
     this.stopNativeTcpClient();
   }
 
@@ -233,6 +262,7 @@ export default class EntryAbility extends UIAbility {
       // 这样可以保证网络线程是在界面已经建立完成后再启动。
       hilog.info(DOMAIN, ENTRY_TAG, '首页加载成功');
       this.startNativeTcpClient();
+      this.startNativeTcpServer();
 
       // 拿到当前主窗口，继续配置全屏布局和系统栏显示策略。
       window.getLastWindow(this.context).then(async (mainWindow: window.Window) => {
@@ -254,8 +284,9 @@ export default class EntryAbility extends UIAbility {
   }
 
   // onWindowStageDestroy 对应窗口阶段销毁。
-  // 当界面窗口被关闭时，这里和 onDestroy 一样，也主动停止 native TCP 客户端。
+  // 窗口关闭时与 onDestroy 一样，停止 native TCP 服务端和客户端。
   onWindowStageDestroy(): void {
+    this.stopNativeTcpServer();
     this.stopNativeTcpClient();
   }
 

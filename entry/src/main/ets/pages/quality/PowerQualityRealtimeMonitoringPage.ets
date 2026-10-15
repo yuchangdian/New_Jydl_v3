@@ -1,11 +1,10 @@
 import hilog from '@ohos.hilog';
-import { common } from '@kit.AbilityKit';
-import { IpcUtil, IpcRequestConfig, IpcParams, StringResponse, IpcResponse } from '../../utils/IPC_Util';
-import { PROJECT_CODE, TERMINAL_ID } from '../../common/GlobalState';
+import { Jybsmr131NumericField, Jybsmr131PacketValue } from 'libentry.so';
+import { Jybsmr131Protocol, Jybsmr131CommonAddress, Jybsmr131TelemetryAddress } from '../../protocol/Jybsmr131';
 
 type RealtimeMetricValue = number | number[];
 
-// RemoteMetry 和 PowerQuality 的数组索引 0 对应线路 1；也支持单线路标量响应。
+// Qt 新协议使用单线路标量；格式化函数仍兼容旧数据中的线路 1 数组（索引 0）。
 export interface RealtimeMetricData {
   Ua_Frequency?: RealtimeMetricValue;
   Ub_Frequency?: RealtimeMetricValue;
@@ -56,12 +55,6 @@ export interface RealtimeMetricData {
   Current_I2_Unbalance?: RealtimeMetricValue;
   Current_In_Unbalance?: RealtimeMetricValue;
   Current_Io_Unbalance?: RealtimeMetricValue;
-}
-
-interface RealtimeApiResponse extends RealtimeMetricData {
-  success?: boolean;
-  code?: number;
-  data?: RealtimeMetricData;
 }
 
 export interface RealtimeMetricCell {
@@ -161,20 +154,6 @@ export function buildRealtimeRows(base: RealtimeMetricData, quality: RealtimeMet
   ];
 }
 
-export function parseRealtimeData(json: string): RealtimeMetricData {
-  const response = JSON.parse(json) as RealtimeApiResponse;
-  if (!response || typeof response !== 'object' || Array.isArray(response) || response.success === false ||
-    (typeof response.code === 'number' && response.code >= 400)) {
-    throw new Error('实时指标响应失败');
-  }
-  // 兼容项目里已有的带 data 外层响应，以及直接返回字段的响应。
-  const data: RealtimeMetricData = response.data !== undefined ? response.data : response;
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    throw new Error('实时指标数据格式无效');
-  }
-  return data;
-}
-
 export function hasRealtimeData(data: RealtimeMetricData, isBase: boolean): boolean {
   const rows = buildRealtimeRows(isBase ? data : {}, isBase ? {} : data);
   return rows.some((row: RealtimeMetricRow): boolean => {
@@ -182,120 +161,224 @@ export function hasRealtimeData(data: RealtimeMetricData, isBase: boolean): bool
   });
 }
 
+const REALTIME_POLL_INTERVAL: number = 200;
+const REALTIME_REQUEST_INTERVAL: number = 2000;
+const REALTIME_STALE_INTERVAL: number = 10000;
+
+function realtimePacketNumber(packet: Jybsmr131PacketValue, name: string): number | undefined {
+  const field = packet.fields.find((item: Jybsmr131NumericField) => item.name === name);
+  if (!field || field.values.length !== 1) return undefined;
+  return realtimeNumber(field.values[0]);
+}
+
+function realtimePacketData(packet: Jybsmr131PacketValue, isBase: boolean): RealtimeMetricData {
+  if (isBase) {
+    return {
+      Ua_Frequency: realtimePacketNumber(packet, 'Ua_Frequency'),
+      Ub_Frequency: realtimePacketNumber(packet, 'Ub_Frequency'),
+      Uc_Frequency: realtimePacketNumber(packet, 'Uc_Frequency'),
+      Ua_RMS: realtimePacketNumber(packet, 'Ua_RMS'),
+      Ub_RMS: realtimePacketNumber(packet, 'Ub_RMS'),
+      Uc_RMS: realtimePacketNumber(packet, 'Uc_RMS'),
+      Ua_Phase: realtimePacketNumber(packet, 'Ua_Phase'),
+      Ub_Phase: realtimePacketNumber(packet, 'Ub_Phase'),
+      Uc_Phase: realtimePacketNumber(packet, 'Uc_Phase'),
+      IA_RMS: realtimePacketNumber(packet, 'IA_RMS'),
+      IB_RMS: realtimePacketNumber(packet, 'IB_RMS'),
+      IC_RMS: realtimePacketNumber(packet, 'IC_RMS'),
+      IA_Phase: realtimePacketNumber(packet, 'IA_Phase'),
+      IB_Phase: realtimePacketNumber(packet, 'IB_Phase'),
+      IC_Phase: realtimePacketNumber(packet, 'IC_Phase')
+    };
+  }
+  return {
+    FreqDeviation_A: realtimePacketNumber(packet, 'PowerQuality.FreqDeviation_A'),
+    FreqDeviation_B: realtimePacketNumber(packet, 'PowerQuality.FreqDeviation_B'),
+    FreqDeviation_C: realtimePacketNumber(packet, 'PowerQuality.FreqDeviation_C'),
+    FreqQualifiRate_A: realtimePacketNumber(packet, 'PowerQuality.FreqQualifiRate_A'),
+    FreqQualifiRate_B: realtimePacketNumber(packet, 'PowerQuality.FreqQualifiRate_B'),
+    FreqQualifiRate_C: realtimePacketNumber(packet, 'PowerQuality.FreqQualifiRate_C'),
+    VoltageDeviation_A: realtimePacketNumber(packet, 'PowerQuality.VoltageDeviation_A'),
+    VoltageDeviation_B: realtimePacketNumber(packet, 'PowerQuality.VoltageDeviation_B'),
+    VoltageDeviation_C: realtimePacketNumber(packet, 'PowerQuality.VoltageDeviation_C'),
+    VoltageDeviation_AB: realtimePacketNumber(packet, 'PowerQuality.VoltageDeviation_AB'),
+    VoltageDeviation_BC: realtimePacketNumber(packet, 'PowerQuality.VoltageDeviation_BC'),
+    VoltageDeviation_CA: realtimePacketNumber(packet, 'PowerQuality.VoltageDeviation_CA'),
+    VoltageQualifiRate_A: realtimePacketNumber(packet, 'PowerQuality.VoltageQualifiRate_A'),
+    VoltageQualifiRate_B: realtimePacketNumber(packet, 'PowerQuality.VoltageQualifiRate_B'),
+    VoltageQualifiRate_C: realtimePacketNumber(packet, 'PowerQuality.VoltageQualifiRate_C'),
+    Voltage_U1: realtimePacketNumber(packet, 'PowerQuality.Voltage_U1'),
+    Voltage_U2: realtimePacketNumber(packet, 'PowerQuality.Voltage_U2'),
+    Voltage_Uo: realtimePacketNumber(packet, 'PowerQuality.Voltage_Uo'),
+    Voltage_U2_Unbalance: realtimePacketNumber(packet, 'PowerQuality.Voltage_U2_Unbalance'),
+    Voltage_Uo_Unbalance: realtimePacketNumber(packet, 'PowerQuality.Voltage_Uo_Unbalance'),
+    VoltageShortFlicke_A: realtimePacketNumber(packet, 'PowerQuality.VoltageShortFlicke_A'),
+    VoltageShortFlicke_B: realtimePacketNumber(packet, 'PowerQuality.VoltageShortFlicke_B'),
+    VoltageShortFlicke_C: realtimePacketNumber(packet, 'PowerQuality.VoltageShortFlicke_C'),
+    VoltageLongFlicke_A: realtimePacketNumber(packet, 'PowerQuality.VoltageLongFlicke_A'),
+    VoltageLongFlicke_B: realtimePacketNumber(packet, 'PowerQuality.VoltageLongFlicke_B'),
+    VoltageLongFlicke_C: realtimePacketNumber(packet, 'PowerQuality.VoltageLongFlicke_C'),
+    Current_I1: realtimePacketNumber(packet, 'PowerQuality.Current_I1'),
+    Current_I2: realtimePacketNumber(packet, 'PowerQuality.Current_I2'),
+    Current_Io: realtimePacketNumber(packet, 'PowerQuality.Current_Io'),
+    Current_I2_Unbalance: realtimePacketNumber(packet, 'PowerQuality.Current_I2_Unbalance'),
+    Current_In_Unbalance: realtimePacketNumber(packet, 'PowerQuality.Current_In_Unbalance')
+  };
+}
+
+// 两类报文独立推进；只将新接收版本视为更新，反复读取缓存不会延长有效期。
+export class RealtimeMonitoringBuffer {
+  rows: RealtimeMetricRow[] = buildRealtimeRows({}, {});
+  private baseData: RealtimeMetricData = {};
+  private qualityData: RealtimeMetricData = {};
+  private sessionId: number = -1;
+  private baseRevision: number = 0;
+  private qualityRevision: number = 0;
+  private baseReceivedAt: number = 0;
+  private qualityReceivedAt: number = 0;
+
+  accept(packet: Jybsmr131PacketValue, isBase: boolean, now: number): boolean {
+    const address = isBase ? Jybsmr131TelemetryAddress.BaseValue : Jybsmr131TelemetryAddress.PowerQuality;
+    if (packet.commonAddress !== Jybsmr131CommonAddress.RemoteMetry || packet.objectAddress !== address ||
+      !Number.isSafeInteger(packet.sessionId) || packet.sessionId < 0 || packet.sessionId < this.sessionId) {
+      return false;
+    }
+    let changed = false;
+    if (packet.sessionId !== this.sessionId) {
+      this.sessionId = packet.sessionId;
+      this.baseData = {};
+      this.qualityData = {};
+      this.baseRevision = 0;
+      this.qualityRevision = 0;
+      this.baseReceivedAt = 0;
+      this.qualityReceivedAt = 0;
+      changed = true;
+    }
+    const revision = isBase ? this.baseRevision : this.qualityRevision;
+    if (packet.ready && Number.isSafeInteger(packet.revision) && packet.revision > revision) {
+      const data = realtimePacketData(packet, isBase);
+      if (hasRealtimeData(data, isBase)) {
+        if (isBase) {
+          this.baseData = data;
+          this.baseRevision = packet.revision;
+          this.baseReceivedAt = now;
+        } else {
+          this.qualityData = data;
+          this.qualityRevision = packet.revision;
+          this.qualityReceivedAt = now;
+        }
+        changed = true;
+      }
+    }
+    if (changed) this.rows = buildRealtimeRows(this.baseData, this.qualityData);
+    return changed;
+  }
+
+  isFresh(isBase: boolean, now: number, interval: number): boolean {
+    const revision = isBase ? this.baseRevision : this.qualityRevision;
+    const receivedAt = isBase ? this.baseReceivedAt : this.qualityReceivedAt;
+    return revision > 0 && now - receivedAt < interval;
+  }
+
+  status(now: number, requestFailed: boolean): string {
+    const missing: string[] = [];
+    const stale: string[] = [];
+    if (this.baseRevision === 0) missing.push('基波');
+    else if (!this.isFresh(true, now, REALTIME_STALE_INTERVAL)) stale.push('基波');
+    if (this.qualityRevision === 0) missing.push('电能质量');
+    else if (!this.isFresh(false, now, REALTIME_STALE_INTERVAL)) stale.push('电能质量');
+    const messages: string[] = [];
+    if (missing.length > 0) messages.push('等待' + missing.join('、') + '数据，缺失值显示 --');
+    if (stale.length > 0) messages.push(stale.join('、') + '数据超过 10 秒未更新，保留上次有效值');
+    if (requestFailed) messages.push('数据请求未发送成功，正在重试');
+    return messages.join('；');
+  }
+}
+
 @Component
 export struct PowerQualityRealtimeMonitoringPage {
   @State private uiScale: number = 1;
   @State private rows: RealtimeMetricRow[] = buildRealtimeRows({}, {});
-  @State private statusText: string = '正在读取设备数据';
-  private baseData: RealtimeMetricData = {};
-  private qualityData: RealtimeMetricData = {};
+  @State private statusText: string = '等待设备实时指标数据';
+  @Prop @Watch('onPageActiveChanged') pageActive: boolean = true;
+  private buffer: RealtimeMonitoringBuffer = new RealtimeMonitoringBuffer();
   private readonly columns: number[] = [0, 1, 2];
-  private readonly refreshInterval: number = 2000;
   private timerId: number = -1;
-  private lifecycleId: number = 0;
   private active: boolean = false;
+  private nextRequestAt: number = 0;
+  private requestFailed: boolean = false;
   private scroller: Scroller = new Scroller();
 
   aboutToAppear(): void {
-    this.active = true;
-    this.lifecycleId++;
-    this.refreshData(this.lifecycleId);
+    this.onPageActiveChanged();
   }
 
   aboutToDisappear(): void {
+    this.stopPolling();
+  }
+
+  private onPageActiveChanged(): void {
+    if (this.pageActive) this.startPolling();
+    else this.stopPolling();
+  }
+
+  private startPolling(): void {
+    if (this.active) return;
+    this.active = true;
+    this.nextRequestAt = 0;
+    this.pollData();
+    this.timerId = setInterval(() => this.pollData(), REALTIME_POLL_INTERVAL);
+  }
+
+  private stopPolling(): void {
     this.active = false;
-    this.lifecycleId++;
     if (this.timerId !== -1) {
-      clearTimeout(this.timerId);
+      clearInterval(this.timerId);
       this.timerId = -1;
     }
   }
 
-  private isCurrentRequest(lifecycleId: number): boolean {
-    return this.active && lifecycleId === this.lifecycleId;
-  }
-
-  private async fetchData(isBase: boolean, lifecycleId: number): Promise<boolean> {
-    const deviceName = isBase ? 'RemoteMetry' : 'PowerQuality';
-    const params = new IpcParams();
-    params.projectCode = PROJECT_CODE;
-    params.terminalId = TERMINAL_ID;
-    params.setExtra('deviceName', deviceName);
-    params.setExtra('ts', '0');
+  private readPacket(isBase: boolean, now: number): boolean {
+    const address = isBase ? Jybsmr131TelemetryAddress.BaseValue : Jybsmr131TelemetryAddress.PowerQuality;
     try {
-      const response: IpcResponse<StringResponse> =
-        await IpcUtil.sendRequest<StringResponse>(new IpcRequestConfig('/api/yc/sub', params));
-      if (!response.success || !response.data || !response.data.data) {
-        throw new Error(deviceName + '请求失败');
-      }
-      const data = parseRealtimeData(response.data.data);
-      if (!hasRealtimeData(data, isBase)) {
-        throw new Error(deviceName + '未返回有效指标');
-      }
-      if (this.isCurrentRequest(lifecycleId)) {
-        if (isBase) {
-          this.baseData = data;
-        } else {
-          this.qualityData = data;
-        }
-        this.rows = buildRealtimeRows(this.baseData, this.qualityData);
-      }
-      return true;
+      return this.buffer.accept(Jybsmr131Protocol.telemetry(address), isBase, now);
     } catch (error) {
-      hilog.error(0x0001, 'RealtimeMonitoring', '%{public}s: %{public}s', deviceName, String(error));
+      hilog.error(0x0001, 'RealtimeMonitoring', '%{public}s读取失败：%{public}s',
+        isBase ? '基波' : '电能质量', String(error));
       return false;
     }
   }
 
-  private async refreshData(lifecycleId: number): Promise<void> {
-    if (!this.isCurrentRequest(lifecycleId)) {
-      return;
+  private requestPacket(isBase: boolean): boolean {
+    const address = isBase ? Jybsmr131TelemetryAddress.BaseValue : Jybsmr131TelemetryAddress.PowerQuality;
+    try {
+      return Jybsmr131Protocol.requestTelemetry(address);
+    } catch (error) {
+      hilog.error(0x0001, 'RealtimeMonitoring', '数据请求失败：%{public}s', String(error));
+      return false;
     }
-    if (!IpcUtil.isConnected()) {
-      try {
-        await IpcUtil.connect(this.getUIContext().getHostContext() as common.UIAbilityContext);
-        if (!IpcUtil.isConnected()) {
-          throw new Error('实时数据服务尚未连接');
-        }
-      } catch (error) {
-        if (this.isCurrentRequest(lifecycleId)) {
-          this.statusText = '实时数据服务未连接，保留已收到的数据；缺失值显示 --';
-          this.scheduleRefresh(lifecycleId);
-        }
-        hilog.error(0x0001, 'RealtimeMonitoring', '连接失败: %{public}s', String(error));
-        return;
-      }
-    }
-    if (!this.isCurrentRequest(lifecycleId)) {
-      return;
-    }
-    const baseOk = await this.fetchData(true, lifecycleId);
-    if (!this.isCurrentRequest(lifecycleId)) {
-      return;
-    }
-    const qualityOk = await this.fetchData(false, lifecycleId);
-    if (!this.isCurrentRequest(lifecycleId)) {
-      return;
-    }
-    if (baseOk && qualityOk) {
-      this.statusText = '';
-    } else if (!baseOk && !qualityOk) {
-      this.statusText = '设备数据未更新，保留已收到的数据；缺失值显示 --';
-    } else {
-      this.statusText = (baseOk ? '电能质量指标' : '频率及电压电流') + '未更新，缺失值显示 --';
-    }
-    this.scheduleRefresh(lifecycleId);
   }
 
-  private scheduleRefresh(lifecycleId: number): void {
-    if (!this.isCurrentRequest(lifecycleId)) {
-      return;
+  private pollData(): void {
+    if (!this.active) return;
+    const now = Date.now();
+    const baseChanged = this.readPacket(true, now);
+    const qualityChanged = this.readPacket(false, now);
+    if (baseChanged || qualityChanged) this.rows = this.buffer.rows;
+    if (now >= this.nextRequestAt) {
+      this.nextRequestAt = now + REALTIME_REQUEST_INTERVAL;
+      this.requestFailed = false;
+      // Qt 会持续转发设备报文；仅对缺失或暂未更新的组补发查询，不阻塞另一组刷新。
+      if (!this.buffer.isFresh(true, now, REALTIME_REQUEST_INTERVAL)) {
+        if (!this.requestPacket(true)) this.requestFailed = true;
+      }
+      if (!this.buffer.isFresh(false, now, REALTIME_REQUEST_INTERVAL)) {
+        if (!this.requestPacket(false)) this.requestFailed = true;
+      }
     }
-    // 完成本轮再定时，避免慢请求重叠；组件离开后过期响应不会启动下一轮。
-    this.timerId = setTimeout(() => {
-      this.timerId = -1;
-      this.refreshData(lifecycleId);
-    }, this.refreshInterval);
+    if (this.buffer.isFresh(true, now, REALTIME_REQUEST_INTERVAL) &&
+      this.buffer.isFresh(false, now, REALTIME_REQUEST_INTERVAL)) this.requestFailed = false;
+    this.statusText = this.buffer.status(now, this.requestFailed);
   }
 
   @Builder
