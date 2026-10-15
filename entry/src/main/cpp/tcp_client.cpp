@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
-
+#include "tcp_server.cpp"
 namespace {
 
 constexpr int TCP_LOG_DOMAIN = 0x0000;
@@ -753,10 +753,13 @@ void TcpClient::DispatchDecodedFrames()
             frameOffset += frameLength;
             continue;
         }
+        
+        
         switch (commonAddr) {
             case Common_Addr_RemoteMetry:
                 decodeOffset += sizeof(std::uint16_t) * 2;
                 DecodeRemoteMetryPacket(objectAddr, &decodeOffset);
+                
                 break;
             case Common_Addr_RemoteSignal:
                 decodeOffset += sizeof(std::uint16_t) * 2;
@@ -843,7 +846,9 @@ void TcpClient::DecodeRemoteMetryPacket(std::uint16_t objectAddr, std::size_t *d
     const std::size_t DecodeLength = payloadLength + sizeof(std::uint16_t) * 3;
     const char *tempBuf = reinterpret_cast<const char *>(
         decodeBuffer_.data() + payloadOffset - sizeof(std::uint16_t) * 3);
-
+    
+    tcp_server_send(decodeBuffer_.data(), DecodeLength);
+    
     switch (objectAddr) {
         case RemoteMetry_BaseFreq:
             if (payloadLength == BaseFreq_DataLenth) {
