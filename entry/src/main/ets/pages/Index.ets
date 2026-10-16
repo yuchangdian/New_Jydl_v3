@@ -386,18 +386,9 @@ struct Index {
   // 左侧信息面板：显示频率、运行状态、版本时间等概览信息。
   LeftPanel() {
     Column() {
-      Text(`fa: ${this.frequency}`)
+      Text(`频率：${this.frequency}`)
         .fontSize(20)
         .fontWeight(FontWeight.Bold)
-        .width('100%')
-        .textAlign(TextAlign.Center)
-
-      Text(`fb: ${this.frequencyB}`)
-        .fontSize(16)
-        .width('100%')
-        .textAlign(TextAlign.Center)
-      Text(`fc: ${this.frequencyC}`)
-        .fontSize(16)
         .width('100%')
         .textAlign(TextAlign.Center)
 
@@ -758,26 +749,6 @@ struct Index {
         }
         .width('100%')
 
-
-        Row() {
-          Text(`εUo:${this.voltage_unbalance_0}`).fontSize(16).width('20%')
-          Text(`εU2:${this.voltage_unbalance_2}`).fontSize(16).width('20%')
-          Text(`THD_Ua:${this.THD_Ua}`).fontSize(16).width('20%')
-          Text(`THD_Ub:${this.THD_Ub}`).fontSize(16).width('20%')
-          Text(`THD_Uc:${this.THD_Uc}`).fontSize(16).width('20%')
-        }
-        .width('100%')
-        .margin({ top: 10 })
-
-        Row() {
-          Text(`εIo:${this.current_unbalance_0}`).fontSize(16).width('20%')
-          Text(`εI2:${this.current_unbalance_2}`).fontSize(16).width('20%')
-          Text(`THD_Ia:${this.THD_Ia}`).fontSize(16).width('20%')
-          Text(`THD_Ib:${this.THD_Ib}`).fontSize(16).width('20%')
-          Text(`THD_Ic:${this.THD_Ic}`).fontSize(16).width('20%')
-        }
-        .width('100%')
-        .margin({ top: 5 })
 
         this.HardPlateSection()
         this.SoftPlateSection()

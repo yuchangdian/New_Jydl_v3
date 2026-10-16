@@ -1,4 +1,5 @@
 #include "tcp_client.h"
+#include "tcp_server_c.h"
 #include "protocol/jybsmr131/codec.h"
 #include "IEC104.h"
 #include "setting.h"
@@ -12,7 +13,6 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
-#include "tcp_server.cpp"
 namespace {
 
 constexpr int TCP_LOG_DOMAIN = 0x0000;
