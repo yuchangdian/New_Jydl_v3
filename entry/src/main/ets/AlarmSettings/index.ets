@@ -1,4 +1,3 @@
-import display from '@ohos.display';
 import { IpcUtil, IpcRequestConfig, IpcParams, IpcDataBase, IpcConnectionState } from '../utils/IPC_Util';
 import { DEFAULT_PASSWORD, TERMINAL_ID } from '../common/GlobalState';
 import hilog from '@ohos.hilog';
@@ -106,11 +105,8 @@ export struct AlarmSettings {
   @State currentDisplayValue: string = '';
   @State currentRowId: number = -1;
   @State currentInputType: number = 0;
-  @State keyboardPosition: 'bottom' | 'top' = 'bottom';
+  @State keyboardInputSession: number = 0;
   @State forceLockFocus: boolean = false;
-
-  // 滚动偏移量
-  @State scrollOffsetY: number = 0;
   // ==================================================
 
   // ===================== 所有输入框状态 =====================
@@ -465,7 +461,7 @@ export struct AlarmSettings {
         .height(40 * this.uiScale)
         .justifyContent(FlexAlign.Center)
 
-        // 🔥 关键：Scroll 添加滚动监听
+        // 告警定值列表。
         Scroll() {
           Column() {
             if (this.isListReady) {
@@ -497,10 +493,6 @@ export struct AlarmSettings {
           }
           .width('100%')
         }
-        .onScroll((xOffset: number, yOffset: number) => {
-          // 实时记录滚动位置
-          this.scrollOffsetY = yOffset;
-        })
         .layoutWeight(1)
 
         Row() {
@@ -552,21 +544,6 @@ export struct AlarmSettings {
         .alignItems(VerticalAlign.Center)
         .justifyContent(FlexAlign.Center)
 
-        if (this.isKeyboardShow) {
-          CustomKeyboard({
-            currentValue: () => this.currentDisplayValue,
-            onChange: (val) => {
-              this.currentDisplayValue = val;
-              this.saveCurrentInput();
-            },
-            onClose: () => {
-              this.saveCurrentInput();
-              this.isKeyboardShow = false;
-              this.currentRowId = -1;
-            },
-            keyboardPosition: this.keyboardPosition
-          })
-        }
       }
       .width('100%')
       .height('100%')
@@ -576,6 +553,23 @@ export struct AlarmSettings {
         this.currentRowId = -1;
         this.forceLockFocus = false;
       })
+
+      // 键盘覆盖在页面上，以整个窗口的底边定位，不占用列表空间。
+      if (this.isKeyboardShow) {
+        CustomKeyboard({
+          currentValue: () => this.currentDisplayValue,
+          inputSession: this.keyboardInputSession,
+          onChange: (val: string) => {
+            this.currentDisplayValue = val;
+            this.saveCurrentInput();
+          },
+          onClose: () => {
+            this.saveCurrentInput();
+            this.isKeyboardShow = false;
+            this.currentRowId = -1;
+          }
+        })
+      }
 
       // 密码输入对话框
       if (this.passwordDialogVisible) {
@@ -937,19 +931,15 @@ export struct AlarmSettings {
     this.passwordInput = '';
   }
 
-  // 👇 辅助方法：通过相对父组件的偏移来估算当前输入框的真实 Y 坐标
-  private getInputRelativeY(rowId: number, inputType: number): number {
-    // 每个 alarmItem 高度约 48 * uiScale，顶部 header 约 40 * uiScale
-    let itemHeight = 48 * this.uiScale;
-    let headerHeight = 40 * this.uiScale;
-    let rowIndex = rowId;
-
-    // 估算该行在滚动区域的顶部 Y（相对于 Scroll 容器）
-    let rowY = headerHeight + rowIndex * itemHeight;
-
-    // 根据 inputType 调整偏移（动作定值在左，时间在右，垂直位置相同）
-    // 这里只需要 Y 坐标，偏移不影响
-    return rowY - this.scrollOffsetY;
+  private openKeyboardForInput(rowId: number, inputType: number): void {
+    if (this.forceLockFocus) return;
+    this.saveCurrentInput();
+    this.currentRowId = rowId;
+    this.currentInputType = inputType;
+    this.currentDisplayValue = this.getValueByRowIdAndType(rowId, inputType);
+    // 切换输入框时重新读取内容，并将手动上移的键盘恢复到底部。
+    this.keyboardInputSession++;
+    this.isKeyboardShow = true;
   }
 
   @Builder
@@ -997,28 +987,7 @@ export struct AlarmSettings {
           .focusOnTouch(true)
           .customKeyboard(this.EmptyKeyboardBuilder())
           .onFocus(() => {
-            if (this.forceLockFocus) return;
-
-            // 👇 通过计算获取输入框相对于屏幕的 Y 坐标
-            let inputY = this.getInputRelativeY(rowId, 0);
-
-            // 👇 👇 👇 这是真正屏幕安全区域高度
-            let screenHeight = display.getDefaultDisplaySync().height;
-            let safeHeight = screenHeight - 150; // 减去底部导航/键盘高度
-
-            // 👇 👇 👇 只要输入框 Y > 1/3 屏幕，就判定在下方，键盘弹上
-            this.keyboardPosition = inputY > safeHeight / 1.5 ? "top" : "bottom";
-
-            console.log(
-              "✅ 最终判定 -> 输入框Y:", inputY,
-              " 屏幕半高:", safeHeight / 1.5,
-              " 键盘位置:", this.keyboardPosition
-            );
-
-            this.currentRowId = rowId;
-            this.currentInputType = 0;
-            this.currentDisplayValue = this.getValueByRowIdAndType(rowId, 0);
-            this.isKeyboardShow = true;
+            this.openKeyboardForInput(rowId, 0);
           })
           .onChange((val: string) => {
             this.currentDisplayValue = val;
@@ -1044,24 +1013,7 @@ export struct AlarmSettings {
           .focusOnTouch(true)
           .customKeyboard(this.EmptyKeyboardBuilder())
           .onFocus(() => {
-            if (this.forceLockFocus) return;
-
-            // 👇 通过计算获取输入框相对于屏幕的 Y 坐标
-            let inputY = this.getInputRelativeY(rowId, 1);
-
-            let screenHeight = display.getDefaultDisplaySync().height;
-            let safeHeight = screenHeight - 150;
-
-            this.keyboardPosition = inputY > safeHeight / 1.5 ? "top" : "bottom";
-            console.log(
-              "✅ 最终判定 -> 输入框Y:", inputY,
-              " 屏幕半高:", safeHeight / 1.5,
-              " 键盘位置:", this.keyboardPosition
-            );
-            this.currentRowId = rowId;
-            this.currentInputType = 1;
-            this.currentDisplayValue = this.getValueByRowIdAndType(rowId, 1);
-            this.isKeyboardShow = true;
+            this.openKeyboardForInput(rowId, 1);
           })
           .onChange((val: string) => {
             this.currentDisplayValue = val;

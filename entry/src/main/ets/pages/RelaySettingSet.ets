@@ -467,7 +467,6 @@ struct RelaySettingSet {
   @State customKeyboardVisible: boolean = false;
   @State customKeyboardValue: string = '';
   @State customKeyboardTargetBindingIndex: number = -1;
-  @State customKeyboardPosition: 'bottom' | 'top' = 'bottom';
   @State submitWaitingDialogVisible: boolean = false;
   @State submitWaitingMessage: string = '';
 
@@ -551,22 +550,9 @@ struct RelaySettingSet {
     return this.currentProfileData;
   }
 
-  private resolveKeyboardPositionForFieldId(fieldId: string, fallback: 'bottom' | 'top' = 'bottom'): 'bottom' | 'top' {
-    let matched = /section-(\d+)/.exec(fieldId);
-    if (!matched || matched.length < 2) {
-      return fallback;
-    }
-    let sectionIndex = Number(matched[1]);
-    if (Number.isNaN(sectionIndex)) {
-      return fallback;
-    }
-    return sectionIndex >= 15 ? 'top' : 'bottom';
-  }
-
   private openCustomKeyboard(
     bindingIndex: number,
-    currentValue: string,
-    keyboardPosition: 'bottom' | 'top' = 'bottom'
+    currentValue: string
   ): void {
     if (this.isLoading) {
       return;
@@ -575,7 +561,6 @@ struct RelaySettingSet {
     this.closeSelectOverlay();
     this.customKeyboardTargetBindingIndex = bindingIndex;
     this.customKeyboardValue = currentValue;
-    this.customKeyboardPosition = keyboardPosition;
 
     if (this.customKeyboardVisible) {
       this.customKeyboardVisible = false;
@@ -1476,7 +1461,6 @@ struct RelaySettingSet {
     this.customKeyboardVisible = false;
     this.customKeyboardValue = '';
     this.customKeyboardTargetBindingIndex = -1;
-    this.customKeyboardPosition = 'bottom';
     this.submitWaitingDialogVisible = false;
     this.submitWaitingMessage = '';
     this.vm.noticeText = '';
@@ -1573,8 +1557,7 @@ struct RelaySettingSet {
           },
           onClose: () => {
             this.closeCustomKeyboard();
-          },
-          keyboardPosition: this.customKeyboardPosition
+          }
         })
       }
 
@@ -1814,8 +1797,7 @@ struct RelaySettingSet {
         .onFocus(() => {
           this.openCustomKeyboard(
             cell.bindingIndex,
-            this.getCellValue(cell),
-            this.resolveKeyboardPositionForFieldId(cell.id)
+            this.getCellValue(cell)
           );
         })
         .onChange((value: string) => {
@@ -1909,8 +1891,7 @@ struct RelaySettingSet {
             .onFocus(() => {
               this.openCustomKeyboard(
                 field.bindingIndex,
-                this.getMonitorFieldValue(field),
-                this.resolveKeyboardPositionForFieldId(field.id, 'top')
+                this.getMonitorFieldValue(field)
               );
             })
             .onChange((value: string) => {
